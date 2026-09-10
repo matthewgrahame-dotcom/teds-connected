@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Ted's Connected"
+description = "The staff portal for Connected operations, work, news, and team resources."
+version = "1.0.0"
+id = "artifacts/opscentral"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18900
+
+[services.development]
+run = "pnpm --filter @workspace/opscentral run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/opscentral", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/opscentral/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18900"
+BASE_PATH = "/"

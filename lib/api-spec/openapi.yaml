@@ -1,0 +1,297 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: work-items
+    description: Operations work queue
+  - name: dashboard
+    description: Workspace summary and activity
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /work-items:
+    get:
+      operationId: listWorkItems
+      tags: [work-items]
+      summary: List work items
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [backlog, in_progress, blocked, done]
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, urgent]
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Work items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkItem"
+    post:
+      operationId: createWorkItem
+      tags: [work-items]
+      summary: Create a work item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkItemInput"
+      responses:
+        "201":
+          description: Created work item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkItem"
+  /work-items/{id}:
+    get:
+      operationId: getWorkItem
+      tags: [work-items]
+      summary: Get a work item
+      parameters:
+        - $ref: "#/components/parameters/WorkItemId"
+      responses:
+        "200":
+          description: Work item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkItem"
+        "404":
+          description: Work item not found
+    patch:
+      operationId: updateWorkItem
+      tags: [work-items]
+      summary: Update a work item
+      parameters:
+        - $ref: "#/components/parameters/WorkItemId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkItemUpdate"
+      responses:
+        "200":
+          description: Updated work item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkItem"
+        "404":
+          description: Work item not found
+    delete:
+      operationId: deleteWorkItem
+      tags: [work-items]
+      summary: Delete a work item
+      parameters:
+        - $ref: "#/components/parameters/WorkItemId"
+      responses:
+        "204":
+          description: Work item deleted
+        "404":
+          description: Work item not found
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get workspace summary
+      responses:
+        "200":
+          description: Summary metrics for the workspace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /dashboard/activity:
+    get:
+      operationId: listActivity
+      tags: [dashboard]
+      summary: List recent activity
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityEvent"
+components:
+  parameters:
+    WorkItemId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    WorkItem:
+      type: object
+      required:
+        - id
+        - title
+        - status
+        - priority
+        - category
+        - owner
+        - dueDate
+        - description
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [backlog, in_progress, blocked, done]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        owner:
+          type: ["string", "null"]
+        dueDate:
+          type: ["string", "null"]
+          format: date
+        category:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    WorkItemInput:
+      type: object
+      required: [title, status, priority, category]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [backlog, in_progress, blocked, done]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        owner:
+          type: ["string", "null"]
+        dueDate:
+          type: ["string", "null"]
+          format: date
+        category:
+          type: string
+          minLength: 1
+    WorkItemUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [backlog, in_progress, blocked, done]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        owner:
+          type: ["string", "null"]
+        dueDate:
+          type: ["string", "null"]
+          format: date
+        category:
+          type: string
+          minLength: 1
+    StatusCount:
+      type: object
+      required: [status, count]
+      properties:
+        status:
+          type: string
+          enum: [backlog, in_progress, blocked, done]
+        count:
+          type: integer
+    DashboardSummary:
+      type: object
+      required: [total, open, urgent, dueSoon, completedThisWeek, byStatus]
+      properties:
+        total:
+          type: integer
+        open:
+          type: integer
+        urgent:
+          type: integer
+        dueSoon:
+          type: integer
+        completedThisWeek:
+          type: integer
+        byStatus:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatusCount"
+    ActivityEvent:
+      type: object
+      required: [id, type, title, description, timestamp, workItemId]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [created, updated, completed, escalated]
+        title:
+          type: string
+        description:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        workItemId:
+          type: ["integer", "null"]
+
