@@ -1,0 +1,8 @@
+{
+  "buildCommand": "PORT=3000 BASE_PATH=/ pnpm --filter @workspace/opscentral run build",
+  "outputDirectory": "artifacts/opscentral/dist/public",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}
