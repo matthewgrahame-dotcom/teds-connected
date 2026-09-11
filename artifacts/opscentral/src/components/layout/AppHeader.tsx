@@ -56,11 +56,9 @@ export function AppHeader({ userName }: { userName: string }) {
           <button type="button" aria-label="Tasks" className="text-primary-foreground/70 transition hover:text-primary-foreground">
             <ListChecks className="h-5 w-5" />
           </button>
-          <button type="button" aria-label="Notifications" className="relative text-primary-foreground/70 transition hover:text-primary-foreground">
+          <button type="button" aria-label="Notifications" className="text-primary-foreground/70 transition hover:text-primary-foreground">
             <Bell className="h-5 w-5" />
-            <span className="absolute -right-2 -top-2 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[9px] font-extrabold text-primary-foreground">
-              99+
-            </span>
+            {/* TODO: wire to a real notifications count once that system exists. Showing an invented number here would be worse than showing none. */}
           </button>
 
           <div className="relative" ref={menuRef}>
