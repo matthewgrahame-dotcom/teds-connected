@@ -151,6 +151,40 @@ export const workCategories: Record<string, WorkCategory> = {
       { title: 'Camera Sensor Size Guide', href: '/documents/product-information/camera-sensor-size-guide.pdf', section: '3.0 Printable Sensor Size Guide' },
     ],
   },
+  'op-central-training': {
+    slug: 'op-central-training',
+    title: 'Op Central Training',
+    docs: [
+      {
+        title: 'What happened to Op Central Training?',
+        note: "This section used to host Op Central training content. Connected is taking over from Op Central — the resources you need now live across this platform's Learn, Work, and People sections.",
+      },
+      {
+        title: 'How do I log in?',
+        note: 'Connected uses the same staff code and initials as Phocal — log in once and both apps recognise you, no separate login to remember.',
+      },
+      {
+        title: "What's Phocal?",
+        note: "Ted's internal SEO and content operations platform. Jump to it directly from the Phocal tile in Quick Links on the Dashboard.",
+      },
+      {
+        title: 'Is the Social Timeline the same as Ted\u2019s Talks in Phocal?',
+        note: "Yes — it's the exact same live feed, not a separate copy. Posting here posts there too, and vice versa.",
+      },
+      {
+        title: 'Where do I find training programs (e.g. the Canon Sep-Nov program)?',
+        note: 'Learn > Programs.',
+      },
+      {
+        title: 'Where are the staff forms (refunds, expense claims, etc.)?',
+        note: 'People > Forms.',
+      },
+      {
+        title: "Something's missing or wrong — who do I tell?",
+        note: 'Speak to your manager or the Connected admin team.',
+      },
+    ],
+  },
   'operations': {
     slug: 'operations',
     title: 'Operations',
