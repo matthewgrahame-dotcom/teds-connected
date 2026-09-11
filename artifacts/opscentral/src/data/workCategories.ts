@@ -153,7 +153,7 @@ export const workCategories: Record<string, WorkCategory> = {
   },
   'op-central-training': {
     slug: 'op-central-training',
-    title: 'Op Central Training',
+    title: 'Connected & Phocal FAQ',
     docs: [
       {
         title: 'What happened to Op Central Training?',

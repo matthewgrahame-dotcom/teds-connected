@@ -20,7 +20,7 @@ const tiles: HubTile[] = [
   { title: 'Operations', slug: 'operations', image: operationsImg },
   { title: 'HR Handbook', slug: 'hr-handbook', image: hrHandbookImg },
   { title: 'Current Campaigns', slug: 'current-campaigns', image: currentCampaignsImg },
-  { title: 'Op Central Training', slug: 'op-central-training' }, // no source image provided -- now an FAQ, not the original tile
+  { title: 'Connected & Phocal FAQ', slug: 'op-central-training' }, // no source image provided -- Op Central Training tile repurposed as an FAQ
   { title: 'Pronto', slug: 'pronto', image: prontoImg },
   { title: 'Product Information', slug: 'product-information', image: productInformationImg },
 ];
