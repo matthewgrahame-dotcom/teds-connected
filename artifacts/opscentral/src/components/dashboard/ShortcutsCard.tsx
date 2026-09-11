@@ -4,7 +4,7 @@ import { LinkTileGrid, type LinkTile } from './LinkTileGrid';
 
 const tiles: LinkTile[] = [
   { label: 'Events Calendar', icon: CalendarDays, href: '#' },
-  { label: 'Incident Report', icon: FileWarning, href: '/people/forms/stock-incident-report-form' },
+  { label: 'Incident Report', icon: FileWarning, href: '/people/forms/whs-incident-report-form' },
 ];
 
 export function ShortcutsCard() {
