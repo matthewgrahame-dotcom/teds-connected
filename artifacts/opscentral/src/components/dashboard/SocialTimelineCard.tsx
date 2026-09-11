@@ -16,9 +16,12 @@ import {
   Search,
   Filter,
   User,
+  ExternalLink,
 } from 'lucide-react';
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { useAuth } from '@/lib/auth';
+
+const PHOCAL_BASE_URL = 'https://seo-optimiser.vercel.app'; // TODO: update once the Vercel project rename discussion lands
 
 // This is the SAME feed as Phocal's "Ted's Talks" -- reads/writes go through
 // Connected's own /api/social-timeline, which proxies to Phocal's storage,
@@ -73,11 +76,20 @@ export function SocialTimelineCard() {
 
   return (
     <DashboardCard
-      title="Social Timeline"
+      title="Ted's Talks"
       actions={
         <>
           <CardIconButton icon={Search} label="Search posts" tone="primary" />
           <CardIconButton icon={Filter} label="Filter posts" tone="primary" />
+          <a
+            href={`${PHOCAL_BASE_URL}/?page=tedstalks${session?.crossAppToken ? `&ssoToken=${encodeURIComponent(session.crossAppToken)}` : ''}`}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Open in Phocal"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground transition hover:brightness-95"
+          >
+            <ExternalLink className="h-4 w-4" />
+          </a>
         </>
       }
     >
