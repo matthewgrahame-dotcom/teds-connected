@@ -24,8 +24,8 @@ export function QuickLinksCard() {
     // (it's the one entry in Operations still missing an href) -- links to
     // the Operations page itself for now rather than a dead specific route.
     { label: 'DCW Who To Contact List', icon: BookOpen, href: '/work/operations' },
-    { label: 'Our Website', icon: Laptop, href: 'https://www.teds.com.au', external: true },
-    { label: 'Instagram', icon: Instagram, href: 'https://instagram.com/tedscameras', external: true },
+    { label: 'Our Website', icon: Laptop, href: 'https://www.teds.com.au/', external: true },
+    { label: 'Instagram', icon: Instagram, href: 'https://www.instagram.com/teds_cameras/', external: true },
     { label: 'Phocal', icon: Aperture, href: phocalHref, external: true },
   ];
 
