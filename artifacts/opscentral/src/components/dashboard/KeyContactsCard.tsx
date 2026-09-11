@@ -4,6 +4,7 @@ import { DashboardCard, CardIconButton } from './DashboardCard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
+import { authHeaders } from '@/lib/sessionAuth';
 
 type KeyContactRow = {
   id: number;
@@ -25,7 +26,7 @@ export function KeyContactsCard() {
   const canEdit = session?.level === 'full';
 
   const load = () => {
-    fetch('/api/key-contacts')
+    fetch('/api/key-contacts', { headers: authHeaders(session) })
       .then((r) => r.json())
       .then(setContacts)
       .catch(() => setContacts([]));
@@ -37,7 +38,7 @@ export function KeyContactsCard() {
 
   const saveContact = async (id: number, patch: Partial<KeyContactRow>) => {
     setSaving(id);
-    await fetch(`/api/key-contacts/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
+    await fetch(`/api/key-contacts/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...authHeaders(session) }, body: JSON.stringify(patch) });
     load();
     setSaving(null);
   };
@@ -45,7 +46,7 @@ export function KeyContactsCard() {
   const deleteContact = async (id: number) => {
     if (!confirm('Remove this contact?')) return;
     setSaving(id);
-    await fetch(`/api/key-contacts/${id}`, { method: 'DELETE' });
+    await fetch(`/api/key-contacts/${id}`, { method: 'DELETE', headers: authHeaders(session) });
     load();
     setSaving(null);
   };
@@ -55,7 +56,7 @@ export function KeyContactsCard() {
     const maxOrder = Math.max(0, ...(contacts ?? []).map((c) => c.sortOrder));
     await fetch('/api/key-contacts', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
       body: JSON.stringify({ name: 'New Contact', role: 'Role', sortOrder: maxOrder + 1 }),
     });
     load();

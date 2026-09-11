@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useAuth } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
 import { ICON_KEYS, iconForKey } from './iconRegistry';
+import { authHeaders } from '@/lib/sessionAuth';
 
 // TODO: replace with the real Phocal URL for this store (currently
 // seo-optimiser.vercel.app -- see the pending Vercel-project-rename
@@ -38,7 +39,7 @@ export function QuickLinksCard() {
     : PHOCAL_BASE_URL;
 
   const load = () => {
-    fetch('/api/quick-links')
+    fetch('/api/quick-links', { headers: authHeaders(session) })
       .then((r) => r.json())
       .then(setLinks)
       .catch(() => setLinks([]));
@@ -57,7 +58,7 @@ export function QuickLinksCard() {
 
   const saveLink = async (id: number, patch: Partial<QuickLinkRow>) => {
     setSaving(id);
-    await fetch(`/api/quick-links/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
+    await fetch(`/api/quick-links/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...authHeaders(session) }, body: JSON.stringify(patch) });
     load();
     setSaving(null);
   };
@@ -65,7 +66,7 @@ export function QuickLinksCard() {
   const deleteLink = async (id: number) => {
     if (!confirm('Remove this link?')) return;
     setSaving(id);
-    await fetch(`/api/quick-links/${id}`, { method: 'DELETE' });
+    await fetch(`/api/quick-links/${id}`, { method: 'DELETE', headers: authHeaders(session) });
     load();
     setSaving(null);
   };
@@ -75,7 +76,7 @@ export function QuickLinksCard() {
     const maxOrder = Math.max(0, ...(links ?? []).map((l) => l.sortOrder));
     await fetch('/api/quick-links', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
       body: JSON.stringify({ label: 'New Link', icon: 'Link', href: 'https://', external: true, sortOrder: maxOrder + 1 }),
     });
     load();

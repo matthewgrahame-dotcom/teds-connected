@@ -1,17 +1,20 @@
 import { Router, type IRouter } from "express";
 import { asc, eq } from "drizzle-orm";
 import { db, appSettingsTable, quickLinksTable, keyContactsTable } from "@workspace/db";
+import { requireFullLevel, requireSession } from "../lib/sessionAuth";
 
 const router: IRouter = Router();
 
 // -- App settings (generic key/value) ---------------------------------
 
-router.get("/app-settings/:key", async (req, res) => {
-  const [row] = await db.select().from(appSettingsTable).where(eq(appSettingsTable.key, req.params.key));
-  res.json({ key: req.params.key, value: row?.value ?? null });
+router.get("/app-settings/:key", requireSession, async (req, res) => {
+  const key = String(req.params.key);
+  const [row] = await db.select().from(appSettingsTable).where(eq(appSettingsTable.key, key));
+  res.json({ key, value: row?.value ?? null });
 });
 
-router.put("/app-settings/:key", async (req, res) => {
+router.put("/app-settings/:key", requireFullLevel, async (req, res) => {
+  const key = String(req.params.key);
   const { value } = req.body ?? {};
   if (typeof value !== "string") {
     res.status(400).json({ error: "value must be a string" });
@@ -19,19 +22,19 @@ router.put("/app-settings/:key", async (req, res) => {
   }
   await db
     .insert(appSettingsTable)
-    .values({ key: req.params.key, value })
+    .values({ key, value })
     .onConflictDoUpdate({ target: appSettingsTable.key, set: { value, updatedAt: new Date() } });
-  res.json({ ok: true, key: req.params.key, value });
+  res.json({ ok: true, key, value });
 });
 
 // -- Quick Links --------------------------------------------------------
 
-router.get("/quick-links", async (_req, res) => {
+router.get("/quick-links", requireSession, async (_req, res) => {
   const links = await db.select().from(quickLinksTable).orderBy(asc(quickLinksTable.sortOrder), asc(quickLinksTable.id));
   res.json(links);
 });
 
-router.post("/quick-links", async (req, res) => {
+router.post("/quick-links", requireFullLevel, async (req, res) => {
   const { label, icon, href, external, sortOrder } = req.body ?? {};
   if (typeof label !== "string" || !label.trim() || typeof icon !== "string" || !icon.trim() || typeof href !== "string" || !href.trim()) {
     res.status(400).json({ error: "label, icon, and href are required" });
@@ -44,7 +47,7 @@ router.post("/quick-links", async (req, res) => {
   res.json({ ok: true, link });
 });
 
-router.patch("/quick-links/:id", async (req, res) => {
+router.patch("/quick-links/:id", requireFullLevel, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid link id" });
@@ -66,7 +69,7 @@ router.patch("/quick-links/:id", async (req, res) => {
   res.json({ ok: true, link });
 });
 
-router.delete("/quick-links/:id", async (req, res) => {
+router.delete("/quick-links/:id", requireFullLevel, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid link id" });
@@ -78,12 +81,12 @@ router.delete("/quick-links/:id", async (req, res) => {
 
 // -- Key Contacts ---------------------------------------------------------
 
-router.get("/key-contacts", async (_req, res) => {
+router.get("/key-contacts", requireSession, async (_req, res) => {
   const contacts = await db.select().from(keyContactsTable).orderBy(asc(keyContactsTable.sortOrder), asc(keyContactsTable.id));
   res.json(contacts);
 });
 
-router.post("/key-contacts", async (req, res) => {
+router.post("/key-contacts", requireFullLevel, async (req, res) => {
   const { name, role, photoUrl, phone, email, sortOrder } = req.body ?? {};
   if (typeof name !== "string" || !name.trim() || typeof role !== "string" || !role.trim()) {
     res.status(400).json({ error: "name and role are required" });
@@ -103,7 +106,7 @@ router.post("/key-contacts", async (req, res) => {
   res.json({ ok: true, contact });
 });
 
-router.patch("/key-contacts/:id", async (req, res) => {
+router.patch("/key-contacts/:id", requireFullLevel, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid contact id" });
@@ -126,7 +129,7 @@ router.patch("/key-contacts/:id", async (req, res) => {
   res.json({ ok: true, contact });
 });
 
-router.delete("/key-contacts/:id", async (req, res) => {
+router.delete("/key-contacts/:id", requireFullLevel, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid contact id" });

@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
+import { authHeaders } from '@/lib/sessionAuth';
 
 type PortalUser = {
   id: number;
@@ -100,7 +101,7 @@ export default function UserManagementPage() {
 
   const load = () => {
     setUsers(null);
-    fetch(`/api/users?status=${tab}`)
+    fetch(`/api/users?status=${tab}`, { headers: authHeaders(session) })
       .then((r) => r.json())
       .then(setUsers)
       .catch(() => setUsers([]));
@@ -148,7 +149,7 @@ export default function UserManagementPage() {
     try {
       const res = await fetch(editingUser ? `/api/users/${editingUser.id}` : '/api/users', {
         method: editingUser ? 'PATCH' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
@@ -167,7 +168,7 @@ export default function UserManagementPage() {
   const toggleArchived = async (user: PortalUser) => {
     const res = await fetch(`/api/users/${user.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
       body: JSON.stringify({ archived: !user.archived }),
     });
     if (res.ok) {
@@ -179,7 +180,7 @@ export default function UserManagementPage() {
   const toggleActivated = async (user: PortalUser) => {
     const res = await fetch(`/api/users/${user.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
       body: JSON.stringify({ activated: !user.activated }),
     });
     if (res.ok) load();
@@ -190,7 +191,7 @@ export default function UserManagementPage() {
       setProfileUser(user);
       setProfile(emptyProfile);
       setProfileLoading(true);
-      fetch(`/api/users/${user.id}/profile`)
+      fetch(`/api/users/${user.id}/profile`, { headers: authHeaders(session) })
         .then((r) => r.json())
         .then(setProfile)
         .finally(() => setProfileLoading(false));
@@ -203,7 +204,7 @@ export default function UserManagementPage() {
     try {
       const res = await fetch(`/api/users/${profileUser.id}/profile`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
         body: JSON.stringify(profile),
       });
       if (res.ok) {

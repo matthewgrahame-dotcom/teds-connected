@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { desc, eq } from "drizzle-orm";
 import { db, portalUsersTable, portalUserProfilesTable } from "@workspace/db";
+import { requireFullLevel, requireSession } from "../lib/sessionAuth";
 
 const router: IRouter = Router();
 
@@ -10,7 +11,7 @@ function parseLocations(input: unknown): string[] {
   return [];
 }
 
-router.get("/users", async (req, res) => {
+router.get("/users", requireSession, async (req, res) => {
   const archived = req.query.status === "archived";
   const users = await db
     .select()
@@ -20,7 +21,7 @@ router.get("/users", async (req, res) => {
   res.json(users);
 });
 
-router.get("/users/:id", async (req, res) => {
+router.get("/users/:id", requireSession, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid user id" });
@@ -34,7 +35,7 @@ router.get("/users/:id", async (req, res) => {
   res.json(user);
 });
 
-router.post("/users", async (req, res) => {
+router.post("/users", requireFullLevel, async (req, res) => {
   const { firstName, lastName, username, email, locations, role, activated, brand } = req.body ?? {};
   if (
     typeof firstName !== "string" || !firstName.trim() ||
@@ -71,7 +72,7 @@ router.post("/users", async (req, res) => {
   }
 });
 
-router.patch("/users/:id", async (req, res) => {
+router.patch("/users/:id", requireFullLevel, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid user id" });
@@ -109,8 +110,6 @@ router.patch("/users/:id", async (req, res) => {
   }
 });
 
-export default router;
-
 // -- Extended profile (separate table -- see portal-users.ts schema comment) --
 
 const PROFILE_FIELDS = [
@@ -132,7 +131,7 @@ const PROFILE_FIELDS = [
   "emergencyContactPhone",
 ] as const;
 
-router.get("/users/:id/profile", async (req, res) => {
+router.get("/users/:id/profile", requireFullLevel, async (req, res) => {
   const userId = Number(req.params.id);
   if (!Number.isInteger(userId)) {
     res.status(400).json({ error: "Invalid user id" });
@@ -142,7 +141,7 @@ router.get("/users/:id/profile", async (req, res) => {
   res.json(profile ?? { userId, tfnFormCompleted: false });
 });
 
-router.put("/users/:id/profile", async (req, res) => {
+router.put("/users/:id/profile", requireFullLevel, async (req, res) => {
   const userId = Number(req.params.id);
   if (!Number.isInteger(userId)) {
     res.status(400).json({ error: "Invalid user id" });
@@ -169,3 +168,5 @@ router.put("/users/:id/profile", async (req, res) => {
     .returning();
   res.json({ ok: true, profile });
 });
+
+export default router;

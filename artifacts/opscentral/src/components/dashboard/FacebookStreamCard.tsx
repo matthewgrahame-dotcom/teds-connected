@@ -4,6 +4,7 @@ import { DashboardCard, CardIconButton } from './DashboardCard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
+import { authHeaders } from '@/lib/sessionAuth';
 
 const DEFAULT_PAGE_URL = 'https://www.facebook.com/TedsCameras';
 const SDK_SRC = 'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v21.0';
@@ -41,7 +42,7 @@ export function FacebookStreamCard() {
   const canEdit = session?.level === 'full';
 
   useEffect(() => {
-    fetch('/api/app-settings/facebook_page_url')
+    fetch('/api/app-settings/facebook_page_url', { headers: authHeaders(session) })
       .then((r) => r.json())
       .then((data) => {
         if (data.value) setPageUrl(data.value);
@@ -108,7 +109,7 @@ export function FacebookStreamCard() {
     try {
       await fetch('/api/app-settings/facebook_page_url', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
         body: JSON.stringify({ value: draftUrl.trim() }),
       });
       setPageUrl(draftUrl.trim());
