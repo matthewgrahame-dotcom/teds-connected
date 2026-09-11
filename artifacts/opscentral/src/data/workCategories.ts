@@ -28,8 +28,9 @@ export const workCategories: Record<string, WorkCategory> = {
       {
         title: 'F.O.C.U.S. Sales Framework',
         version: 'Version 1.2',
+        href: '/documents/focus-sales-framework.pdf',
         note:
-          "At Ted's Cameras, we believe that every customer interaction is an opportunity to inspire, educate, and build lasting relationships. The FOCUS Sales Framework is a consistent, customer-first approach to retail excellence — a mindset that ensures every customer feels welcomed, understood, and supported. This guide outlines the five key pillars of FOCUS. The detailed pillars document (an embedded attachment on the source page) hasn't been provided yet, so it's not included here.",
+          "At Ted's Cameras, we believe that every customer interaction is an opportunity to inspire, educate, and build lasting relationships — a consistent, customer-first approach built on five pillars: First Impressions, Open-Ended Questions, Customised Solutions, Upsell With Value, and Secure Satisfaction.",
       },
     ],
   },
