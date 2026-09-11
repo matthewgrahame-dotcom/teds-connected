@@ -1,0 +1,2511 @@
+[
+  {
+    "firstName": "Nadav",
+    "lastName": "Nansel",
+    "username": "nadavnansel@gmail.com",
+    "email": "nadavnansel@gmail.com",
+    "locations": [
+      "Teds Adelaide"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Khoa",
+    "lastName": "Duong",
+    "username": "khoadugong@gmail.com",
+    "email": "khoadugong@gmail.com",
+    "locations": [
+      "Teds Brisbane"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Corey",
+    "lastName": "Rossiter",
+    "username": "coryrossiter@gmail.com",
+    "email": "coryrossiter@gmail.com",
+    "locations": [
+      "Teds Maroochydore"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Werner",
+    "lastName": "Momberg",
+    "username": "wmomb3@gmail.com",
+    "email": "wmomb3@gmail.com",
+    "locations": [
+      "Teds Maroochydore"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Wynn",
+    "lastName": "Lee",
+    "username": "wynnleefilm@gmail.com",
+    "email": "wynnleefilm@gmail.com",
+    "locations": [
+      "Teds Mt Gravatt"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Jet",
+    "lastName": "Chommanivong",
+    "username": "jetchommanivong@gmail.com",
+    "email": "jetchommanivong@gmail.com",
+    "locations": [
+      "Teds Mt Gravatt"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Britney",
+    "lastName": "Deurloo",
+    "username": "britneydeurloo@gmail.com",
+    "email": "britneydeurloo@gmail.com",
+    "locations": [
+      "Teds Fountain Gate"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Arkie",
+    "lastName": "Maple",
+    "username": "arkiemaple@icloud.com",
+    "email": "arkiemaple@icloud.com",
+    "locations": [
+      "Teds Brisbane"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Louis",
+    "lastName": "Forwood",
+    "username": "louiswilliamforwood@gmail.com",
+    "email": "louiswilliamforwood@gmail.com",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Quazi (Sanjar)",
+    "lastName": "Mahfuj",
+    "username": "sanjarmahfuj316@gmail.com",
+    "email": "sanjarmahfuj316@gmail.com",
+    "locations": [
+      "Teds DCW"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Bailey",
+    "lastName": "Curry",
+    "username": "baileycurry2004@gmail.com",
+    "email": "baileycurry2004@gmail.com",
+    "locations": [
+      "Teds Mt Gravatt"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Kirra-Lei",
+    "lastName": "Rogers",
+    "username": "kirrarogers@hotmail.com",
+    "email": "kirrarogers@hotmail.com",
+    "locations": [
+      "Teds Maroochydore"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Andrew",
+    "lastName": "Ternes",
+    "username": "andrewt@arnac.com.au",
+    "email": "andrewt@arnac.com.au",
+    "locations": [
+      "Head Office"
+    ],
+    "role": "Employee - Office",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Jordan",
+    "lastName": "Pasco",
+    "username": "Pascojordan1@gmail.com",
+    "email": "Pascojordan1@gmail.com",
+    "locations": [
+      "Teds King St WA"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Alex",
+    "lastName": "van der Heijden",
+    "username": "alex@mirrin.net",
+    "email": "alex@mirrin.net",
+    "locations": [
+      "Teds Brisbane"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Sabrina",
+    "lastName": "Jones",
+    "username": "sabrina_edel@hotmail.com",
+    "email": "sabrina_edel@hotmail.com",
+    "locations": [
+      "Teds King St WA"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Azriel",
+    "lastName": "Damarjati",
+    "username": "azrieldaneswara@gmail.com",
+    "email": "azrieldaneswara@gmail.com",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Patrick",
+    "lastName": "Issa",
+    "username": "patissaart@gmail.com",
+    "email": "patissaart@gmail.com",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Geovana",
+    "lastName": "Faria",
+    "username": "Geovana.faria@hotmail.com",
+    "email": "Geovana.faria@hotmail.com",
+    "locations": [
+      "Teds King St WA"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Joshua",
+    "lastName": "Murkett",
+    "username": "joshms789@gmail.com",
+    "email": "joshms789@gmail.com",
+    "locations": [
+      "Teds Canberra Centre"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Shao",
+    "lastName": "Li",
+    "username": "nanokaphotography@gmail.com",
+    "email": "nanokaphotography@gmail.com",
+    "locations": [
+      "Teds DCW"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Benjamin",
+    "lastName": "Carter",
+    "username": "bencar0405@gmail.com",
+    "email": "bencar0405@gmail.com",
+    "locations": [
+      "Teds Adelaide"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Keegan",
+    "lastName": "Thomas",
+    "username": "keegan@keeganjthomas.com",
+    "email": "keegan@keeganjthomas.com",
+    "locations": [
+      "Teds DCW"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Matthew",
+    "lastName": "Longden",
+    "username": "longdenphotography@gmail.com",
+    "email": "longdenphotography@gmail.com",
+    "locations": [
+      "Teds DCW"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Stephen",
+    "lastName": "Leupen",
+    "username": "sleupen@me.com",
+    "email": "sleupen@me.com",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Alex",
+    "lastName": "Williams",
+    "username": "alexwilliams4503@gmail.com",
+    "email": "alexwilliams4503@gmail.com",
+    "locations": [
+      "Teds Brisbane"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Douglas",
+    "lastName": "Sylvester",
+    "username": "douglasrsylvester@gmail.com",
+    "email": "douglasrsylvester@gmail.com",
+    "locations": [
+      "Teds DCW"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Dean",
+    "lastName": "Butters",
+    "username": "DeanButters@digitalcamerawarehouse.com.au",
+    "email": "DeanButters@digitalcamerawarehouse.com.au",
+    "locations": [
+      "Teds DCW"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Jason",
+    "lastName": "Bank",
+    "username": "jason@digitalcamerawarehouse.com.au",
+    "email": "jason@digitalcamerawarehouse.com.au",
+    "locations": [
+      "Teds DCW"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Jzawo",
+    "lastName": "Pointon-English",
+    "username": "englishjzawo97@outlook.com",
+    "email": "englishjzawo97@outlook.com",
+    "locations": [
+      "Teds DCW"
+    ],
+    "role": "Assistant Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Philippe",
+    "lastName": "Flatt",
+    "username": "philippexpa@gmail.com",
+    "email": "philippexpa@gmail.com",
+    "locations": [
+      "Teds DCW"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "AMANDA",
+    "lastName": "WARD",
+    "username": "amandaward12@bigpond.com",
+    "email": "amandaward@digitalcamerawarehouse.com.au",
+    "locations": [
+      "Teds DCW"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Cody",
+    "lastName": "Horsfall",
+    "username": "chors24@hotmail.com",
+    "email": "chors24@hotmail.com",
+    "locations": [
+      "Teds Maroochydore"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Jeremy",
+    "lastName": "Zhang",
+    "username": "wwjeremy51@gmail.com",
+    "email": "wwjeremy51@gmail.com",
+    "locations": [
+      "Ted's Cameras Gold Coast"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Lisa",
+    "lastName": "Roxborough",
+    "username": "lisajanerox@gmail.com",
+    "email": "lisajanerox@gmail.com",
+    "locations": [
+      "Teds Maroochydore"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Corey",
+    "lastName": "Brown",
+    "username": "corey.brown101386@gmail.com",
+    "email": "corey.brown101386@gmail.com",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Ashim",
+    "lastName": "Pradhananga",
+    "username": "ashim.pradhananga@gmail.com",
+    "email": "ashim.pradhananga@gmail.com",
+    "locations": [
+      "Teds Canberra Centre"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Edward",
+    "lastName": "Paynter",
+    "username": "Paynter.mp@gmail.com",
+    "email": "Paynter.mp@gmail.com",
+    "locations": [
+      "Ted's Cameras Gold Coast"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Eamon",
+    "lastName": "Zuvich",
+    "username": "eamonzuvich@gmail.com",
+    "email": "eamonzuvich@gmail.com",
+    "locations": [
+      "Teds Canberra Civic"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Dikshya",
+    "lastName": "Dhakal",
+    "username": "dikshyadhakal7@gmail.com",
+    "email": "dikshyadhakal7@gmail.com",
+    "locations": [
+      "Teds Canberra Civic"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Steven",
+    "lastName": "Salvemini",
+    "username": "st3v3ns3rgio@gmail.com",
+    "email": "st3v3ns3rgio@gmail.com",
+    "locations": [
+      "Teds Canberra Civic"
+    ],
+    "role": "Assistant Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Anna",
+    "lastName": "Magassy",
+    "username": "annavera100@gmail.com",
+    "email": "annavera100@gmail.com",
+    "locations": [
+      "Teds Canberra Civic"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Dylan",
+    "lastName": "Boxwell",
+    "username": "dylan.rayboxwell@gmail.com",
+    "email": "dylan.rayboxwell@gmail.com",
+    "locations": [
+      "Teds King St WA"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Hamish",
+    "lastName": "Borkovic",
+    "username": "borkovicham@gmail.com",
+    "email": "borkovicham@gmail.com",
+    "locations": [
+      "Teds King St WA"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Chuyao",
+    "lastName": "Liu",
+    "username": "corahliu@gmail.com",
+    "email": "corahliu@gmail.com",
+    "locations": [
+      "Teds Mt Gravatt"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Christine",
+    "lastName": "Fung",
+    "username": "christine.fung19@gmail.com",
+    "email": "christine.fung19@gmail.com",
+    "locations": [
+      "Teds Mt Gravatt"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Jiacheng",
+    "lastName": "Xu",
+    "username": "suerte.668@gmail.com",
+    "email": "suerte.668@gmail.com",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Jordan",
+    "lastName": "Clune",
+    "username": "jordanclune2@gmail.com",
+    "email": "jordanclune2@gmail.com",
+    "locations": [
+      "Teds Maroochydore"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Harrison",
+    "lastName": "Dart",
+    "username": "harrisonewartdart@gmail.com",
+    "email": "harrisondart@hotmail.com",
+    "locations": [
+      "Teds Online"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Jefferson",
+    "lastName": "Black",
+    "username": "jefferson93@live.com.au",
+    "email": "jefferson93@live.com.au",
+    "locations": [
+      "Ted's Cameras Gold Coast"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Jessie",
+    "lastName": "Yang",
+    "username": "jessiey@arnac.com.au",
+    "email": "jessiey@arnac.com.au",
+    "locations": [
+      "Head Office"
+    ],
+    "role": "Admin",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Annika",
+    "lastName": "Meston",
+    "username": "annikameston@gmail.com",
+    "email": "annikameston@gmail.com",
+    "locations": [
+      "Teds Brisbane"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Braden",
+    "lastName": "Hamilton",
+    "username": "bradenhamilton02@gmail.com",
+    "email": "bradenhamilton02@gmail.com",
+    "locations": [
+      "Teds Adelaide"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Kellie",
+    "lastName": "Jantke",
+    "username": "kellie.jantke@outlook.com",
+    "email": "kellie.jantke@outlook.com",
+    "locations": [
+      "Teds Adelaide"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Hans",
+    "lastName": "Zhang",
+    "username": "gzphoebezhang@126.com",
+    "email": "gzphoebezhang@126.com",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Finn",
+    "lastName": "Evergreen",
+    "username": "pollymcgrath@hotmail.com",
+    "email": "finnev2004@hotmail.com",
+    "locations": [
+      "Teds Mt Gravatt"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Allan",
+    "lastName": "Acason",
+    "username": "allanacason@hotmail.co.uk",
+    "email": "allanacason@hotmail.co.uk",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Emilie",
+    "lastName": "Lowe",
+    "username": "emilie_lowe@outlook.com",
+    "email": "emilie_lowe@outlook.com",
+    "locations": [
+      "Teds Innaloo WA"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Buster",
+    "lastName": "Wyzenbeek",
+    "username": "busterwyzo@yahoo.com.au",
+    "email": "busterwyzo@yahoo.com.au",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Store",
+    "activated": false,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Max",
+    "lastName": "Sass",
+    "username": "sassmaxx@gmail.com",
+    "email": "sassmaxx@gmail.com",
+    "locations": [
+      "Teds Southland"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Jakob",
+    "lastName": "Gravestock-Tyrie",
+    "username": "Jgraveyy@gmail.com",
+    "email": "Jgraveyy@gmail.com",
+    "locations": [
+      "Teds Innaloo WA"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Matthew",
+    "lastName": "Tolton",
+    "username": "toltonmatthew@gmail.com",
+    "email": "toltonmatthew@gmail.com",
+    "locations": [
+      "Ted's Cameras Gold Coast"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Jogen",
+    "lastName": "Phang",
+    "username": "jogenphang@gmail.com",
+    "email": "jogenphang@gmail.com",
+    "locations": [
+      "Teds Mt Gravatt"
+    ],
+    "role": "Assistant Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Grace",
+    "lastName": "Middleton",
+    "username": "jobs.gracemiddleton@gmail.com",
+    "email": "jobs.gracemiddleton@gmail.com",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Jackson",
+    "lastName": "Brilli",
+    "username": "brillijack@gmail.com",
+    "email": "brillijack@gmail.com",
+    "locations": [
+      "Teds Fountain Gate"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Noah",
+    "lastName": "Richardson",
+    "username": "noah.richo2003@gmail.com",
+    "email": "noah.richo2003@gmail.com",
+    "locations": [
+      "Teds King St WA"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Ashton",
+    "lastName": "Roberts",
+    "username": "ashrob16063@gmail.com",
+    "email": "ashrob16063@gmail.com",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Kirstine",
+    "lastName": "Dang",
+    "username": "kirstine.dang@gmail.com",
+    "email": "kirstine.dang@gmail.com",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Patricia",
+    "lastName": "Rudd",
+    "username": "trishrudd@hotmail.com",
+    "email": "trishrudd@hotmail.com",
+    "locations": [
+      "Teds Maroochydore"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Abbey",
+    "lastName": "Mcchesney-Clark",
+    "username": "abbeypaigeqld@hotmail.com",
+    "email": "abbeypaigeqld@hotmail.com",
+    "locations": [
+      "Teds Brisbane"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Chadstone",
+    "lastName": "Store",
+    "username": "chadstone.manager@teds.com.au",
+    "email": "chadstone.manager@teds.com.au",
+    "locations": [
+      "Teds Chadstone"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Yusuf",
+    "lastName": "Kathawala",
+    "username": "yusuf.kathawala@gmail.com",
+    "email": "yusuf.kathawala@gmail.com",
+    "locations": [
+      "Teds King St WA"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Marcus",
+    "lastName": "Boyd",
+    "username": "mailmarcusboyd@gmail.com",
+    "email": "mailmarcusboyd@gmail.com",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Catherine",
+    "lastName": "Pineda",
+    "username": "catherine@minimax.com.au",
+    "email": "catherine@minimax.com.au",
+    "locations": [
+      "Head Office"
+    ],
+    "role": "Admin",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Stephen",
+    "lastName": "Taylor-Madin",
+    "username": "gorak@gorakphoto.com",
+    "email": "gorak@gorakphoto.com",
+    "locations": [
+      "Teds Fountain Gate"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Katherine",
+    "lastName": "Colman",
+    "username": "katherine@coldarr.com",
+    "email": "Katherine@coldarr.com",
+    "locations": [
+      "Teds Doncaster"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Marcus Ben",
+    "lastName": "Lee",
+    "username": "marcusben2001@hotmail.com",
+    "email": "marcusben2001@hotmail.com",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Ashley",
+    "lastName": "Booth",
+    "username": "abooth762@outlook.com",
+    "email": "abooth762@outlook.com",
+    "locations": [
+      "Teds Brisbane"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Inaloo",
+    "username": "inaloo@teds.com.au",
+    "email": "inaloo@teds.com.au",
+    "locations": [
+      "Teds Innaloo WA"
+    ],
+    "role": "Store",
+    "activated": false,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Shay",
+    "lastName": "Taylor",
+    "username": "shaytaylor16@hotmail.com",
+    "email": "shaytaylor16@hotmail.com",
+    "locations": [
+      "Teds Adelaide"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Roseanna",
+    "lastName": "Macdonald",
+    "username": "rosepmac@gmail.com",
+    "email": "rosepmac@gmail.com",
+    "locations": [
+      "Teds Online"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Mitchell",
+    "lastName": "Burton",
+    "username": "mBurtonPhotography@outlook.com",
+    "email": "mitchelljburton@hotmail.com",
+    "locations": [
+      "Teds Canberra Civic"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Sarah",
+    "lastName": "Craig",
+    "username": "sarahcraig5902@gmail.com",
+    "email": "sarahcraig5902@gmail.com",
+    "locations": [
+      "Teds Canberra Centre"
+    ],
+    "role": "Assistant Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Timothy",
+    "lastName": "Gabbitas",
+    "username": "timgabbitas2@gmail.com",
+    "email": "timgabbitas2@gmail.com",
+    "locations": [
+      "Teds Canberra Civic"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Nicholas",
+    "lastName": "Bini",
+    "username": "nick19979@gmail.com",
+    "email": "nick19979@gmail.com",
+    "locations": [
+      "Teds Marion"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Reza",
+    "lastName": "Rahgozar",
+    "username": "Reza.Rahgozar@hotmail.com",
+    "email": "Reza.Rahgozar@hotmail.com",
+    "locations": [
+      "Teds Canberra Civic"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Joanna",
+    "lastName": "Curilan",
+    "username": "jocurilan@gmail.com",
+    "email": "jocurilan@gmail.com",
+    "locations": [
+      "Teds Brisbane"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Erin",
+    "lastName": "Graham",
+    "username": "ering@teds.com.au",
+    "email": "ering@teds.com.au",
+    "locations": [
+      "Head Office"
+    ],
+    "role": "Admin",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Joanne",
+    "lastName": "Ardeljan",
+    "username": "joannestanjo@live.com.au",
+    "email": "joannestanjo@live.com.au",
+    "locations": [
+      "Teds Online"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Jackson",
+    "lastName": "Cross",
+    "username": "jcp.mky@gmail.com",
+    "email": "jcp.mky@gmail.com",
+    "locations": [
+      "Teds Brisbane"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "King St Perth",
+    "username": "perth@teds.com.au",
+    "email": "perth@teds.com.au",
+    "locations": [
+      "Teds King St WA"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Gareth",
+    "lastName": "Turner",
+    "username": "G.TURNER.EMAIL@GMAIL.COM",
+    "email": "G.TURNER.EMAIL@GMAIL.COM",
+    "locations": [
+      "Teds King St WA"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Emma",
+    "lastName": "Mattingley",
+    "username": "e.longworthbaker@gmail.com",
+    "email": "e.longworthbaker@gmail.com",
+    "locations": [
+      "Teds King St WA"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Shannon",
+    "lastName": "Leenders",
+    "username": "smyle72@gmail.com",
+    "email": "smyle72@gmail.com",
+    "locations": [
+      "Teds King St WA"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Nicholas",
+    "lastName": "Khoo",
+    "username": "nicholaskhoo@me.com",
+    "email": "nicholaskhoo@me.com",
+    "locations": [
+      "Teds King St WA"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Thomas",
+    "lastName": "Tollenaar",
+    "username": "tollenaar.tom@gmail.com",
+    "email": "tollenaar.tom@gmail.com",
+    "locations": [
+      "Teds Adelaide"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Jack",
+    "lastName": "Schusser",
+    "username": "jackschusser@gmail.com",
+    "email": "jackschusser@gmail.com",
+    "locations": [
+      "Teds Brisbane"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Sebastian",
+    "lastName": "Zenere",
+    "username": "sebastian.zenere1@gmail.com",
+    "email": "sebastian.zenere1@gmail.com",
+    "locations": [
+      "Teds Adelaide"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Faaz",
+    "lastName": "Ruheemaun",
+    "username": "faaz.ali@outlook.com",
+    "email": "faaz.ali@outlook.com",
+    "locations": [
+      "Teds Melbourne Storeroom"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Chatswood",
+    "username": "chatswood@teds.com.au",
+    "email": "chatswood@teds.com.au",
+    "locations": [
+      "Teds Chatswood"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Sydney",
+    "username": "sydney@teds.com.au",
+    "email": "sydney@teds.com.au",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Canberra Centre",
+    "username": "canberracentre@teds.com.au",
+    "email": "canberracentre@teds.com.au",
+    "locations": [
+      "Teds Canberra Centre"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Canberra Civic",
+    "username": "canberra.civic@teds.com.au",
+    "email": "canberra.civic@teds.com.au",
+    "locations": [
+      "Teds Canberra Civic"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Maroochydore",
+    "username": "maroochydore@teds.com.au",
+    "email": "maroochydore@teds.com.au",
+    "locations": [
+      "Teds Maroochydore"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Pacific Fair",
+    "username": "pacificfair@teds.com.au",
+    "email": "pacificfair@teds.com.au",
+    "locations": [
+      "Ted's Cameras Gold Coast"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Mt Gravatt",
+    "username": "mtgravatt@teds.com.au",
+    "email": "mtgravatt@teds.com.au",
+    "locations": [
+      "Teds Mt Gravatt"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Brisbane",
+    "username": "brisbane@teds.com.au",
+    "email": "brisbane@teds.com.au",
+    "locations": [
+      "Teds Brisbane"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Marion",
+    "username": "marion@teds.com.au",
+    "email": "marion@teds.com.au",
+    "locations": [
+      "Teds Marion"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Adelaide",
+    "username": "adelaide@teds.com.au",
+    "email": "adelaide@teds.com.au",
+    "locations": [
+      "Teds Adelaide"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Southland",
+    "username": "southland@teds.com.au",
+    "email": "southland@teds.com.au",
+    "locations": [
+      "Teds Southland"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Knox",
+    "username": "knox@teds.com.au",
+    "email": "knox@teds.com.au",
+    "locations": [
+      "Teds Knox"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Highpoint",
+    "username": "highpoint@teds.com.au",
+    "email": "highpoint@teds.com.au",
+    "locations": [
+      "Teds Highpoint"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Fountain Gate",
+    "username": "fountaingate@teds.com.au",
+    "email": "fountaingate@teds.com.au",
+    "locations": [
+      "Teds Fountain Gate"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Doncaster",
+    "username": "doncaster@teds.com.au",
+    "email": "doncaster@teds.com.au",
+    "locations": [
+      "Teds Doncaster"
+    ],
+    "role": "Store",
+    "activated": false,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Melbourne Storeroom",
+    "username": "storeroom@teds.com.au",
+    "email": "storeroom@teds.com.au",
+    "locations": [
+      "Teds Melbourne Storeroom"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Melbourne",
+    "username": "melbourne@teds.com.au",
+    "email": "melbourne@teds.com.au",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Accounts",
+    "username": "accounts@teds.com.au",
+    "email": "accounts@teds.com.au",
+    "locations": [
+      "Head Office"
+    ],
+    "role": "Employee - Office",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Teds",
+    "lastName": "Back Of House",
+    "username": "boh@teds.com.au",
+    "email": "boh@teds.com.au",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Office",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "KYLIE",
+    "lastName": "PLATT",
+    "username": "sun_runner_fire@yahoo.com.au",
+    "email": "sun_runner_fire@yahoo.com.au",
+    "locations": [
+      "Teds Online"
+    ],
+    "role": "Employee - Office",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Erin",
+    "lastName": "SOUTBERG",
+    "username": "erin.soutberg@hotmail.com",
+    "email": "erin.soutberg@hotmail.com",
+    "locations": [
+      "Teds Online"
+    ],
+    "role": "Employee - Office",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Daniel",
+    "lastName": "Yan",
+    "username": "daniely@teds.com.au",
+    "email": "daniely@teds.com.au",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Office",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "SINISA",
+    "lastName": "SRSA",
+    "username": "sinisa190@yahoo.it",
+    "email": "sinisa190@yahoo.it",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "SARA",
+    "lastName": "JOHNSON",
+    "username": "SARAJ234@HOTMAIL.COM",
+    "email": "SARAJ234@HOTMAIL.COM",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "MINH (Huy)",
+    "lastName": "NGUYEN",
+    "username": "minhhuy_nguyen@hotmail.com",
+    "email": "minhhuy_nguyen@hotmail.com",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "MICHAEL",
+    "lastName": "GRIGG",
+    "username": "MIKE.GRIGG@GMAIL.COM",
+    "email": "MIKE.GRIGG@GMAIL.COM",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "LUCCA",
+    "lastName": "RODRIGUEZ AMORIM",
+    "username": "luamorim1999@hotmail.com",
+    "email": "luamorim1999@hotmail.com",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "KATERINA",
+    "lastName": "TRUNG",
+    "username": "katerinatrung6@gmail.com",
+    "email": "katerinatrung6@gmail.com",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "HENDRY",
+    "lastName": "CAHYADI",
+    "username": "hendry.c@outlook.com",
+    "email": "hendry.c@outlook.com",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "CYNTHINA",
+    "lastName": "PECH",
+    "username": "shinko.peacempire@gmail.com",
+    "email": "shinko.peacempire@gmail.com",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "CHRIS",
+    "lastName": "MILLIGAN",
+    "username": "chris_millo@hotmail.com",
+    "email": "chris_millo@hotmail.com",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "VANESSA",
+    "lastName": "JENKIN",
+    "username": "nessye81@gmail.com",
+    "email": "nessye81@gmail.com",
+    "locations": [
+      "Teds Southland"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "SEAN",
+    "lastName": "JENKIN",
+    "username": "seanjenkin@ymail.com",
+    "email": "seanjenkin@ymail.com",
+    "locations": [
+      "Teds Southland"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "RICARDO",
+    "lastName": "LAY MELLY",
+    "username": "rocco_lay@yahoo.com",
+    "email": "rocco_lay@yahoo.com",
+    "locations": [
+      "Teds Southland"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "TOM",
+    "lastName": "BROWN",
+    "username": "Tombrownfilms@mail.com",
+    "email": "Tombrownfilms@mail.com",
+    "locations": [
+      "Ted's Cameras Gold Coast"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "PHILIP",
+    "lastName": "GRUNDY",
+    "username": "philgrundy.thepupil@me.com",
+    "email": "philgrundy.thepupil@me.com",
+    "locations": [
+      "Ted's Cameras Gold Coast"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Jason",
+    "lastName": "Hocking",
+    "username": "jasonh@teds.com.au",
+    "email": "jasonh@teds.com.au",
+    "locations": [
+      "Ted's Cameras Gold Coast",
+      "Head Office"
+    ],
+    "role": "Admin",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "DANIEL",
+    "lastName": "SEED",
+    "username": "dseed12@gmail.com",
+    "email": "dseed12@gmail.com",
+    "locations": [
+      "Ted's Cameras Gold Coast"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "KIM",
+    "lastName": "STRONG",
+    "username": "kimstro@icloud.com",
+    "email": "kimstro@icloud.com",
+    "locations": [
+      "Teds Mt Gravatt"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "TRACEY",
+    "lastName": "BERRY",
+    "username": "trace.fenech@icloud.com",
+    "email": "trace.berry@hotmail.com",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "TERESA",
+    "lastName": "MARINO",
+    "username": "teresamarino67@outlook.com",
+    "email": "teresamarino67@outlook.com",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "SUSAN",
+    "lastName": "PAHOS",
+    "username": "suewoooo@hotmail.com",
+    "email": "insurance@teds.com.au",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "SHION",
+    "lastName": "KASUYA",
+    "username": "shiontanuki@gmail.com",
+    "email": "shiontanuki@gmail.com",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "SANDRA",
+    "lastName": "FOWLER",
+    "username": "sandra.fowler32@gmail.com",
+    "email": "sandra.fowler32@gmail.com",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Rory",
+    "lastName": "Moore",
+    "username": "rorym@teds.com.au",
+    "email": "rorym@teds.com.au",
+    "locations": [
+      "Head Office"
+    ],
+    "role": "Admin",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "JAYDE",
+    "lastName": "BURNETT",
+    "username": "jaydeburnettphotography@gmail.com",
+    "email": "jaydeb311299@gmail.com",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "ENOCH",
+    "lastName": "OU",
+    "username": "enochuu@gmail.com",
+    "email": "enochuu@gmail.com",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "DYLAN",
+    "lastName": "MARRIOTT",
+    "username": "dylan.marriott428@gmail.com",
+    "email": "dylan.marriott428@gmail.com",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "COLM",
+    "lastName": "CONNOLLY",
+    "username": "colm1468@hotmail.com",
+    "email": "colm1468@hotmail.com",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "ANDY",
+    "lastName": "WU",
+    "username": "andywulinh@gmail.com",
+    "email": "andywulinh@gmail.com",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "RYE",
+    "lastName": "BARRY",
+    "username": "ryeofsky52@hotmail.com",
+    "email": "ryeofsky52@hotmail.com",
+    "locations": [
+      "Teds Maroochydore"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "MATISSE",
+    "lastName": "MAGANN",
+    "username": "matisselangbein1@gmail.com",
+    "email": "matisselangbein1@gmail.com",
+    "locations": [
+      "Teds Maroochydore"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "DANA",
+    "lastName": "VICKERS",
+    "username": "vickers.dana95@gmail.com",
+    "email": "vickers.dana95@gmail.com",
+    "locations": [
+      "Teds Maroochydore"
+    ],
+    "role": "Employee - Store",
+    "activated": false,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "CAPE",
+    "lastName": "TIENE",
+    "username": "cape.faro8@hotmail.com",
+    "email": "cape.faro8@hotmail.com",
+    "locations": [
+      "Teds Maroochydore"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "BRYCE",
+    "lastName": "SOUTHGATE-SMITH",
+    "username": "bwss@hotmail.com",
+    "email": "bwss@hotmail.com",
+    "locations": [
+      "Teds Brisbane"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "ANDREW",
+    "lastName": "GOODALL",
+    "username": "andrewgoodallphotographer@gmail.com",
+    "email": "andrewgoodallphotographer@gmail.com",
+    "locations": [
+      "Teds Maroochydore"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "DE",
+    "lastName": "LUCKMAN",
+    "username": "fromelles@hotmail.com",
+    "email": "fromelles@hotmail.com",
+    "locations": [
+      "Teds King St WA"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "TAMMY",
+    "lastName": "ROBERTS",
+    "username": "tammy.devon@gmail.com",
+    "email": "tammy.devon@gmail.com",
+    "locations": [
+      "Teds Fountain Gate"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "SUE",
+    "lastName": "KRAUSHOFER",
+    "username": "SUZIE-K1@HOTMAIL.COM",
+    "email": "SUZIE-K1@HOTMAIL.COM",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "JAIME",
+    "lastName": "LUDLOW",
+    "username": "jaime.ludlow@icloud.com",
+    "email": "jaime.ludlow@icloud.com",
+    "locations": [
+      "Teds Knox"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "SILVANO",
+    "lastName": "BONTEMPELLI",
+    "username": "bontempelli@bigpond.com",
+    "email": "bontempelli@bigpond.com",
+    "locations": [
+      "Teds Highpoint"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "LOUIE",
+    "lastName": "STAVREVSKI",
+    "username": "louies@teds.com.au",
+    "email": "louies@teds.com.au",
+    "locations": [
+      "Teds Highpoint"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "JASPER",
+    "lastName": "LEPANI",
+    "username": "jasper.l@outlook.com",
+    "email": "jasper.l@outlook.com",
+    "locations": [
+      "Teds Highpoint"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "ALEXANDER",
+    "lastName": "VAN HARMELEN",
+    "username": "alex@alexvh.com.au",
+    "email": "alex@alexvh.com.au",
+    "locations": [
+      "Teds Highpoint"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "TAMAR",
+    "lastName": "KLEIN-CAMACHO",
+    "username": "Palmeraklein@gmail.com",
+    "email": "Palmeraklein@gmail.com",
+    "locations": [
+      "Teds Fountain Gate"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "ROSIE",
+    "lastName": "COLBERT",
+    "username": "countrypenguinphotography@gmail.com",
+    "email": "countrypenguinphotography@gmail.com",
+    "locations": [
+      "Teds Fountain Gate"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "FRANK",
+    "lastName": "CATONI",
+    "username": "fcatoni@bigpond.com",
+    "email": "fcatoni@bigpond.com",
+    "locations": [
+      "Teds Fountain Gate"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "CHRIS",
+    "lastName": "STANNARD",
+    "username": "chriss@teds.com.au",
+    "email": "chriss@teds.com.au",
+    "locations": [
+      "Teds Melbourne"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "CASANDRA",
+    "lastName": "MARDAMOOTOO",
+    "username": "simplyprince08@gmail.com",
+    "email": "simplyprince08@gmail.com",
+    "locations": [
+      "Teds Fountain Gate"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "ANDREAS",
+    "lastName": "KLEIN",
+    "username": "andreas04klein@hotmail.com",
+    "email": "andreas04klein@hotmail.com",
+    "locations": [
+      "Teds Fountain Gate"
+    ],
+    "role": "Assistant Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "RICK",
+    "lastName": "PAGE",
+    "username": "rrepage@gmail.com",
+    "email": "rrepage@gmail.com",
+    "locations": [
+      "Teds Doncaster"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "LISA",
+    "lastName": "CHARLTON",
+    "username": "lisakcharlton@outlook.com",
+    "email": "lisakcharlton@outlook.com",
+    "locations": [
+      "Teds Doncaster"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "NED",
+    "lastName": "MAROOTIANS",
+    "username": "ned.maroot@gmail.com",
+    "email": "ned.maroot@gmail.com",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "JAIMIE",
+    "lastName": "CAVANAGH",
+    "username": "smudge_19@hotmail.com",
+    "email": "smudge_19@hotmail.com",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "CHRISTOPHER",
+    "lastName": "NG",
+    "username": "christopher_ng28@hotmail.com",
+    "email": "christopher_ng28@hotmail.com",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "BRETT",
+    "lastName": "FEENEY",
+    "username": "brettfeeney@hotmail.com",
+    "email": "brettfeeney@hotmail.com",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Assistant Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "ANJUMAN",
+    "lastName": "SHARMA",
+    "username": "anjumansharma@yahoo.com",
+    "email": "anjumansharma@yahoo.com",
+    "locations": [
+      "Teds Sydney"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "VAN",
+    "lastName": "WU",
+    "username": "vankwu@gmail.com",
+    "email": "vankwu@gmail.com",
+    "locations": [
+      "Teds Chadstone"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "NERIDA",
+    "lastName": "PHELAN",
+    "username": "nphelan@bigpond.com",
+    "email": "nphelan@bigpond.com",
+    "locations": [
+      "Teds Chadstone"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "MANDY",
+    "lastName": "TERRIS",
+    "username": "MELBOURNE_MERMAID@HOTMAIL.COM",
+    "email": "MELBOURNE_MERMAID@HOTMAIL.COM",
+    "locations": [
+      "Teds Chadstone"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "JAY",
+    "lastName": "COLES",
+    "username": "jay.coles@hotmail.com",
+    "email": "jay.coles@hotmail.com",
+    "locations": [
+      "Teds Chadstone"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "ISABELLA",
+    "lastName": "NAPOLITANO",
+    "username": "issynap02@gmail.com",
+    "email": "issynap02@gmail.com",
+    "locations": [
+      "Teds Chadstone"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "EMILY",
+    "lastName": "HAAS",
+    "username": "emzezemail@gmail.com",
+    "email": "emzezemail@gmail.com",
+    "locations": [
+      "Teds Chadstone"
+    ],
+    "role": "Assistant Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "CAMERON",
+    "lastName": "SHARROCK",
+    "username": "cam.sharrock@gmail.com",
+    "email": "cam.sharrock@gmail.com",
+    "locations": [
+      "Teds Doncaster"
+    ],
+    "role": "Assistant Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "ANDREW",
+    "lastName": "ORELLANA-FUENTES",
+    "username": "andrewsorellana@gmail.com",
+    "email": "andrewsorellana@gmail.com",
+    "locations": [
+      "Teds Chadstone"
+    ],
+    "role": "Assistant Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "THOMAS",
+    "lastName": "SAUNDERS",
+    "username": "tos.saunders@gmail.com",
+    "email": "tos.saunders@gmail.com",
+    "locations": [
+      "Teds Canberra Centre"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "LIAM",
+    "lastName": "ELLIS",
+    "username": "liamkyellis@hotmail.com",
+    "email": "liamkyellis@hotmail.com",
+    "locations": [
+      "Teds Canberra Centre"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "DREW",
+    "lastName": "MORGAN",
+    "username": "andrewrobertmorgan@gmail.com",
+    "email": "andrewrobertmorgan@gmail.com",
+    "locations": [
+      "Teds Canberra Centre"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "ALEKSANDAR",
+    "lastName": "MARINOV",
+    "username": "aleks.marinov03@gmail.com",
+    "email": "aleks.marinov03@gmail.com",
+    "locations": [
+      "Teds Canberra Centre"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "YUNCONG",
+    "lastName": "MA",
+    "username": "mycvince@gmail.com",
+    "email": "mycvince@gmail.com",
+    "locations": [
+      "Teds Brisbane"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "MELANIE",
+    "lastName": "GREGORY",
+    "username": "melgregory1983@gmail.com",
+    "email": "melgregory1983@gmail.com",
+    "locations": [
+      "Teds Brisbane"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "ALICE",
+    "lastName": "RORAN",
+    "username": "x.aliceronan@gmail.com",
+    "email": "x.aliceronan@gmail.com",
+    "locations": [
+      "Teds Mt Gravatt"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "BRUCE",
+    "lastName": "BOWMAN",
+    "username": "bruceb@teds.com.au",
+    "email": "bruceb@teds.com.au",
+    "locations": [
+      "Teds Brisbane"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "BELINDA",
+    "lastName": "TURNER",
+    "username": "belindaturner69@hotmail.com",
+    "email": "belindaturner69@hotmail.com",
+    "locations": [
+      "Teds Brisbane"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "WILLIAM",
+    "lastName": "COOMBS",
+    "username": "vipop.coombs@icloud.com",
+    "email": "vipop.coombs@icloud.com",
+    "locations": [
+      "Teds Adelaide"
+    ],
+    "role": "Assistant Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "OLGA",
+    "lastName": "BECKINGTON",
+    "username": "sapoon20@gmail.com",
+    "email": "sapoon20@gmail.com",
+    "locations": [
+      "Teds Adelaide"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "NATHAN",
+    "lastName": "KRONBERGS",
+    "username": "nakronbergs@gmail.com",
+    "email": "nakronbergs@gmail.com",
+    "locations": [
+      "Teds Adelaide"
+    ],
+    "role": "Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "LORELEI",
+    "lastName": "OWENS",
+    "username": "lorelieowens405@gmail.com",
+    "email": "lorelieowens405@gmail.com",
+    "locations": [
+      "Teds Adelaide"
+    ],
+    "role": "Employee - Store",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "JASON",
+    "lastName": "BAKER",
+    "username": "LITTLEYELLOWDUCK@HOTMAIL.COM",
+    "email": "LITTLEYELLOWDUCK@HOTMAIL.COM",
+    "locations": [
+      "Teds Adelaide"
+    ],
+    "role": "Assistant Store Manager",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Setiono",
+    "lastName": "Hoo",
+    "username": "setionoh@worldnet.com.au",
+    "email": "setionoh@worldnet.com.au",
+    "locations": [
+      "Head Office"
+    ],
+    "role": "Employee - Office",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Silika",
+    "lastName": "Baselala",
+    "username": "silikab@teds.com.au",
+    "email": "silikab@teds.com.au",
+    "locations": [
+      "Head Office"
+    ],
+    "role": "Admin",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Tony",
+    "lastName": "Berridge",
+    "username": "advertising@teds.com.au",
+    "email": "advertising@teds.com.au",
+    "locations": [
+      "Head Office"
+    ],
+    "role": "Employee - Office",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Alex",
+    "lastName": "Meara",
+    "username": "alexm@teds.com.au",
+    "email": "alexm@teds.com.au",
+    "locations": [
+      "Head Office"
+    ],
+    "role": "Employee - Office",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Mark",
+    "lastName": "Allister",
+    "username": "marka@teds.com.au",
+    "email": "marka@teds.com.au",
+    "locations": [
+      "Head Office"
+    ],
+    "role": "Employee - Office",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Bronwyn",
+    "lastName": "Baker",
+    "username": "web.manager@teds.com.au",
+    "email": "web.manager@teds.com.au",
+    "locations": [
+      "Head Office"
+    ],
+    "role": "Admin",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Matthew",
+    "lastName": "Grahame",
+    "username": "matt@teds.com.au",
+    "email": "matt@teds.com.au",
+    "locations": [
+      "Head Office"
+    ],
+    "role": "Copy of Admin",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Test Manager",
+    "lastName": "Teds",
+    "username": "adam.bonnici@vortilla.com",
+    "email": "isanga.nainhabo@vortilla.com",
+    "locations": [
+      "Head Office"
+    ],
+    "role": "Op Central - Performance Review Test Only",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Sharon",
+    "lastName": "Mendes",
+    "username": "sharonm@teds.com.au",
+    "email": "sharonm@teds.com.au",
+    "locations": [
+      "Head Office"
+    ],
+    "role": "Admin",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Brandon",
+    "lastName": "Connole",
+    "username": "brandonc@minimax.com.au",
+    "email": "brandonc@minimax.com.au",
+    "locations": [
+      "Head Office"
+    ],
+    "role": "Admin",
+    "activated": true,
+    "brand": "Ted's Cameras"
+  },
+  {
+    "firstName": "Adam",
+    "lastName": "Withington",
+    "username": "adamw@arnac.com.au",
+    "email": "adamw@arnac.com.au",
+    "locations": [
+      "Head Office"
+    ],
+    "role": "Admin",
+    "activated": false,
+    "brand": "Ted's Cameras"
+  }
+]

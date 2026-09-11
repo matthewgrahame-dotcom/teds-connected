@@ -26,7 +26,7 @@ type NavItem = {
 const primaryNav: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutGrid },
   { label: 'News', href: '/news', icon: Newspaper },
-  { label: 'Admin', icon: IdCard, children: [{ label: 'Portal settings' }, { label: 'Access' }] },
+  { label: 'Admin', icon: IdCard, children: [{ label: 'Portal settings' }, { label: 'User Management', href: '/admin/users' }] },
   { label: 'Reporting', href: '/reporting', icon: FileText },
 ];
 

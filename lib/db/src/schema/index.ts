@@ -22,3 +22,4 @@ export * from "./training";
 export * from "./forms";
 export * from "./calendar";
 export * from "./news";
+export * from "./portal-users";
