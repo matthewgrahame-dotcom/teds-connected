@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { format, isToday } from 'date-fns';
-import { Clock, ExternalLink, MapPin, Plus, X } from 'lucide-react';
-import { DashboardCard, CardIconButton } from './DashboardCard';
+import { Clock, MapPin, Plus, X } from 'lucide-react';
+import { DashboardCard } from './DashboardCard';
 import { Calendar } from '@/components/ui/calendar';
 import { useAuth } from '@/lib/auth';
 
@@ -92,7 +92,7 @@ export function TedsCalendarCard() {
   };
 
   return (
-    <DashboardCard title="Teds Calendar" actions={<CardIconButton icon={ExternalLink} label="Open calendar" tone="primary" />}>
+    <DashboardCard title="Teds Calendar">
       <Calendar
         mode="single"
         required
