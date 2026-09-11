@@ -9,10 +9,11 @@ import { z } from "zod/v4";
 export const formFieldSchema = z.object({
   key: z.string(), // machine key used in submission data, e.g. "magentoOrderNumber"
   label: z.string(), // display label, e.g. "Magento Order Number"
-  type: z.enum(["text", "textarea", "number", "currency", "radio", "select"]),
+  type: z.enum(["text", "textarea", "number", "currency", "radio", "select", "file"]),
   required: z.boolean().optional(),
   options: z.array(z.string()).optional(), // for radio/select
   helpText: z.string().optional(),
+  section: z.string().optional(), // groups fields under a heading, e.g. "Expense Claim 1" -- a run of fields sharing the same section renders as one visual block
 });
 export type FormField = z.infer<typeof formFieldSchema>;
 
