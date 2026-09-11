@@ -1,4 +1,7 @@
-import { DashboardCard } from './DashboardCard';
+import { useEffect, useState } from 'react';
+import { Link } from 'wouter';
+import { DashboardCard, CardIconButton } from './DashboardCard';
+import { ExternalLink } from 'lucide-react';
 
 type NewsItem = {
   id: number;
@@ -7,28 +10,37 @@ type NewsItem = {
   tagColor: string;
 };
 
-// TODO: replace with real announcements data once the Announcements module exists.
-const newsItems: NewsItem[] = [
-  {
-    id: 1,
-    title: 'New TRS Portal Now Live',
-    snippet: "The Repair Service (TRS) Portal has launched. Head to the Work section to see what's changed.",
-    tagColor: 'bg-destructive',
-  },
-];
-
 export function NewsCard() {
+  const [items, setItems] = useState<NewsItem[] | null>(null);
+
+  useEffect(() => {
+    fetch('/api/news')
+      .then((r) => r.json())
+      .then((data: NewsItem[]) => setItems(data.slice(0, 3)))
+      .catch(() => setItems([]));
+  }, []);
+
   return (
-    <DashboardCard title="News" noPadding>
+    <DashboardCard
+      title="News"
+      noPadding
+      actions={
+        <Link href="/news" data-testid="link-news-view-all">
+          <CardIconButton icon={ExternalLink} label="View all news" tone="primary" />
+        </Link>
+      }
+    >
+      {items === null && <p className="px-5 py-4 text-sm text-muted-foreground">Loading…</p>}
+      {items?.length === 0 && <p className="px-5 py-4 text-sm text-muted-foreground">No news yet.</p>}
       <div className="divide-y divide-border">
-        {newsItems.map((item) => (
-          <div key={item.id} data-testid={`news-item-${item.id}`} className="flex gap-4 px-5 py-4">
+        {items?.map((item) => (
+          <Link key={item.id} href={`/news/${item.id}`} data-testid={`news-item-${item.id}`} className="flex gap-4 px-5 py-4 transition hover:bg-muted/50">
             <span className={`mt-1 h-10 w-1.5 shrink-0 rounded-full ${item.tagColor}`} />
             <div className="min-w-0">
               <h3 className="font-extrabold text-foreground">{item.title}</h3>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.snippet}</p>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </DashboardCard>

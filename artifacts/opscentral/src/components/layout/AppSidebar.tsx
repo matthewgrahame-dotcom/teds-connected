@@ -8,6 +8,7 @@ import {
   GraduationCap,
   IdCard,
   LayoutGrid,
+  Newspaper,
   UsersRound,
   type LucideIcon,
 } from 'lucide-react';
@@ -24,6 +25,7 @@ type NavItem = {
 
 const primaryNav: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutGrid },
+  { label: 'News', href: '/news', icon: Newspaper },
   { label: 'Admin', icon: IdCard, children: [{ label: 'Portal settings' }, { label: 'Access' }] },
   { label: 'Reporting', href: '/reporting', icon: FileText },
 ];

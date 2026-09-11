@@ -6,6 +6,7 @@ import socialTimelineRouter from "./social-timeline";
 import trainingRouter from "./training";
 import formsRouter from "./forms";
 import calendarRouter from "./calendar";
+import newsRouter from "./news";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(socialTimelineRouter);
 router.use(trainingRouter);
 router.use(formsRouter);
 router.use(calendarRouter);
+router.use(newsRouter);
 
 export default router;
