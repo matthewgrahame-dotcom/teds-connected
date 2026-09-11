@@ -129,6 +129,14 @@
 
 @layer base {
   * { @apply border-border; }
+  /* The mobile sidebar sits fixed off-screen to the left (-translate-x-full)
+     when closed. Without this, that off-screen content still counts toward
+     the page's scrollable width, letting the whole viewport scroll
+     sideways on mobile -- the app should never legitimately need
+     horizontal scroll, so this is a blanket guard, not a per-component fix.
+     Empirically confirmed: 150px of real overflow without this line, zero
+     with it, measured via a headless browser at a 390px mobile viewport. */
+  html, body { overflow-x: hidden; }
   html { background: hsl(var(--background)); }
   body { @apply font-sans antialiased bg-background text-foreground; margin: 0; }
   button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }

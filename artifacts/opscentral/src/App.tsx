@@ -136,7 +136,7 @@ function PageIntro({ eyebrow, title, description, action }: { eyebrow: string; t
 function Dashboard() {
   return (
     <div className="px-5 py-8 lg:px-10 lg:py-10">
-      <div className="mx-auto grid max-w-[1400px] gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,.9fr)]">
+      <div className="mx-auto grid max-w-[1400px] grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,.9fr)]">
         <div className="space-y-6">
           <HeroCarousel />
           <NewsCard />
@@ -182,7 +182,7 @@ function ErrorState({ retry }: { retry: () => void }) {
 }
 
 function WorkItemRow({ item }: { item: WorkItem }) {
-  return <Link href={`/work-items/${item.id}`} data-testid={`row-work-item-${item.id}`} className="group grid gap-3 px-5 py-4 transition hover:bg-muted/50 sm:grid-cols-[minmax(0,1fr)_140px_110px_130px] sm:items-center"><div className="min-w-0"><div className="mb-1 flex items-center gap-2"><span className="font-mono text-[10px] text-muted-foreground">#{String(item.id).padStart(4, '0')}</span><span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">{item.category}</span></div><h3 className="truncate text-sm font-extrabold transition group-hover:text-accent">{item.title}</h3><p className="mt-1 truncate text-xs text-muted-foreground">{item.owner || 'Unassigned'} {item.description ? `· ${item.description}` : ''}</p></div><div><StatusBadge status={item.status} /></div><div><PriorityBadge priority={item.priority} /></div><div className="flex items-center justify-between gap-2 text-xs text-muted-foreground"><span>{item.dueDate ? `Due ${formatDate(item.dueDate)}` : 'No due date'}</span><ChevronRight className="h-4 w-4 transition group-hover:translate-x-1 group-hover:text-accent" /></div></Link>;
+  return <Link href={`/work-items/${item.id}`} data-testid={`row-work-item-${item.id}`} className="group grid grid-cols-1 gap-3 px-5 py-4 transition hover:bg-muted/50 sm:grid-cols-[minmax(0,1fr)_140px_110px_130px] sm:items-center"><div className="min-w-0"><div className="mb-1 flex items-center gap-2"><span className="font-mono text-[10px] text-muted-foreground">#{String(item.id).padStart(4, '0')}</span><span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">{item.category}</span></div><h3 className="truncate text-sm font-extrabold transition group-hover:text-accent">{item.title}</h3><p className="mt-1 truncate text-xs text-muted-foreground">{item.owner || 'Unassigned'} {item.description ? `· ${item.description}` : ''}</p></div><div><StatusBadge status={item.status} /></div><div><PriorityBadge priority={item.priority} /></div><div className="flex items-center justify-between gap-2 text-xs text-muted-foreground"><span>{item.dueDate ? `Due ${formatDate(item.dueDate)}` : 'No due date'}</span><ChevronRight className="h-4 w-4 transition group-hover:translate-x-1 group-hover:text-accent" /></div></Link>;
 }
 
 function WorkItemForm({ initial, submitLabel, pending, onSubmit, onCancel }: { initial?: Partial<WorkItem>; submitLabel: string; pending?: boolean; onSubmit: (data: WorkItemInput | WorkItemUpdate) => void; onCancel?: () => void }) {
