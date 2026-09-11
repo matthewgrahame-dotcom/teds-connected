@@ -30,6 +30,7 @@ import { RosteringCard } from '@/components/dashboard/RosteringCard';
 import { FacebookStreamCard } from '@/components/dashboard/FacebookStreamCard';
 import { SocialTimelineCard } from '@/components/dashboard/SocialTimelineCard';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { PublishAccessProvider } from '@/lib/publishAccess';
 import { LoginPage } from '@/components/LoginPage';
 import ProgramsPage from '@/pages/ProgramsPage';
 import FormsListPage from '@/pages/FormsListPage';
@@ -237,7 +238,7 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 }
 
 function App() {
-  return <QueryClientProvider client={queryClient}><AuthProvider><TooltipProvider><WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}><AppShell><Router /></AppShell></WouterRouter><Toaster /></TooltipProvider></AuthProvider></QueryClientProvider>;
+  return <QueryClientProvider client={queryClient}><AuthProvider><PublishAccessProvider><TooltipProvider><WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}><AppShell><Router /></AppShell></WouterRouter><Toaster /></TooltipProvider></PublishAccessProvider></AuthProvider></QueryClientProvider>;
 }
 
 export default App;

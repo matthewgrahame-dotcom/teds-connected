@@ -17,9 +17,11 @@ import {
   Filter,
   User,
   ExternalLink,
+  X,
 } from 'lucide-react';
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { useAuth } from '@/lib/auth';
+import { usePublishAccess } from '@/lib/publishAccess';
 
 const PHOCAL_BASE_URL = 'https://seo-optimiser.vercel.app'; // TODO: update once the Vercel project rename discussion lands
 
@@ -39,10 +41,17 @@ const toolbarButtons = [Bold, Italic, Underline, LinkIcon, AlignLeft, AlignCente
 
 export function SocialTimelineCard() {
   const { session } = useAuth();
+  const { requirePublishAccess } = usePublishAccess();
   const [draft, setDraft] = useState('');
   const [location, setLocation] = useState(session?.store ?? '');
   const [messages, setMessages] = useState<PhocalMessage[] | null>(null);
   const [posting, setPosting] = useState(false);
+
+  // Same rule as Phocal's own Ted's Talks page (canPostAnnouncements): only
+  // full-level staff can delete. No staffSession at all isn't possible here
+  // (Connected requires login), unlike Phocal where that also means "Matt
+  // himself, outside the staff-login layer".
+  const canDelete = session?.level === 'full';
 
   const loadMessages = async () => {
     try {
@@ -72,6 +81,14 @@ export function SocialTimelineCard() {
     } finally {
       setPosting(false);
     }
+  };
+
+  const handleDelete = (id: string) => {
+    if (!confirm('Remove this message?')) return;
+    requirePublishAccess(async () => {
+      await fetch(`/api/social-timeline/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      await loadMessages();
+    });
   };
 
   return (
@@ -157,17 +174,30 @@ export function SocialTimelineCard() {
         {messages?.length === 0 && <p className="text-sm text-muted-foreground">No messages yet.</p>}
         {messages?.map((post) => (
           <div key={post.id} data-testid={`post-${post.id}`} className="rounded-lg border border-border p-4">
-            <div className="flex items-center gap-3">
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-muted text-muted-foreground">
-                <User className="h-4 w-4" />
-              </span>
-              <div>
-                <p className="text-sm font-extrabold text-foreground">
-                  {post.fromLocation}
-                  {post.isAnnouncement ? ' 📣' : ''}
-                </p>
-                <p className="text-xs text-muted-foreground">{new Date(post.postedAt).toLocaleString('en-AU')}</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-muted text-muted-foreground">
+                  <User className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-sm font-extrabold text-foreground">
+                    {post.fromLocation}
+                    {post.isAnnouncement ? ' 📣' : ''}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{new Date(post.postedAt).toLocaleString('en-AU')}</p>
+                </div>
               </div>
+              {canDelete && (
+                <button
+                  type="button"
+                  data-testid={`button-delete-post-${post.id}`}
+                  aria-label="Remove post"
+                  onClick={() => handleDelete(post.id)}
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded text-muted-foreground transition hover:bg-muted hover:text-destructive"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
             <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-foreground/90">{post.messageText}</p>
           </div>

@@ -40,4 +40,40 @@ router.post("/social-timeline", async (req, res) => {
   }
 });
 
+router.delete("/social-timeline/:id", async (req, res) => {
+  try {
+    const resp = await fetch(`${PHOCAL_BASE_URL}/api/chat-messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete_chat_message", data: { id: req.params.id } }),
+    });
+    const data = (await resp.json()) as { error?: string; ok?: boolean };
+    if (!resp.ok) {
+      res.status(502).json({ error: data.error || "Couldn't delete from the shared timeline." });
+      return;
+    }
+    res.json(data);
+  } catch {
+    res.status(502).json({ error: "Couldn't reach Phocal to delete from the shared timeline." });
+  }
+});
+
+// Proxies to Phocal's own publish-password check rather than duplicating
+// PUBLISH_PASSWORD into Connected's env vars -- one password, one place it's
+// verified, matching how Phocal gates every other destructive action
+// (requirePublishAccess) via this same underlying check.
+router.post("/social-timeline-verify-password", async (req, res) => {
+  try {
+    const resp = await fetch(`${PHOCAL_BASE_URL}/api/verify-publish-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: req.body?.password }),
+    });
+    const data = (await resp.json()) as { ok?: boolean; error?: string };
+    res.status(resp.status).json(data);
+  } catch {
+    res.status(502).json({ ok: false, error: "Couldn't reach Phocal to verify the password." });
+  }
+});
+
 export default router;
