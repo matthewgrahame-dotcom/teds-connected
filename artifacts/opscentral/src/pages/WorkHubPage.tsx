@@ -20,9 +20,9 @@ const tiles: HubTile[] = [
   { title: 'Operations', slug: 'operations', image: operationsImg },
   { title: 'HR Handbook', slug: 'hr-handbook', image: hrHandbookImg },
   { title: 'Current Campaigns', slug: 'current-campaigns', image: currentCampaignsImg },
-  { title: 'Connected & Phocal FAQ', slug: 'op-central-training' }, // no source image provided -- Op Central Training tile repurposed as an FAQ
   { title: 'Pronto', slug: 'pronto', image: prontoImg },
   { title: 'Product Information', slug: 'product-information', image: productInformationImg },
+  { title: 'Connected & Phocal FAQ', slug: 'op-central-training' }, // no source image provided -- Op Central Training tile repurposed as an FAQ
 ];
 
 export default function WorkHubPage() {
@@ -48,7 +48,7 @@ export default function WorkHubPage() {
                       className="h-full w-full object-cover transition group-hover:scale-105"
                     />
                   ) : (
-                    <div className="flex h-full items-end justify-center bg-gradient-to-br from-slate-600 to-slate-800 p-4">
+                    <div className="flex h-full items-end justify-center bg-primary p-4">
                       <span className="max-w-[85%] rounded-full bg-foreground px-4 py-2 text-center text-sm font-extrabold uppercase leading-tight text-primary">
                         {tile.title}
                       </span>
