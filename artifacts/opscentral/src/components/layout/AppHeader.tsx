@@ -1,11 +1,30 @@
-import { useState } from 'react';
-import { Bell, CircleUserRound, HelpCircle, ListChecks, MousePointer2, Search } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Bell, CircleUserRound, Globe, HelpCircle, ListChecks, LogOut, MousePointer2, Rocket, Search, Settings, User, Users } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import heroBanner from '@/assets/hero-banner.png';
 
+const profileMenuItems = [
+  { label: 'My Profile', icon: User },
+  { label: 'Directory', icon: Users },
+  { label: 'Language (English)', icon: Globe },
+  { label: 'Product Updates', icon: Rocket },
+  { label: 'System Settings', icon: Settings },
+] as const;
+
 export function AppHeader({ userName }: { userName: string }) {
   const [search, setSearch] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
   const { logout } = useAuth();
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClick = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [menuOpen]);
 
   return (
     <header className="relative z-30">
@@ -43,9 +62,42 @@ export function AppHeader({ userName }: { userName: string }) {
               99+
             </span>
           </button>
-          <button type="button" aria-label="Sign out" onClick={logout} className="text-primary-foreground/70 transition hover:text-primary-foreground">
-            <CircleUserRound className="h-7 w-7" />
-          </button>
+
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              aria-label="Profile menu"
+              data-testid="button-profile-menu"
+              onClick={() => setMenuOpen((open) => !open)}
+              className="text-primary-foreground/70 transition hover:text-primary-foreground"
+            >
+              <CircleUserRound className="h-7 w-7" />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-full z-40 mt-2 w-56 rounded-lg border border-border bg-card py-2 shell-shadow">
+                {profileMenuItems.map(({ label, icon: Icon }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-foreground transition hover:bg-muted"
+                  >
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    {label}
+                  </button>
+                ))}
+                <div className="my-1 border-t border-border" />
+                <button
+                  type="button"
+                  data-testid="button-logout"
+                  onClick={logout}
+                  className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-foreground transition hover:bg-muted"
+                >
+                  <LogOut className="h-4 w-4 text-muted-foreground" />
+                  Log Out
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>
