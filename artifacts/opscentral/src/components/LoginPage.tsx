@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { Aperture } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import connectedLogo from '@/assets/connected-logo.png';
 
 export function LoginPage() {
   const { login, loginError, loggingIn } = useAuth();
@@ -17,12 +17,7 @@ export function LoginPage() {
     <div className="grid min-h-[100dvh] place-items-center bg-background px-4">
       <div className="w-full max-w-sm rounded-xl border border-card-border bg-card p-8 shell-shadow">
         <div className="flex flex-col items-center gap-3 pb-6">
-          <span className="grid h-14 w-16 place-items-center rounded-lg border-[3px] border-foreground">
-            <Aperture className="h-7 w-7 text-foreground" strokeWidth={1.75} />
-          </span>
-          <span className="text-xl font-black tracking-tight">
-            CONNEC<span className="text-primary">TED</span>
-          </span>
+          <img src={connectedLogo} alt="Connected" className="h-16 w-auto" />
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

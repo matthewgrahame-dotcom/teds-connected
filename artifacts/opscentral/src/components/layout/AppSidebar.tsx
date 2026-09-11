@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import {
-  Aperture,
   ChevronDown,
   ChevronRight,
   FileText,
@@ -12,6 +11,7 @@ import {
   UsersRound,
   type LucideIcon,
 } from 'lucide-react';
+import connectedLogo from '@/assets/connected-logo.png';
 
 type NavChild = { label: string; href?: string };
 
@@ -137,13 +137,8 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
         <div className="relative hidden overflow-hidden border-b border-sidebar-border py-8 md:block">
           <span className="pointer-events-none absolute -right-3 top-0 h-10 w-10 bg-primary" />
           <span className="pointer-events-none absolute -left-3 bottom-0 h-10 w-10 bg-foreground" />
-          <Link href="/" className="relative mx-auto flex flex-col items-center gap-3">
-            <span className="relative grid h-14 w-16 place-items-center rounded-lg border-[3px] border-foreground">
-              <Aperture className="h-7 w-7 text-foreground" strokeWidth={1.75} />
-            </span>
-            <span className="text-xl font-black tracking-tight">
-              CONNEC<span className="text-primary">TED</span>
-            </span>
+          <Link href="/" className="relative mx-auto flex items-center justify-center">
+            <img src={connectedLogo} alt="Connected" className="h-16 w-auto" />
           </Link>
         </div>
 

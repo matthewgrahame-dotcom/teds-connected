@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Bell, Camera, CircleUserRound, HelpCircle, ListChecks, MousePointer2, Search } from 'lucide-react';
+import { Bell, CircleUserRound, HelpCircle, ListChecks, MousePointer2, Search } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import heroBanner from '@/assets/hero-banner.png';
 
 export function AppHeader({ userName }: { userName: string }) {
   const [search, setSearch] = useState('');
@@ -8,20 +9,9 @@ export function AppHeader({ userName }: { userName: string }) {
 
   return (
     <header className="relative z-30">
-      {/* Brand hero band */}
-      <div className="relative flex h-[120px] overflow-hidden bg-primary sm:h-[150px]">
-        <div className="flex flex-1 items-center px-6 sm:px-10">
-          <div>
-            <div className="flex items-baseline gap-1 text-[28px] font-black italic leading-none tracking-tight text-foreground sm:text-[38px]">
-              Ted's Cameras
-            </div>
-            <p className="mt-1 text-xs font-bold text-foreground/70 sm:text-sm">Helping you capture life</p>
-          </div>
-        </div>
-        {/* TODO: replace with the real lifestyle photo asset */}
-        <div className="relative hidden w-[38%] shrink-0 items-center justify-center bg-foreground/90 text-primary-foreground/20 sm:flex">
-          <Camera className="h-12 w-12" strokeWidth={1.25} />
-        </div>
+      {/* Brand hero band -- the real banner asset, not a recreation */}
+      <div className="h-[90px] w-full overflow-hidden bg-primary sm:h-[130px]">
+        <img src={heroBanner} alt="Ted's Cameras — Helping you capture life" className="h-full w-full object-cover object-left" />
       </div>
 
       {/* Utility bar */}
