@@ -20,3 +20,4 @@
 export * from "./work-items";
 export * from "./training";
 export * from "./forms";
+export * from "./calendar";

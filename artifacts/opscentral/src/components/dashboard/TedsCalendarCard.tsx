@@ -1,15 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { format, isToday } from 'date-fns';
-import { Clock, ExternalLink, MapPin } from 'lucide-react';
+import { Clock, ExternalLink, MapPin, Plus, X } from 'lucide-react';
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { Calendar } from '@/components/ui/calendar';
+import { useAuth } from '@/lib/auth';
 
 type CalendarEvent = {
-  id: string;
+  id: number;
   date: string; // 'yyyy-MM-dd', local date -- see toDateKey below for why not an ISO/UTC string
   title: string;
-  time?: string;
-  location?: string;
+  time?: string | null;
+  location?: string | null;
 };
 
 /** 'yyyy-MM-dd' from LOCAL date parts, not Date#toISOString(). toISOString
@@ -22,34 +23,35 @@ function toDateKey(date: Date): string {
   return format(date, 'yyyy-MM-dd');
 }
 
-// TODO: replace with a real events source once a Calendar/Events module +
-// API exists (see lib/db, lib/api-spec -- no such table/endpoint yet).
-// Seeded relative to "today" so the widget always has something real to
-// show and interact with in the meantime, same posture as News/KeyContacts'
-// placeholder data elsewhere in this dashboard.
-function buildSampleEvents(): CalendarEvent[] {
-  const today = new Date();
-  const relativeDate = (offsetDays: number) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() + offsetDays);
-    return toDateKey(d);
-  };
-  return [
-    { id: '1', date: relativeDate(0), title: 'Store Managers Weekly Call', time: '9:00 AM', location: 'Teams' },
-    { id: '2', date: relativeDate(0), title: 'New Stock Delivery', time: '1:00 PM', location: 'Teds Melbourne' },
-    { id: '3', date: relativeDate(2), title: 'Q3 Sales Review', time: '11:00 AM', location: 'Head Office' },
-    { id: '4', date: relativeDate(5), title: 'Camera Hire Fleet Stocktake', time: 'All day', location: 'All stores' },
-    { id: '5', date: relativeDate(9), title: 'Public Holiday — Stores Closed Early' },
-    { id: '6', date: relativeDate(14), title: 'National Product Meeting', time: '10:00 AM', location: 'Head Office' },
-  ];
-}
-
+// TODO: once role-based permissions exist, restrict adding events to
+// Admin/Manager levels -- open to any logged-in staff member for now, per
+// explicit instruction to scope that properly later.
 export function TedsCalendarCard() {
-  const events = useMemo(buildSampleEvents, []);
+  const { session } = useAuth();
+  const [events, setEvents] = useState<CalendarEvent[] | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [draft, setDraft] = useState({ title: '', time: '', location: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadEvents = async () => {
+    try {
+      const resp = await fetch('/api/calendar/events');
+      const data = await resp.json();
+      setEvents(data);
+    } catch {
+      setEvents([]);
+    }
+  };
+
+  useEffect(() => {
+    loadEvents();
+  }, []);
 
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
-    for (const event of events) {
+    for (const event of events ?? []) {
       const list = map.get(event.date) ?? [];
       list.push(event);
       map.set(event.date, list);
@@ -57,8 +59,37 @@ export function TedsCalendarCard() {
     return map;
   }, [events]);
 
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const selectedEvents = eventsByDate.get(toDateKey(selectedDate)) ?? [];
+
+  const handleAddEvent = async () => {
+    if (!draft.title.trim() || !session?.name) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const resp = await fetch('/api/calendar/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: draft.title.trim(),
+          date: toDateKey(selectedDate),
+          time: draft.time.trim() || undefined,
+          location: draft.location.trim() || undefined,
+          createdBy: session.name,
+        }),
+      });
+      if (!resp.ok) {
+        const data = await resp.json();
+        throw new Error(data.error || 'Failed to add event');
+      }
+      setDraft({ title: '', time: '', location: '' });
+      setShowAddForm(false);
+      await loadEvents();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add event');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <DashboardCard title="Teds Calendar" actions={<CardIconButton icon={ExternalLink} label="Open calendar" tone="primary" />}>
@@ -66,14 +97,11 @@ export function TedsCalendarCard() {
         mode="single"
         required
         selected={selectedDate}
-        onSelect={setSelectedDate}
+        onSelect={(date) => {
+          setSelectedDate(date);
+          setShowAddForm(false);
+        }}
         modifiers={{ hasEvent: (date) => eventsByDate.has(toDateKey(date)) }}
-        // Small dot under any day that has an event, without touching the
-        // shared ui/calendar.tsx primitive (also used elsewhere, e.g. the
-        // mockup sandbox) -- react-day-picker applies this className to the
-        // day cell itself, which the shared component already marks
-        // `relative`, so an absolutely-positioned pseudo-element dot lines
-        // up under the day number correctly.
         modifiersClassNames={{
           hasEvent: "after:absolute after:bottom-1 after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:bg-primary after:content-['']",
         }}
@@ -83,11 +111,62 @@ export function TedsCalendarCard() {
       />
 
       <div className="mt-4 border-t border-border pt-4">
-        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-          {isToday(selectedDate) ? 'Today' : format(selectedDate, 'EEEE, d MMMM')}
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            {isToday(selectedDate) ? 'Today' : format(selectedDate, 'EEEE, d MMMM')}
+          </p>
+          <button
+            type="button"
+            data-testid="button-add-event"
+            onClick={() => setShowAddForm((v) => !v)}
+            aria-label={showAddForm ? 'Cancel' : 'Add event'}
+            className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          >
+            {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          </button>
+        </div>
 
-        {selectedEvents.length === 0 ? (
+        {showAddForm && (
+          <div className="mt-3 space-y-2 rounded-lg border border-border p-3">
+            <input
+              data-testid="input-event-title"
+              value={draft.title}
+              onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+              placeholder="Event title"
+              className="w-full rounded-md border border-border px-2.5 py-1.5 text-sm outline-none focus:border-primary"
+            />
+            <div className="flex gap-2">
+              <input
+                data-testid="input-event-time"
+                value={draft.time}
+                onChange={(e) => setDraft((d) => ({ ...d, time: e.target.value }))}
+                placeholder="Time (optional)"
+                className="w-1/2 rounded-md border border-border px-2.5 py-1.5 text-sm outline-none focus:border-primary"
+              />
+              <input
+                data-testid="input-event-location"
+                value={draft.location}
+                onChange={(e) => setDraft((d) => ({ ...d, location: e.target.value }))}
+                placeholder="Location (optional)"
+                className="w-1/2 rounded-md border border-border px-2.5 py-1.5 text-sm outline-none focus:border-primary"
+              />
+            </div>
+            {error && <p className="text-xs text-destructive">{error}</p>}
+            <button
+              type="button"
+              data-testid="button-save-event"
+              onClick={handleAddEvent}
+              disabled={submitting || !draft.title.trim()}
+              className="w-full rounded-md bg-primary px-3 py-1.5 text-xs font-extrabold text-primary-foreground transition hover:brightness-95 disabled:opacity-60"
+            >
+              {submitting ? 'Adding…' : `Add to ${format(selectedDate, 'd MMM')}`}
+            </button>
+          </div>
+        )}
+
+        {events === null ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p>
+        ) : selectedEvents.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground" data-testid="text-no-events-selected-day">
             No events on this day.
           </p>
