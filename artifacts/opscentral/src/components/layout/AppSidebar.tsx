@@ -29,7 +29,7 @@ const primaryNav: NavItem[] = [
 ];
 
 const secondaryNav: NavItem[] = [
-  { label: 'Work', href: '/work-items', icon: Briefcase },
+  { label: 'Work', href: '/work', icon: Briefcase },
   {
     label: 'Learn',
     icon: GraduationCap,

@@ -34,6 +34,7 @@ import { LoginPage } from '@/components/LoginPage';
 import ProgramsPage from '@/pages/ProgramsPage';
 import FormsListPage from '@/pages/FormsListPage';
 import FormPage from '@/pages/FormPage';
+import WorkHubPage from '@/pages/WorkHubPage';
 
 const queryClient = new QueryClient();
 
@@ -226,7 +227,7 @@ function WorkItemDetail() {
 }
 
 function Router() {
-  return <RoutedErrorBoundary><Switch><Route path="/" component={Dashboard} /><Route path="/learn/programs" component={ProgramsPage} /><Route path="/people/forms/:slug" component={FormPage} /><Route path="/people/forms" component={FormsListPage} /><Route path="/work-items/new" component={NewWorkItemPage} /><Route path="/work-items/:id" component={WorkItemDetail} /><Route path="/work-items" component={WorkItemsPage} /><Route component={NotFound} /></Switch></RoutedErrorBoundary>;
+  return <RoutedErrorBoundary><Switch><Route path="/" component={Dashboard} /><Route path="/work" component={WorkHubPage} /><Route path="/learn/programs" component={ProgramsPage} /><Route path="/people/forms/:slug" component={FormPage} /><Route path="/people/forms" component={FormsListPage} /><Route path="/work-items/new" component={NewWorkItemPage} /><Route path="/work-items/:id" component={WorkItemDetail} /><Route path="/work-items" component={WorkItemsPage} /><Route component={NotFound} /></Switch></RoutedErrorBoundary>;
 }
 
 function RoutedErrorBoundary({ children }: { children: ReactNode }) {
