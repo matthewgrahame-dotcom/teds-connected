@@ -24,14 +24,21 @@ router.get("/news/:id", async (req, res) => {
 });
 
 router.post("/news", async (req, res) => {
-  const { title, snippet, body, tagColor, postedBy } = req.body ?? {};
+  const { title, snippet, body, imageUrl, tagColor, postedBy } = req.body ?? {};
   if (typeof title !== "string" || !title.trim() || typeof snippet !== "string" || !snippet.trim() || typeof postedBy !== "string" || !postedBy.trim()) {
     res.status(400).json({ error: "title, snippet, and postedBy are required" });
     return;
   }
   const [article] = await db
     .insert(newsArticlesTable)
-    .values({ title: title.trim(), snippet: snippet.trim(), body: body?.trim() || null, tagColor: tagColor?.trim() || undefined, postedBy: postedBy.trim() })
+    .values({
+      title: title.trim(),
+      snippet: snippet.trim(),
+      body: body?.trim() || null,
+      imageUrl: imageUrl?.trim() || null,
+      tagColor: tagColor?.trim() || undefined,
+      postedBy: postedBy.trim(),
+    })
     .returning();
   res.json({ ok: true, article });
 });

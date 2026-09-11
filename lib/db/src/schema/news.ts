@@ -10,6 +10,7 @@ export const newsArticlesTable = pgTable("news_articles", {
   title: text("title").notNull(),
   snippet: text("snippet").notNull(), // shown on the dashboard card + list view
   body: text("body"), // full article text, shown on the article page; optional so a snippet-only post still works
+  imageUrl: text("image_url"), // optional -- shown at the top of the article page, and as the hero carousel background when set
   tagColor: text("tag_color").notNull().default("bg-destructive"), // matches the coloured bar already used in NewsCard
   postedBy: text("posted_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

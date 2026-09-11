@@ -7,6 +7,7 @@ type NewsArticle = {
   title: string;
   snippet: string;
   body: string | null;
+  imageUrl: string | null;
   tagColor: string;
   postedBy: string;
   createdAt: string;
@@ -34,17 +35,20 @@ export default function NewsArticlePage() {
         {article === null && <p className="text-sm text-muted-foreground">This article couldn't be found.</p>}
 
         {article && (
-          <article className="rounded-xl border border-card-border bg-card p-6 shell-shadow">
-            <div className="flex gap-4">
-              <span className={`mt-1 h-10 w-1.5 shrink-0 rounded-full ${article.tagColor}`} />
-              <div className="min-w-0">
-                <h1 className="text-xl font-extrabold text-foreground">{article.title}</h1>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {article.postedBy} · {new Date(article.createdAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </p>
+          <article className="overflow-hidden rounded-xl border border-card-border bg-card shell-shadow">
+            {article.imageUrl && <img src={article.imageUrl} alt="" className="aspect-[16/9] w-full object-cover" />}
+            <div className="p-6">
+              <div className="flex gap-4">
+                <span className={`mt-1 h-10 w-1.5 shrink-0 rounded-full ${article.tagColor}`} />
+                <div className="min-w-0">
+                  <h1 className="text-xl font-extrabold text-foreground">{article.title}</h1>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {article.postedBy} · {new Date(article.createdAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
+                </div>
               </div>
+              <div className="mt-5 whitespace-pre-wrap text-sm leading-7 text-foreground/90">{article.body || article.snippet}</div>
             </div>
-            <div className="mt-5 whitespace-pre-wrap text-sm leading-7 text-foreground/90">{article.body || article.snippet}</div>
           </article>
         )}
       </div>

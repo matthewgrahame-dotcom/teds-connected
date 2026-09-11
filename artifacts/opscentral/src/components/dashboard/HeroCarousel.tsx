@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react';
 type NewsArticle = {
   id: number;
   title: string;
+  imageUrl: string | null;
 };
 
 const MAX_SLIDES = 5;
@@ -38,9 +39,13 @@ export function HeroCarousel() {
   return (
     <div className="overflow-hidden rounded-xl border border-card-border bg-card shell-shadow">
       <div className="relative aspect-[16/7] w-full overflow-hidden bg-gradient-to-br from-foreground/80 via-foreground/60 to-muted">
-        <div className="absolute inset-0 grid place-items-center text-primary-foreground/30">
-          <ImageIcon className="h-10 w-10" />
-        </div>
+        {slide.imageUrl ? (
+          <img src={slide.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 grid place-items-center text-primary-foreground/30">
+            <ImageIcon className="h-10 w-10" />
+          </div>
+        )}
         {articles.length > 1 && (
           <>
             <button
