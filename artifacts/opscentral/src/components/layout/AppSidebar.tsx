@@ -128,17 +128,18 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-20 w-[260px] border-r border-sidebar-border bg-sidebar pt-[170px] transition-transform duration-200 md:sticky md:top-0 md:h-screen md:translate-x-0 md:pt-0 ${
+      className={`fixed inset-y-0 left-0 z-40 w-[260px] border-r border-sidebar-border bg-sidebar pt-[170px] transition-transform duration-200 md:sticky md:top-0 md:h-screen md:translate-x-0 md:pt-0 ${
         mobileOpen ? 'translate-x-0' : '-translate-x-full'
       }`}
     >
       <div className="flex h-full flex-col">
-        {/* Logo panel */}
-        <div className="relative hidden overflow-hidden border-b border-sidebar-border py-8 md:block">
-          <span className="pointer-events-none absolute -right-3 top-0 h-10 w-10 bg-primary" />
-          <span className="pointer-events-none absolute -left-3 bottom-0 h-10 w-10 bg-foreground" />
-          <Link href="/" className="relative mx-auto flex items-center justify-center">
-            <img src={connectedLogo} alt="Connected" className="h-16 w-auto" />
+        {/* Logo panel -- the logo image intentionally overflows upward past
+            this panel's own top edge to sit on top of the header's black
+            utility bar above it. Needs the aside's z-40 (higher than
+            AppHeader's z-30) to actually paint on top rather than behind it. */}
+        <div className="relative hidden border-b border-sidebar-border pb-6 pt-8 md:block">
+          <Link href="/" className="relative -mt-16 flex items-center justify-center">
+            <img src={connectedLogo} alt="Connected" className="h-24 w-auto drop-shadow-md" />
           </Link>
         </div>
 
