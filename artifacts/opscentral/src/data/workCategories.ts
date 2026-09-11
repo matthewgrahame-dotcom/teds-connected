@@ -67,6 +67,11 @@ export const workCategories: Record<string, WorkCategory> = {
       { title: 'Break Obligations', href: '/documents/hr/hr-break-obligations.pdf', section: '5.0 General Retail Industry Award 2020' },
     ],
   },
+  'current-campaigns': {
+    slug: 'current-campaigns',
+    title: 'Current Campaigns',
+    docs: [{ title: "Ted's Cameras — Current Sales & Offers", href: 'https://www.teds.com.au/pages/sales' }],
+  },
   'operations': {
     slug: 'operations',
     title: 'Operations',
