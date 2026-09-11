@@ -8,6 +8,7 @@ import formsRouter from "./forms";
 import calendarRouter from "./calendar";
 import newsRouter from "./news";
 import portalUsersRouter from "./portal-users";
+import dashboardConfigRouter from "./dashboard-config";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(formsRouter);
 router.use(calendarRouter);
 router.use(newsRouter);
 router.use(portalUsersRouter);
+router.use(dashboardConfigRouter);
 
 export default router;

@@ -92,7 +92,7 @@ export function TedsCalendarCard() {
   };
 
   return (
-    <DashboardCard title="Teds Calendar">
+    <DashboardCard title="Teds Calendar" actions={<></>}>
       <Calendar
         mode="single"
         required
