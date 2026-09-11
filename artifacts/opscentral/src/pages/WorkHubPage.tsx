@@ -30,7 +30,7 @@ export default function WorkHubPage() {
           {tiles.map((tile) => (
             <Link
               key={tile.title}
-              href="#"
+              href={tile.title === "Welcome to Ted's" ? '/work/welcome' : '#'}
               data-testid={`tile-work-${tile.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
               className="group overflow-hidden rounded-xl border border-card-border shell-shadow"
             >
