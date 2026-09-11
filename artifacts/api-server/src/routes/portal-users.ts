@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { desc, eq } from "drizzle-orm";
-import { db, portalUsersTable } from "@workspace/db";
+import { db, portalUsersTable, portalUserProfilesTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -110,3 +110,62 @@ router.patch("/users/:id", async (req, res) => {
 });
 
 export default router;
+
+// -- Extended profile (separate table -- see portal-users.ts schema comment) --
+
+const PROFILE_FIELDS = [
+  "middleName",
+  "phoneNumber",
+  "jobTitle",
+  "homeAddress1",
+  "homeAddress2",
+  "city",
+  "state",
+  "postcode",
+  "country",
+  "dateOfBirth",
+  "gender",
+  "hiredDate",
+  "manager",
+  "emergencyContactName",
+  "emergencyContactRelationship",
+  "emergencyContactPhone",
+] as const;
+
+router.get("/users/:id/profile", async (req, res) => {
+  const userId = Number(req.params.id);
+  if (!Number.isInteger(userId)) {
+    res.status(400).json({ error: "Invalid user id" });
+    return;
+  }
+  const [profile] = await db.select().from(portalUserProfilesTable).where(eq(portalUserProfilesTable.userId, userId));
+  res.json(profile ?? { userId, tfnFormCompleted: false });
+});
+
+router.put("/users/:id/profile", async (req, res) => {
+  const userId = Number(req.params.id);
+  if (!Number.isInteger(userId)) {
+    res.status(400).json({ error: "Invalid user id" });
+    return;
+  }
+  const [user] = await db.select({ id: portalUsersTable.id }).from(portalUsersTable).where(eq(portalUsersTable.id, userId));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const values: Partial<typeof portalUserProfilesTable.$inferInsert> = { userId, updatedAt: new Date() };
+  for (const field of PROFILE_FIELDS) {
+    const raw = req.body?.[field];
+    if (raw === undefined) continue;
+    values[field] = typeof raw === "string" ? raw.trim() || null : raw;
+  }
+  if (typeof req.body?.tfnFormCompleted === "boolean") values.tfnFormCompleted = req.body.tfnFormCompleted;
+
+  const [profile] = await db
+    .insert(portalUserProfilesTable)
+    .values({ userId, tfnFormCompleted: false, ...values })
+    .onConflictDoUpdate({ target: portalUserProfilesTable.userId, set: values })
+    .returning();
+  res.json({ ok: true, profile });
+});

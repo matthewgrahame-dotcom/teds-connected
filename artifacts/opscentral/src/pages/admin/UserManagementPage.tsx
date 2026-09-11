@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Archive, ArchiveRestore, Pencil, Plus, Search, UserCog, X } from 'lucide-react';
+import { Archive, ArchiveRestore, IdCard, Pencil, Plus, Search, UserCog, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/lib/auth';
+import { usePublishAccess } from '@/lib/publishAccess';
 
 type PortalUser = {
   id: number;
@@ -19,6 +21,29 @@ type PortalUser = {
   brand: string;
   createdAt: string;
 };
+
+type PortalUserProfile = {
+  userId: number;
+  middleName?: string | null;
+  phoneNumber?: string | null;
+  jobTitle?: string | null;
+  homeAddress1?: string | null;
+  homeAddress2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postcode?: string | null;
+  country?: string | null;
+  dateOfBirth?: string | null;
+  gender?: string | null;
+  hiredDate?: string | null;
+  manager?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactRelationship?: string | null;
+  emergencyContactPhone?: string | null;
+  tfnFormCompleted: boolean;
+};
+
+const emptyProfile: PortalUserProfile = { userId: 0, tfnFormCompleted: false };
 
 type UserFormState = {
   firstName: string;
@@ -57,6 +82,9 @@ function toFormState(user: PortalUser): UserFormState {
 
 export default function UserManagementPage() {
   const { toast } = useToast();
+  const { session } = useAuth();
+  const { requirePublishAccess } = usePublishAccess();
+  const canViewProfiles = session?.level === 'full';
   const [tab, setTab] = useState<'active' | 'archived'>('active');
   const [users, setUsers] = useState<PortalUser[] | null>(null);
   const [search, setSearch] = useState('');
@@ -65,6 +93,10 @@ export default function UserManagementPage() {
   const [editingUser, setEditingUser] = useState<PortalUser | null>(null);
   const [form, setForm] = useState<UserFormState>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [profileUser, setProfileUser] = useState<PortalUser | null>(null);
+  const [profile, setProfile] = useState<PortalUserProfile>(emptyProfile);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
 
   const load = () => {
     setUsers(null);
@@ -151,6 +183,38 @@ export default function UserManagementPage() {
       body: JSON.stringify({ activated: !user.activated }),
     });
     if (res.ok) load();
+  };
+
+  const openProfile = (user: PortalUser) => {
+    requirePublishAccess(() => {
+      setProfileUser(user);
+      setProfile(emptyProfile);
+      setProfileLoading(true);
+      fetch(`/api/users/${user.id}/profile`)
+        .then((r) => r.json())
+        .then(setProfile)
+        .finally(() => setProfileLoading(false));
+    });
+  };
+
+  const saveProfile = async () => {
+    if (!profileUser) return;
+    setProfileSaving(true);
+    try {
+      const res = await fetch(`/api/users/${profileUser.id}/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profile),
+      });
+      if (res.ok) {
+        toast({ title: 'Profile updated' });
+        setProfileUser(null);
+      } else {
+        toast({ title: 'Could not save profile', variant: 'destructive' });
+      }
+    } finally {
+      setProfileSaving(false);
+    }
   };
 
   return (
@@ -258,6 +322,17 @@ export default function UserManagementPage() {
                     <TableCell className="text-muted-foreground">{user.brand}</TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
+                        {canViewProfiles && (
+                          <button
+                            type="button"
+                            aria-label="View profile"
+                            data-testid={`button-view-profile-${user.id}`}
+                            onClick={() => openProfile(user)}
+                            className="grid h-8 w-8 place-items-center rounded-md border border-input text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                          >
+                            <IdCard className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                         <button
                           type="button"
                           aria-label="Edit user"
@@ -384,10 +459,90 @@ export default function UserManagementPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!profileUser} onOpenChange={(open) => !open && setProfileUser(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{profileUser ? `${profileUser.firstName} ${profileUser.lastName} — Full Profile` : 'Full Profile'}</DialogTitle>
+          </DialogHeader>
+          {profileLoading ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>
+          ) : (
+            <div className="max-h-[65vh] space-y-5 overflow-y-auto pr-1">
+              <ProfileSection title="Personal">
+                <ProfileField label="Middle Name" value={profile.middleName} onChange={(v) => setProfile((p) => ({ ...p, middleName: v }))} />
+                <ProfileField label="Phone Number" value={profile.phoneNumber} onChange={(v) => setProfile((p) => ({ ...p, phoneNumber: v }))} />
+                <ProfileField label="Date of Birth" type="date" value={profile.dateOfBirth} onChange={(v) => setProfile((p) => ({ ...p, dateOfBirth: v }))} />
+                <ProfileField label="Gender" value={profile.gender} onChange={(v) => setProfile((p) => ({ ...p, gender: v }))} />
+              </ProfileSection>
+
+              <ProfileSection title="Home Address">
+                <ProfileField label="Address Line 1" value={profile.homeAddress1} onChange={(v) => setProfile((p) => ({ ...p, homeAddress1: v }))} />
+                <ProfileField label="Address Line 2" value={profile.homeAddress2} onChange={(v) => setProfile((p) => ({ ...p, homeAddress2: v }))} />
+                <ProfileField label="City" value={profile.city} onChange={(v) => setProfile((p) => ({ ...p, city: v }))} />
+                <ProfileField label="State" value={profile.state} onChange={(v) => setProfile((p) => ({ ...p, state: v }))} />
+                <ProfileField label="Postcode" value={profile.postcode} onChange={(v) => setProfile((p) => ({ ...p, postcode: v }))} />
+                <ProfileField label="Country" value={profile.country} onChange={(v) => setProfile((p) => ({ ...p, country: v }))} />
+              </ProfileSection>
+
+              <ProfileSection title="Employment">
+                <ProfileField label="Job Title" value={profile.jobTitle} onChange={(v) => setProfile((p) => ({ ...p, jobTitle: v }))} />
+                <ProfileField label="Hired Date" type="date" value={profile.hiredDate} onChange={(v) => setProfile((p) => ({ ...p, hiredDate: v }))} />
+                <ProfileField label="Manager" value={profile.manager} onChange={(v) => setProfile((p) => ({ ...p, manager: v }))} />
+                <div className="flex items-center justify-between rounded-md border border-input px-3 py-2.5">
+                  <span className="text-sm font-semibold text-foreground">TFN Form Completed</span>
+                  <Switch checked={profile.tfnFormCompleted} onCheckedChange={(v) => setProfile((p) => ({ ...p, tfnFormCompleted: v }))} />
+                </div>
+              </ProfileSection>
+
+              <ProfileSection title="Emergency Contact">
+                <ProfileField label="Name" value={profile.emergencyContactName} onChange={(v) => setProfile((p) => ({ ...p, emergencyContactName: v }))} />
+                <ProfileField label="Relationship" value={profile.emergencyContactRelationship} onChange={(v) => setProfile((p) => ({ ...p, emergencyContactRelationship: v }))} />
+                <ProfileField label="Best Contact Number" value={profile.emergencyContactPhone} onChange={(v) => setProfile((p) => ({ ...p, emergencyContactPhone: v }))} />
+              </ProfileSection>
+            </div>
+          )}
+          <div className="flex justify-end gap-2 border-t border-border pt-4">
+            <button type="button" onClick={() => setProfileUser(null)} className="rounded-lg px-4 py-2.5 text-sm font-bold text-muted-foreground transition hover:bg-muted hover:text-foreground">
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={saveProfile}
+              disabled={profileSaving || profileLoading}
+              className="rounded-lg bg-primary px-5 py-2.5 text-sm font-extrabold text-primary-foreground transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {profileSaving ? 'Saving…' : 'Save Profile'}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
+function ProfileSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h3 className="mb-2 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">{title}</h3>
+      <div className="grid gap-3 sm:grid-cols-2">{children}</div>
+    </div>
+  );
+}
+
+function ProfileField({ label, value, onChange, type = 'text' }: { label: string; value?: string | null; onChange: (v: string) => void; type?: string }) {
+  return (
+    <div>
+      <label className="mono-label mb-1.5 block text-muted-foreground">{label}</label>
+      <input
+        type={type}
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-accent"
+      />
+    </div>
+  );
+}
 function FormField({ label, hint, required, children }: { label: string; hint?: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div>
