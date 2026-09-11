@@ -4,6 +4,7 @@
   "outputDirectory": "artifacts/opscentral/dist/public",
   "installCommand": "pnpm install --frozen-lockfile",
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/[...path]" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
