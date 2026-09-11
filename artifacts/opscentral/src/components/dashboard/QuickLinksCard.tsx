@@ -17,10 +17,13 @@ export function QuickLinksCard() {
     : PHOCAL_BASE_URL;
 
   const tiles: LinkTile[] = [
-    { label: 'Group Phone Listing', icon: Phone, href: 'tel:+61394176900' },
-    { label: 'Store Contacts', icon: Store, href: '/people/store-contacts' },
-    { label: "Ted's Cameras Who To Contact List", icon: BookOpen, href: '/people/contacts' },
-    { label: 'DCW Who To Contact List', icon: BookOpen, href: '/people/dcw-contacts' },
+    { label: 'Group Phone Listing', icon: Phone, href: '/documents/teds-group-phone-listing.pdf', external: true },
+    { label: 'Store Contacts', icon: Store, href: '/documents/teds-store-contacts.pdf', external: true },
+    { label: "Ted's Cameras Who To Contact List", icon: BookOpen, href: '/documents/teds-who-to-contact-list.pdf', external: true },
+    // TODO: no DCW-specific contact list document has been supplied yet
+    // (it's the one entry in Operations still missing an href) -- links to
+    // the Operations page itself for now rather than a dead specific route.
+    { label: 'DCW Who To Contact List', icon: BookOpen, href: '/work/operations' },
     { label: 'Our Website', icon: Laptop, href: 'https://www.teds.com.au', external: true },
     { label: 'Instagram', icon: Instagram, href: 'https://instagram.com/tedscameras', external: true },
     { label: 'Phocal', icon: Aperture, href: phocalHref, external: true },
