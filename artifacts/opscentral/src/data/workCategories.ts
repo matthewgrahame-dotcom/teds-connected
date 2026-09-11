@@ -141,6 +141,16 @@ export const workCategories: Record<string, WorkCategory> = {
       { title: 'TecArt Credit Claims Procedure', href: '/documents/pronto/tecart-credit-claims-procedure.pdf', section: '6.0 Repairs and Credits' },
     ],
   },
+  'product-information': {
+    slug: 'product-information',
+    title: 'Product Information',
+    docs: [
+      { title: 'Mirrorless Camera Accessories Checklist', href: '/documents/product-information/mirrorless-camera-accessories-checklist.pdf', section: '1.0 Accessories Guides & Checklist' },
+      { title: 'Video & Cinema Camera Accessories Checklist', href: '/documents/product-information/video-cinema-camera-accessories-checklist.pdf', section: '1.0 Accessories Guides & Checklist' },
+      { title: 'Mirrorless Camera Memory Card Guide', href: '/documents/product-information/mirrorless-camera-memory-card-guide.pdf', section: '2.0 Mirrorless Camera Memory Card Guide' },
+      { title: 'Camera Sensor Size Guide', href: '/documents/product-information/camera-sensor-size-guide.pdf', section: '3.0 Printable Sensor Size Guide' },
+    ],
+  },
   'operations': {
     slug: 'operations',
     title: 'Operations',
