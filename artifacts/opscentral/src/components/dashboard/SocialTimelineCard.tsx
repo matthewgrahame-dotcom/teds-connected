@@ -1,20 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bold,
   Italic,
   Underline,
   Link as LinkIcon,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  List,
-  ListOrdered,
-  Undo2,
-  Redo2,
   Send,
-  Paperclip,
   Search,
-  Filter,
   User,
   ExternalLink,
   X,
@@ -22,6 +13,7 @@ import {
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { useAuth } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
+import { FormattedMessage } from './FormattedMessage';
 
 const PHOCAL_BASE_URL = 'https://seo-optimiser.vercel.app'; // TODO: update once the Vercel project rename discussion lands
 
@@ -37,7 +29,28 @@ type PhocalMessage = {
   postedAt: string;
 };
 
-const toolbarButtons = [Bold, Italic, Underline, LinkIcon, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Undo2, Redo2];
+// Wraps (or unwraps, if already wrapped) the current textarea selection with
+// a marker pair -- the same lightweight **bold** / *italic* / __underline__
+// syntax FormattedMessage knows how to render, kept deliberately simple
+// (single-pass, no nesting) since this is a team chat box, not a full editor.
+function toggleWrap(el: HTMLTextAreaElement, marker: string, setValue: (v: string) => void) {
+  const { selectionStart, selectionEnd, value } = el;
+  const selected = value.slice(selectionStart, selectionEnd);
+  const before = value.slice(0, selectionStart);
+  const after = value.slice(selectionEnd);
+  const alreadyWrapped = selected.startsWith(marker) && selected.endsWith(marker) && selected.length >= marker.length * 2;
+  const next = alreadyWrapped
+    ? selected.slice(marker.length, selected.length - marker.length)
+    : `${marker}${selected || 'text'}${marker}`;
+  const updated = `${before}${next}${after}`;
+  setValue(updated);
+  requestAnimationFrame(() => {
+    el.focus();
+    const cursor = alreadyWrapped ? before.length + next.length : before.length + marker.length;
+    const cursorEnd = alreadyWrapped ? cursor : cursor + (selected || 'text').length;
+    el.setSelectionRange(cursor, cursorEnd);
+  });
+}
 
 export function SocialTimelineCard() {
   const { session } = useAuth();
@@ -46,6 +59,10 @@ export function SocialTimelineCard() {
   const [location, setLocation] = useState(session?.store ?? '');
   const [messages, setMessages] = useState<PhocalMessage[] | null>(null);
   const [posting, setPosting] = useState(false);
+  const [search, setSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [announcementsOnly, setAnnouncementsOnly] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Same rule as Phocal's own Ted's Talks page (canPostAnnouncements): only
   // full-level staff can delete. No staffSession at all isn't possible here
@@ -66,6 +83,16 @@ export function SocialTimelineCard() {
   useEffect(() => {
     loadMessages();
   }, []);
+
+  const visibleMessages = useMemo(() => {
+    if (!messages) return [];
+    const q = search.trim().toLowerCase();
+    return messages.filter((m) => {
+      if (announcementsOnly && !m.isAnnouncement) return false;
+      if (!q) return true;
+      return `${m.fromLocation} ${m.messageText}`.toLowerCase().includes(q);
+    });
+  }, [messages, search, announcementsOnly]);
 
   const handlePost = async () => {
     if (!draft.trim() || !location.trim() || posting) return;
@@ -91,13 +118,43 @@ export function SocialTimelineCard() {
     });
   };
 
+  const applyFormat = (marker: string) => {
+    const el = textareaRef.current;
+    if (!el) return;
+    toggleWrap(el, marker, setDraft);
+  };
+
+  const applyLink = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const { selectionStart, selectionEnd, value } = el;
+    const selected = value.slice(selectionStart, selectionEnd) || 'link text';
+    const url = window.prompt('Link URL:', 'https://');
+    if (!url) return;
+    const before = value.slice(0, selectionStart);
+    const after = value.slice(selectionEnd);
+    setDraft(`${before}[${selected}](${url})${after}`);
+    requestAnimationFrame(() => el.focus());
+  };
+
   return (
     <DashboardCard
       title="Ted's Talks"
       actions={
         <>
-          <CardIconButton icon={Search} label="Search posts" tone="primary" />
-          <CardIconButton icon={Filter} label="Filter posts" tone="primary" />
+          <CardIconButton icon={Search} label="Search posts" tone="primary" onClick={() => setSearchOpen((v) => !v)} />
+          <button
+            type="button"
+            aria-label="Announcements only"
+            aria-pressed={announcementsOnly}
+            onClick={() => setAnnouncementsOnly((v) => !v)}
+            className={`grid h-9 w-9 shrink-0 place-items-center rounded-md transition ${
+              announcementsOnly ? 'bg-foreground text-primary' : 'bg-primary text-primary-foreground hover:brightness-95'
+            }`}
+            title="Show announcements only"
+          >
+            📣
+          </button>
           <a
             href={`${PHOCAL_BASE_URL}/?page=tedstalks${session?.crossAppToken ? `&ssoToken=${encodeURIComponent(session.crossAppToken)}` : ''}`}
             target="_blank"
@@ -110,6 +167,18 @@ export function SocialTimelineCard() {
         </>
       }
     >
+      {searchOpen && (
+        <div className="mb-3">
+          <input
+            data-testid="input-social-search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search posts…"
+            autoFocus
+            className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-accent"
+          />
+        </div>
+      )}
       {!location && (
         <div className="mb-3 flex items-center gap-2 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm">
           <span className="text-muted-foreground">Posting as:</span>
@@ -128,18 +197,21 @@ export function SocialTimelineCard() {
         </span>
         <div className="min-w-0 flex-1 rounded-lg border border-border">
           <div className="flex items-center gap-1 border-b border-border px-2 py-1.5">
-            {toolbarButtons.map((Icon, index) => (
-              <button
-                key={index}
-                type="button"
-                aria-label="Formatting option"
-                className="grid h-7 w-7 place-items-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground"
-              >
-                <Icon className="h-3.5 w-3.5" />
-              </button>
-            ))}
+            <button type="button" aria-label="Bold" onClick={() => applyFormat('**')} className="grid h-7 w-7 place-items-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground">
+              <Bold className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" aria-label="Italic" onClick={() => applyFormat('*')} className="grid h-7 w-7 place-items-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground">
+              <Italic className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" aria-label="Underline" onClick={() => applyFormat('__')} className="grid h-7 w-7 place-items-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground">
+              <Underline className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" aria-label="Link" onClick={applyLink} className="grid h-7 w-7 place-items-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground">
+              <LinkIcon className="h-3.5 w-3.5" />
+            </button>
           </div>
           <textarea
+            ref={textareaRef}
             data-testid="input-social-post"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
@@ -159,20 +231,15 @@ export function SocialTimelineCard() {
           >
             <Send className="h-4 w-4" />
           </button>
-          <button
-            type="button"
-            aria-label="Attach file"
-            className="grid h-11 w-11 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-muted"
-          >
-            <Paperclip className="h-4 w-4" />
-          </button>
         </div>
       </div>
 
       <div className="mt-5 space-y-3">
         {messages === null && <p className="text-sm text-muted-foreground">Loading…</p>}
-        {messages?.length === 0 && <p className="text-sm text-muted-foreground">No messages yet.</p>}
-        {messages?.map((post) => (
+        {messages !== null && visibleMessages.length === 0 && (
+          <p className="text-sm text-muted-foreground">{messages.length === 0 ? 'No messages yet.' : 'No posts match your search.'}</p>
+        )}
+        {visibleMessages.map((post) => (
           <div key={post.id} data-testid={`post-${post.id}`} className="rounded-lg border border-border p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -199,10 +266,13 @@ export function SocialTimelineCard() {
                 </button>
               )}
             </div>
-            <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-foreground/90">{post.messageText}</p>
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-foreground/90">
+              <FormattedMessage text={post.messageText} />
+            </p>
           </div>
         ))}
       </div>
     </DashboardCard>
   );
 }
+
