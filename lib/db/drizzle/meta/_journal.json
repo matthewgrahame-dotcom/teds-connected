@@ -15,6 +15,13 @@
       "when": 1789094357877,
       "tag": "0001_faulty_ultimatum",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789095597237,
+      "tag": "0002_tearful_night_thrasher",
+      "breakpoints": true
     }
   ]
 }

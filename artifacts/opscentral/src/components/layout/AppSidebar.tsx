@@ -51,7 +51,7 @@ const secondaryNav: NavItem[] = [
       { label: 'Recruiting' },
       { label: 'Onboarding' },
       { label: 'Contracts' },
-      { label: 'Forms' },
+      { label: 'Forms', href: '/people/forms' },
       { label: 'Custom Report Builder' },
     ],
   },
