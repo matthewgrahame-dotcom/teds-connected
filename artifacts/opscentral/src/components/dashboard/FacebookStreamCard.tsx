@@ -16,24 +16,45 @@ declare global {
  * app if this card mounts more than once) and asks it to parse the
  * fb-page div. Unlike Instagram, this doesn't need OAuth/Business account
  * setup, which is why it was quick to add while Instagram wasn't.
+ *
+ * Mobile note: the plugin renders as an iframe sized by data-width, and
+ * data-adapt-container-width doesn't reliably kick in if FB.XFBML.parse()
+ * runs before the container's real (CSS-computed, mobile) width has
+ * settled -- easy to hit on initial load/hydration. Two things guard
+ * against that here: a double-rAF delay before parsing (lets layout
+ * settle first) and a wrapper that's explicitly full-width so FB reads an
+ * accurate value when it does measure.
  */
 export function FacebookStreamCard() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     const parse = () => {
-      if (window.FB && containerRef.current) window.FB.XFBML.parse(containerRef.current);
+      // Wait two animation frames so the container has its final layout
+      // width before FB measures it, rather than whatever it was mid-render.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!cancelled && window.FB && containerRef.current) window.FB.XFBML.parse(containerRef.current);
+        });
+      });
     };
 
     if (window.FB) {
       parse();
-      return undefined;
+      return () => {
+        cancelled = true;
+      };
     }
 
     const existing = document.getElementById('facebook-jssdk') as HTMLScriptElement | null;
     if (existing) {
       existing.addEventListener('load', parse);
-      return () => existing.removeEventListener('load', parse);
+      return () => {
+        cancelled = true;
+        existing.removeEventListener('load', parse);
+      };
     }
 
     if (!document.getElementById('fb-root')) {
@@ -50,17 +71,18 @@ export function FacebookStreamCard() {
     script.crossOrigin = 'anonymous';
     script.addEventListener('load', parse);
     document.body.appendChild(script);
-    return undefined;
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
     <DashboardCard title="Facebook Stream" noPadding>
-      <div className="px-5 pb-5" ref={containerRef}>
+      <div className="w-full max-w-full overflow-hidden px-5 pb-5" ref={containerRef}>
         <div
-          className="fb-page"
+          className="fb-page w-full max-w-full"
           data-href={PAGE_URL}
           data-tabs="timeline"
-          data-width="500"
           data-height="600"
           data-small-header="false"
           data-adapt-container-width="true"
