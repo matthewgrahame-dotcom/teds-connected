@@ -14,8 +14,7 @@ async function buildAll() {
   const distDir = path.resolve(artifactDir, "dist");
   await rm(distDir, { recursive: true, force: true });
 
-  await esbuild({
-    entryPoints: [path.resolve(artifactDir, "src/index.ts")],
+  const shared = {
     platform: "node",
     bundle: true,
     format: "esm",
@@ -117,6 +116,21 @@ globalThis.__filename = __bannerUrl.fileURLToPath(import.meta.url);
 globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     `,
     },
+  };
+
+  // Standalone server entrypoint (used by Replit / `pnpm start`): binds to PORT.
+  await esbuild({
+    ...shared,
+    entryPoints: [path.resolve(artifactDir, "src/index.ts")],
+  });
+
+  // Plain-JS Express app export (no .listen()) for the Vercel serverless
+  // function at /api/[...path].ts. Pre-bundling to plain ESM here means
+  // Vercel's own TypeScript compiler never has to touch our source files
+  // or resolve our workspace packages when it builds the function.
+  await esbuild({
+    ...shared,
+    entryPoints: [path.resolve(artifactDir, "src/app.ts")],
   });
 }
 
