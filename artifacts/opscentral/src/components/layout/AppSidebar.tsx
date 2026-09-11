@@ -13,23 +13,48 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+type NavChild = { label: string; href?: string };
+
 type NavItem = {
   label: string;
   href?: string;
   icon: LucideIcon;
-  children?: string[];
+  children?: NavChild[];
 };
 
 const primaryNav: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutGrid },
-  { label: 'Admin', icon: IdCard, children: ['Portal settings', 'Access'] },
+  { label: 'Admin', icon: IdCard, children: [{ label: 'Portal settings' }, { label: 'Access' }] },
   { label: 'Reporting', href: '/reporting', icon: FileText },
 ];
 
 const secondaryNav: NavItem[] = [
   { label: 'Work', href: '/work-items', icon: Briefcase },
-  { label: 'Learn', icon: GraduationCap, children: ['Training hub'] },
-  { label: 'People', icon: UsersRound, children: ['Store contacts', 'Group phone listing'] },
+  {
+    label: 'Learn',
+    icon: GraduationCap,
+    children: [
+      { label: 'My Training' },
+      { label: 'Manual Assessments' },
+      { label: 'Observations' },
+      { label: 'Workshops' },
+      { label: 'Programs', href: '/learn/programs' },
+    ],
+  },
+  {
+    label: 'People',
+    icon: UsersRound,
+    children: [
+      { label: 'Performance Review' },
+      { label: 'Discussion Forums' },
+      { label: 'Staff Surveys' },
+      { label: 'Recruiting' },
+      { label: 'Onboarding' },
+      { label: 'Contracts' },
+      { label: 'Forms' },
+      { label: 'Custom Report Builder' },
+    ],
+  },
 ];
 
 export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; onNavigate: () => void }) {
@@ -72,15 +97,29 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
         )}
         {item.children && isExpanded && (
           <div className="ml-9 mt-1 space-y-1 border-l border-border pl-3">
-            {item.children.map((child) => (
-              <button
-                key={child}
-                type="button"
-                className="block w-full rounded-md px-2 py-1.5 text-left text-sm font-semibold text-muted-foreground transition hover:bg-sidebar-accent/60 hover:text-foreground"
-              >
-                {child}
-              </button>
-            ))}
+            {item.children.map((child) =>
+              child.href ? (
+                <Link
+                  key={child.label}
+                  href={child.href}
+                  onClick={onNavigate}
+                  data-testid={`link-nav-${child.label.toLowerCase().replace(/\s+/g, '-')}`}
+                  className={`block w-full rounded-md px-2 py-1.5 text-left text-sm font-semibold transition hover:bg-sidebar-accent/60 hover:text-foreground ${
+                    location === child.href ? 'text-foreground' : 'text-muted-foreground'
+                  }`}
+                >
+                  {child.label}
+                </Link>
+              ) : (
+                <button
+                  key={child.label}
+                  type="button"
+                  className="block w-full rounded-md px-2 py-1.5 text-left text-sm font-semibold text-muted-foreground transition hover:bg-sidebar-accent/60 hover:text-foreground"
+                >
+                  {child.label}
+                </button>
+              ),
+            )}
           </div>
         )}
       </div>

@@ -8,6 +8,13 @@
       "when": 1789090440630,
       "tag": "0000_legal_supernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789094357877,
+      "tag": "0001_faulty_ultimatum",
+      "breakpoints": true
     }
   ]
 }

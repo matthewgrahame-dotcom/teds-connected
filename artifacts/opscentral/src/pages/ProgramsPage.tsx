@@ -1,0 +1,115 @@
+import { useEffect, useState } from 'react';
+import { Circle, CircleDot, CheckCircle2, ExternalLink } from 'lucide-react';
+import { useAuth } from '@/lib/auth';
+
+type ModuleStatus = 'not_started' | 'in_progress' | 'completed';
+
+type Module = {
+  id: number;
+  title: string;
+  externalUrl: string | null;
+  status: ModuleStatus;
+};
+
+type Program = {
+  id: number;
+  title: string;
+  description: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  modules: Module[];
+};
+
+const statusConfig: Record<ModuleStatus, { label: string; icon: typeof Circle; className: string }> = {
+  not_started: { label: 'Not Started', icon: Circle, className: 'bg-muted text-muted-foreground' },
+  in_progress: { label: 'In Progress', icon: CircleDot, className: 'bg-secondary text-secondary-foreground' },
+  completed: { label: 'Completed', icon: CheckCircle2, className: 'bg-primary text-primary-foreground' },
+};
+
+const nextStatus: Record<ModuleStatus, ModuleStatus> = {
+  not_started: 'in_progress',
+  in_progress: 'completed',
+  completed: 'not_started',
+};
+
+export default function ProgramsPage() {
+  const { session } = useAuth();
+  const [programs, setPrograms] = useState<Program[] | null>(null);
+
+  const load = async () => {
+    const params = session?.name ? `?staffName=${encodeURIComponent(session.name)}` : '';
+    const resp = await fetch(`/api/training/programs${params}`);
+    const data = await resp.json();
+    setPrograms(data);
+  };
+
+  useEffect(() => {
+    load();
+  }, [session?.name]);
+
+  const cycleStatus = async (module: Module) => {
+    if (!session?.name) return;
+    const status = nextStatus[module.status];
+    await fetch(`/api/training/modules/${module.id}/progress`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ staffName: session.name, status }),
+    });
+    await load();
+  };
+
+  return (
+    <div className="px-5 py-8 lg:px-10 lg:py-10">
+      <div className="mx-auto max-w-3xl space-y-6">
+        <h1 className="text-2xl font-extrabold text-foreground">Programs</h1>
+
+        {programs === null && <p className="text-sm text-muted-foreground">Loading…</p>}
+        {programs?.length === 0 && <p className="text-sm text-muted-foreground">No active programs right now.</p>}
+
+        {programs?.map((program) => (
+          <section key={program.id} className="rounded-xl border border-card-border bg-card shell-shadow">
+            <div className="px-5 pt-5">
+              <h2 className="text-lg font-extrabold uppercase tracking-wide text-foreground">
+                {program.title}
+                {(program.startDate || program.endDate) && (
+                  <span className="ml-2 text-sm font-semibold text-muted-foreground">
+                    ({program.startDate}
+                    {program.endDate ? `–${program.endDate}` : ''})
+                  </span>
+                )}
+              </h2>
+              {program.description && <p className="mt-1 text-sm text-muted-foreground">{program.description}</p>}
+            </div>
+            <div className="mx-5 mt-3 border-t border-border" />
+            <div className="divide-y divide-border">
+              {program.modules.map((module) => {
+                const { label, icon: Icon, className } = statusConfig[module.status];
+                return (
+                  <div key={module.id} data-testid={`module-${module.id}`} className="flex items-center justify-between gap-4 px-5 py-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="truncate text-sm text-foreground">{module.title}</p>
+                      {module.externalUrl && (
+                        <a href={module.externalUrl} target="_blank" rel="noreferrer" aria-label="Open module content">
+                          <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground hover:text-foreground" />
+                        </a>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      data-testid={`button-status-${module.id}`}
+                      onClick={() => cycleStatus(module)}
+                      className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition hover:brightness-95 ${className}`}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {label}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+}

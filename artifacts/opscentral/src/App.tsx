@@ -31,6 +31,7 @@ import { FacebookStreamCard } from '@/components/dashboard/FacebookStreamCard';
 import { SocialTimelineCard } from '@/components/dashboard/SocialTimelineCard';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { LoginPage } from '@/components/LoginPage';
+import ProgramsPage from '@/pages/ProgramsPage';
 
 const queryClient = new QueryClient();
 
@@ -223,7 +224,7 @@ function WorkItemDetail() {
 }
 
 function Router() {
-  return <RoutedErrorBoundary><Switch><Route path="/" component={Dashboard} /><Route path="/work-items/new" component={NewWorkItemPage} /><Route path="/work-items/:id" component={WorkItemDetail} /><Route path="/work-items" component={WorkItemsPage} /><Route component={NotFound} /></Switch></RoutedErrorBoundary>;
+  return <RoutedErrorBoundary><Switch><Route path="/" component={Dashboard} /><Route path="/learn/programs" component={ProgramsPage} /><Route path="/work-items/new" component={NewWorkItemPage} /><Route path="/work-items/:id" component={WorkItemDetail} /><Route path="/work-items" component={WorkItemsPage} /><Route component={NotFound} /></Switch></RoutedErrorBoundary>;
 }
 
 function RoutedErrorBoundary({ children }: { children: ReactNode }) {
