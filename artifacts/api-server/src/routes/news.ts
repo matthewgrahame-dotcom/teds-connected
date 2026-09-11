@@ -24,7 +24,7 @@ router.get("/news/:id", async (req, res) => {
 });
 
 router.post("/news", async (req, res) => {
-  const { title, snippet, body, imageUrl, tagColor, postedBy } = req.body ?? {};
+  const { title, snippet, body, imageUrl, linkUrl, tagColor, postedBy } = req.body ?? {};
   if (typeof title !== "string" || !title.trim() || typeof snippet !== "string" || !snippet.trim() || typeof postedBy !== "string" || !postedBy.trim()) {
     res.status(400).json({ error: "title, snippet, and postedBy are required" });
     return;
@@ -36,6 +36,7 @@ router.post("/news", async (req, res) => {
       snippet: snippet.trim(),
       body: body?.trim() || null,
       imageUrl: imageUrl?.trim() || null,
+      linkUrl: linkUrl?.trim() || null,
       tagColor: tagColor?.trim() || undefined,
       postedBy: postedBy.trim(),
     })
@@ -49,12 +50,13 @@ router.patch("/news/:id", async (req, res) => {
     res.status(400).json({ error: "Invalid article id" });
     return;
   }
-  const { title, snippet, body, imageUrl, tagColor, postedBy } = req.body ?? {};
+  const { title, snippet, body, imageUrl, linkUrl, tagColor, postedBy } = req.body ?? {};
   const updates: Partial<typeof newsArticlesTable.$inferInsert> = {};
   if (typeof title === "string") updates.title = title.trim();
   if (typeof snippet === "string") updates.snippet = snippet.trim();
   if (typeof body === "string") updates.body = body.trim() || null;
   if (typeof imageUrl === "string") updates.imageUrl = imageUrl.trim() || null;
+  if (typeof linkUrl === "string") updates.linkUrl = linkUrl.trim() || null;
   if (typeof tagColor === "string") updates.tagColor = tagColor.trim();
   if (typeof postedBy === "string") updates.postedBy = postedBy.trim();
 

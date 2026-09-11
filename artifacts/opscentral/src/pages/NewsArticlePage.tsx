@@ -8,6 +8,7 @@ type NewsArticle = {
   snippet: string;
   body: string | null;
   imageUrl: string | null;
+  linkUrl: string | null;
   tagColor: string;
   postedBy: string;
   createdAt: string;
@@ -36,7 +37,15 @@ export default function NewsArticlePage() {
 
         {article && (
           <article className="overflow-hidden rounded-xl border border-card-border bg-card shell-shadow">
-            {article.imageUrl && <img src={article.imageUrl} alt="" className="aspect-[16/9] w-full object-cover" />}
+            {article.imageUrl && (
+              article.linkUrl ? (
+                <a href={article.linkUrl} target="_blank" rel="noopener noreferrer">
+                  <img src={article.imageUrl} alt="" className="aspect-[16/9] w-full object-cover transition hover:opacity-90" />
+                </a>
+              ) : (
+                <img src={article.imageUrl} alt="" className="aspect-[16/9] w-full object-cover" />
+              )
+            )}
             <div className="p-6">
               <div className="flex gap-4">
                 <span className={`mt-1 h-10 w-1.5 shrink-0 rounded-full ${article.tagColor}`} />
