@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Bold,
   Italic,
@@ -18,39 +18,57 @@ import {
   User,
 } from 'lucide-react';
 import { DashboardCard, CardIconButton } from './DashboardCard';
+import { useAuth } from '@/lib/auth';
 
-type Post = {
-  id: number;
-  author: string;
-  timestamp: string;
-  body: string;
+// This is the SAME feed as Phocal's "Ted's Talks" -- reads/writes go through
+// Connected's own /api/social-timeline, which proxies to Phocal's storage,
+// rather than keeping a separate copy. See artifacts/api-server/src/routes/social-timeline.ts.
+type PhocalMessage = {
+  id: string;
+  fromLocation: string;
+  toLocation: string | null;
+  messageText: string;
+  isAnnouncement: boolean;
+  postedAt: string;
 };
-
-// TODO: replace this local state with the mirrored Phocal chat feed once
-// Phocal's chat API/schema has been shared (see project notes) — this is a
-// structural placeholder only, not wired to any backend yet.
-const seedPosts: Post[] = [
-  {
-    id: 1,
-    author: 'Erin Graham',
-    timestamp: '26/08/2026 11:22 am',
-    body: 'Love seeing our team getting some well-deserved recognition! ❤️ We were tagged in this great video, and it\u2019s such a nice reminder of the amazing work our staff are doing.',
-  },
-];
 
 const toolbarButtons = [Bold, Italic, Underline, LinkIcon, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Undo2, Redo2];
 
 export function SocialTimelineCard() {
+  const { session } = useAuth();
   const [draft, setDraft] = useState('');
-  const [posts, setPosts] = useState(seedPosts);
+  const [location, setLocation] = useState(session?.store ?? '');
+  const [messages, setMessages] = useState<PhocalMessage[] | null>(null);
+  const [posting, setPosting] = useState(false);
 
-  const handlePost = () => {
-    if (!draft.trim()) return;
-    setPosts((current) => [
-      { id: Date.now(), author: 'You', timestamp: new Date().toLocaleString('en-AU'), body: draft.trim() },
-      ...current,
-    ]);
-    setDraft('');
+  const loadMessages = async () => {
+    try {
+      const resp = await fetch('/api/social-timeline');
+      const data = await resp.json();
+      setMessages(data.chatMessages ?? []);
+    } catch {
+      setMessages([]);
+    }
+  };
+
+  useEffect(() => {
+    loadMessages();
+  }, []);
+
+  const handlePost = async () => {
+    if (!draft.trim() || !location.trim() || posting) return;
+    setPosting(true);
+    try {
+      await fetch('/api/social-timeline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fromLocation: location.trim(), toLocation: null, messageText: draft.trim(), isAnnouncement: false }),
+      });
+      setDraft('');
+      await loadMessages();
+    } finally {
+      setPosting(false);
+    }
   };
 
   return (
@@ -63,6 +81,18 @@ export function SocialTimelineCard() {
         </>
       }
     >
+      {!location && (
+        <div className="mb-3 flex items-center gap-2 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm">
+          <span className="text-muted-foreground">Posting as:</span>
+          <input
+            data-testid="input-social-location"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="Your store/location"
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/70"
+          />
+        </div>
+      )}
       <div className="flex gap-3">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
           <User className="h-5 w-5" />
@@ -95,7 +125,8 @@ export function SocialTimelineCard() {
             data-testid="button-post-social"
             aria-label="Post"
             onClick={handlePost}
-            className="grid h-11 w-11 place-items-center rounded-lg bg-primary text-primary-foreground transition hover:brightness-95"
+            disabled={posting}
+            className="grid h-11 w-11 place-items-center rounded-lg bg-primary text-primary-foreground transition hover:brightness-95 disabled:opacity-60"
           >
             <Send className="h-4 w-4" />
           </button>
@@ -110,18 +141,23 @@ export function SocialTimelineCard() {
       </div>
 
       <div className="mt-5 space-y-3">
-        {posts.map((post) => (
+        {messages === null && <p className="text-sm text-muted-foreground">Loading…</p>}
+        {messages?.length === 0 && <p className="text-sm text-muted-foreground">No messages yet.</p>}
+        {messages?.map((post) => (
           <div key={post.id} data-testid={`post-${post.id}`} className="rounded-lg border border-border p-4">
             <div className="flex items-center gap-3">
               <span className="grid h-9 w-9 place-items-center rounded-full bg-muted text-muted-foreground">
                 <User className="h-4 w-4" />
               </span>
               <div>
-                <p className="text-sm font-extrabold text-foreground">{post.author}</p>
-                <p className="text-xs text-muted-foreground">{post.timestamp}</p>
+                <p className="text-sm font-extrabold text-foreground">
+                  {post.fromLocation}
+                  {post.isAnnouncement ? ' 📣' : ''}
+                </p>
+                <p className="text-xs text-muted-foreground">{new Date(post.postedAt).toLocaleString('en-AU')}</p>
               </div>
             </div>
-            <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-foreground/90">{post.body}</p>
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-foreground/90">{post.messageText}</p>
           </div>
         ))}
       </div>

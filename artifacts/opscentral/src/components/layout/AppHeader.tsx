@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Bell, Camera, CircleUserRound, HelpCircle, ListChecks, MousePointer2, Search } from 'lucide-react';
+import { useAuth } from '@/lib/auth';
 
 export function AppHeader({ userName }: { userName: string }) {
   const [search, setSearch] = useState('');
+  const { logout } = useAuth();
 
   return (
     <header className="relative z-30">
@@ -51,7 +53,7 @@ export function AppHeader({ userName }: { userName: string }) {
               99+
             </span>
           </button>
-          <button type="button" aria-label="Your profile" className="text-primary-foreground/70 transition hover:text-primary-foreground">
+          <button type="button" aria-label="Sign out" onClick={logout} className="text-primary-foreground/70 transition hover:text-primary-foreground">
             <CircleUserRound className="h-7 w-7" />
           </button>
         </div>

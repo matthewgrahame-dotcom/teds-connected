@@ -29,6 +29,8 @@ import { KeyContactsCard } from '@/components/dashboard/KeyContactsCard';
 import { RosteringCard } from '@/components/dashboard/RosteringCard';
 import { FacebookStreamCard } from '@/components/dashboard/FacebookStreamCard';
 import { SocialTimelineCard } from '@/components/dashboard/SocialTimelineCard';
+import { AuthProvider, useAuth } from '@/lib/auth';
+import { LoginPage } from '@/components/LoginPage';
 
 const queryClient = new QueryClient();
 
@@ -79,9 +81,14 @@ function PriorityBadge({ priority }: { priority: WorkItem['priority'] }) {
 
 function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { session, ready } = useAuth();
+
+  if (!ready) return null;
+  if (!session) return <LoginPage />;
+
   return (
     <div className="min-h-[100dvh] bg-background">
-      <AppHeader userName="Matthew Grahame" />
+      <AppHeader userName={session.name} />
       <div className="flex">
         <AppSidebar mobileOpen={mobileOpen} onNavigate={() => setMobileOpen(false)} />
         {mobileOpen && (
@@ -225,7 +232,7 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 }
 
 function App() {
-  return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}><AppShell><Router /></AppShell></WouterRouter><Toaster /></TooltipProvider></QueryClientProvider>;
+  return <QueryClientProvider client={queryClient}><AuthProvider><TooltipProvider><WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}><AppShell><Router /></AppShell></WouterRouter><Toaster /></TooltipProvider></AuthProvider></QueryClientProvider>;
 }
 
 export default App;
