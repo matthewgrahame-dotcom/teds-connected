@@ -1,4 +1,4 @@
-import { Aperture, BookOpen, Instagram, Laptop, Phone, Store } from 'lucide-react';
+import { Aperture, BookOpen, FileWarning, Instagram, Laptop, Phone, Store } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { LinkTileGrid, type LinkTile } from './LinkTileGrid';
 import { useAuth } from '@/lib/auth';
@@ -26,6 +26,7 @@ export function QuickLinksCard() {
     { label: 'DCW Who To Contact List', icon: BookOpen, href: '/work/operations' },
     { label: 'Our Website', icon: Laptop, href: 'https://www.teds.com.au/', external: true },
     { label: 'Instagram', icon: Instagram, href: 'https://www.instagram.com/teds_cameras/', external: true },
+    { label: 'Incident Report', icon: FileWarning, href: '/people/forms/whs-incident-report-form' },
     { label: 'Phocal', icon: Aperture, href: phocalHref, external: true },
   ];
 

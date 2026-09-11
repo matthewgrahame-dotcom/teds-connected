@@ -24,7 +24,6 @@ import { NewsCard } from '@/components/dashboard/NewsCard';
 import { TedsCalendarCard } from '@/components/dashboard/TedsCalendarCard';
 import { OutstandingTasksCard } from '@/components/dashboard/OutstandingTasksCard';
 import { QuickLinksCard } from '@/components/dashboard/QuickLinksCard';
-import { ShortcutsCard } from '@/components/dashboard/ShortcutsCard';
 import { KeyContactsCard } from '@/components/dashboard/KeyContactsCard';
 import { RosteringCard } from '@/components/dashboard/RosteringCard';
 import { FacebookStreamCard } from '@/components/dashboard/FacebookStreamCard';
@@ -152,7 +151,6 @@ function Dashboard() {
           <OutstandingTasksCard />
           <KeyContactsCard />
           <RosteringCard />
-          <ShortcutsCard />
         </div>
       </div>
     </div>
