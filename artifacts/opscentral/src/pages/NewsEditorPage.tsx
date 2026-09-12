@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useLocation, Link } from 'wouter';
 import { ChevronLeft, Save, Upload, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 import { useToast } from '@/hooks/use-toast';
 import { fileToResizedDataUri } from '@/lib/imageUpload';
+import { FormattingToolbar } from '@/components/FormattingToolbar';
 
 const TAG_COLORS = [
   { label: 'Yellow', value: 'bg-primary' },
@@ -35,6 +36,7 @@ export default function NewsEditorPage() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ title: '', snippet: '', body: '', imageUrl: '', linkUrl: '', tagColor: 'bg-primary' });
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
   const [photographerCredit, setPhotographerCredit] = useState<string | null>(null);
 
   useEffect(() => {
@@ -132,13 +134,16 @@ export default function NewsEditorPage() {
           </div>
           <div>
             <label className="mono-label mb-1.5 block text-muted-foreground">Body</label>
+            <FormattingToolbar textareaRef={bodyRef} value={form.body} onChange={(v) => setForm((f) => ({ ...f, body: v }))} />
             <textarea
+              ref={bodyRef}
               value={form.body}
               onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
               placeholder="Full article text, shown on the article page"
               rows={6}
-              className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+              className="w-full resize-y rounded-b-md rounded-t-none border border-input bg-background px-3 py-2 text-sm outline-none focus:border-accent"
             />
+            <p className="mt-1 text-xs text-muted-foreground">Use the buttons above, or type directly: **bold**, *italic*, __underline__, [text](url), ## Heading, - bullet, 1. numbered.</p>
           </div>
           <div>
             <label className="mono-label mb-1.5 block text-muted-foreground">Image</label>

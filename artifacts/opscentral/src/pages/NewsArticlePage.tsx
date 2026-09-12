@@ -3,6 +3,7 @@ import { Link, useParams } from 'wouter';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 import { ChevronLeft, Image as ImageIcon } from 'lucide-react';
+import { RichContent } from '@/components/RichContent';
 
 type NewsArticle = {
   id: number;
@@ -81,7 +82,9 @@ export default function NewsArticlePage() {
                   </p>
                 </div>
               </div>
-              <div className="mt-5 whitespace-pre-wrap text-sm leading-7 text-foreground/90">{article.body || article.snippet}</div>
+              <div className="mt-5 text-sm leading-7 text-foreground/90">
+                <RichContent text={article.body || article.snippet} />
+              </div>
             </div>
           </article>
         )}

@@ -1,15 +1,25 @@
 import { Fragment, type ReactNode } from 'react';
 
-// Same **bold** / *italic* / __underline__ inline syntax as FormattedMessage
-// (Ted's Talks), reused here for consistency -- one lightweight convention
-// across the app rather than two.
-const INLINE_RE = /(\*\*.+?\*\*|__.+?__|\*.+?\*)/g;
+// The one shared formatting syntax used everywhere in the app that needs
+// more than plain text -- News articles, Training module content, and
+// Ted's Talks messages (see SocialTimelineCard.tsx) all render through
+// this same parser, so the same buttons/typed syntax work identically
+// no matter where you're writing.
+const INLINE_RE = /(\*\*.+?\*\*|__.+?__|\*.+?\*|\[.+?\]\(.+?\))/g;
 
 function renderInline(text: string) {
   return text.split(INLINE_RE).map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**') && part.length >= 4) return <strong key={i}>{part.slice(2, -2)}</strong>;
     if (part.startsWith('__') && part.endsWith('__') && part.length >= 4) return <u key={i}>{part.slice(2, -2)}</u>;
     if (part.startsWith('*') && part.endsWith('*') && part.length >= 2) return <em key={i}>{part.slice(1, -1)}</em>;
+    const linkMatch = /^\[(.+)\]\((.+)\)$/.exec(part);
+    if (linkMatch) {
+      return (
+        <a key={i} href={linkMatch[2]} target="_blank" rel="noreferrer" className="underline hover:text-accent">
+          {linkMatch[1]}
+        </a>
+      );
+    }
     return <Fragment key={i}>{part}</Fragment>;
   });
 }

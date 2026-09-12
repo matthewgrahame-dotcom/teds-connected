@@ -1,19 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Bold,
-  Italic,
-  Underline,
-  Link as LinkIcon,
-  Send,
-  Search,
-  User,
-  ExternalLink,
-  X,
-} from 'lucide-react';
+import { Send, Search, User, ExternalLink, X } from 'lucide-react';
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { useAuth } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
-import { FormattedMessage } from './FormattedMessage';
+import { RichContent } from '@/components/RichContent';
+import { FormattingToolbar } from '@/components/FormattingToolbar';
 
 const PHOCAL_BASE_URL = 'https://seo-optimiser.vercel.app'; // TODO: update once the Vercel project rename discussion lands
 
@@ -28,29 +19,6 @@ type PhocalMessage = {
   isAnnouncement: boolean;
   postedAt: string;
 };
-
-// Wraps (or unwraps, if already wrapped) the current textarea selection with
-// a marker pair -- the same lightweight **bold** / *italic* / __underline__
-// syntax FormattedMessage knows how to render, kept deliberately simple
-// (single-pass, no nesting) since this is a team chat box, not a full editor.
-function toggleWrap(el: HTMLTextAreaElement, marker: string, setValue: (v: string) => void) {
-  const { selectionStart, selectionEnd, value } = el;
-  const selected = value.slice(selectionStart, selectionEnd);
-  const before = value.slice(0, selectionStart);
-  const after = value.slice(selectionEnd);
-  const alreadyWrapped = selected.startsWith(marker) && selected.endsWith(marker) && selected.length >= marker.length * 2;
-  const next = alreadyWrapped
-    ? selected.slice(marker.length, selected.length - marker.length)
-    : `${marker}${selected || 'text'}${marker}`;
-  const updated = `${before}${next}${after}`;
-  setValue(updated);
-  requestAnimationFrame(() => {
-    el.focus();
-    const cursor = alreadyWrapped ? before.length + next.length : before.length + marker.length;
-    const cursorEnd = alreadyWrapped ? cursor : cursor + (selected || 'text').length;
-    el.setSelectionRange(cursor, cursorEnd);
-  });
-}
 
 export function SocialTimelineCard() {
   const { session } = useAuth();
@@ -118,25 +86,6 @@ export function SocialTimelineCard() {
     });
   };
 
-  const applyFormat = (marker: string) => {
-    const el = textareaRef.current;
-    if (!el) return;
-    toggleWrap(el, marker, setDraft);
-  };
-
-  const applyLink = () => {
-    const el = textareaRef.current;
-    if (!el) return;
-    const { selectionStart, selectionEnd, value } = el;
-    const selected = value.slice(selectionStart, selectionEnd) || 'link text';
-    const url = window.prompt('Link URL:', 'https://');
-    if (!url) return;
-    const before = value.slice(0, selectionStart);
-    const after = value.slice(selectionEnd);
-    setDraft(`${before}[${selected}](${url})${after}`);
-    requestAnimationFrame(() => el.focus());
-  };
-
   return (
     <DashboardCard
       title="Ted's Talks"
@@ -196,20 +145,7 @@ export function SocialTimelineCard() {
           <User className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1 rounded-lg border border-border">
-          <div className="flex items-center gap-1 border-b border-border px-2 py-1.5">
-            <button type="button" aria-label="Bold" onClick={() => applyFormat('**')} className="grid h-7 w-7 place-items-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground">
-              <Bold className="h-3.5 w-3.5" />
-            </button>
-            <button type="button" aria-label="Italic" onClick={() => applyFormat('*')} className="grid h-7 w-7 place-items-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground">
-              <Italic className="h-3.5 w-3.5" />
-            </button>
-            <button type="button" aria-label="Underline" onClick={() => applyFormat('__')} className="grid h-7 w-7 place-items-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground">
-              <Underline className="h-3.5 w-3.5" />
-            </button>
-            <button type="button" aria-label="Link" onClick={applyLink} className="grid h-7 w-7 place-items-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground">
-              <LinkIcon className="h-3.5 w-3.5" />
-            </button>
-          </div>
+          <FormattingToolbar textareaRef={textareaRef} value={draft} onChange={setDraft} />
           <textarea
             ref={textareaRef}
             data-testid="input-social-post"
@@ -217,7 +153,7 @@ export function SocialTimelineCard() {
             onChange={(event) => setDraft(event.target.value)}
             placeholder="Write something here…"
             rows={2}
-            className="w-full resize-none px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground/70"
+            className="w-full resize-none rounded-b-lg px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground/70"
           />
         </div>
         <div className="flex shrink-0 flex-col gap-2">
@@ -266,9 +202,9 @@ export function SocialTimelineCard() {
                 </button>
               )}
             </div>
-            <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-foreground/90">
-              <FormattedMessage text={post.messageText} />
-            </p>
+            <div className="mt-3 text-sm leading-6 text-foreground/90">
+              <RichContent text={post.messageText} />
+            </div>
           </div>
         ))}
       </div>
