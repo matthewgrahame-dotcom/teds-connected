@@ -19,15 +19,7 @@ import NotFound from '@/pages/not-found';
 import { Link, Route, Switch, useLocation, useParams, Router as WouterRouter } from 'wouter';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
-import { HeroCarousel } from '@/components/dashboard/HeroCarousel';
-import { NewsCard } from '@/components/dashboard/NewsCard';
-import { TedsCalendarCard } from '@/components/dashboard/TedsCalendarCard';
-import { OutstandingTasksCard } from '@/components/dashboard/OutstandingTasksCard';
-import { QuickLinksCard } from '@/components/dashboard/QuickLinksCard';
-import { KeyContactsCard } from '@/components/dashboard/KeyContactsCard';
-import { RosteringCard } from '@/components/dashboard/RosteringCard';
-import { FacebookStreamCard } from '@/components/dashboard/FacebookStreamCard';
-import { SocialTimelineCard } from '@/components/dashboard/SocialTimelineCard';
+import Dashboard from '@/pages/Dashboard';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { PublishAccessProvider } from '@/lib/publishAccess';
 import { LoginPage } from '@/components/LoginPage';
@@ -141,27 +133,6 @@ function PageIntro({ eyebrow, title, description, action }: { eyebrow: string; t
   );
 }
 
-function Dashboard() {
-  return (
-    <div className="px-5 py-8 lg:px-10 lg:py-10">
-      <div className="mx-auto grid max-w-[1400px] grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,.9fr)]">
-        <div className="space-y-6">
-          <HeroCarousel />
-          <NewsCard />
-          <SocialTimelineCard />
-          <FacebookStreamCard />
-        </div>
-        <div className="space-y-6">
-          <TedsCalendarCard />
-          <QuickLinksCard />
-          <OutstandingTasksCard />
-          <KeyContactsCard />
-          <RosteringCard />
-        </div>
-      </div>
-    </div>
-  );
-}
 function EmptyState({ icon: Icon, title, copy, compact = false }: { icon: LucideIcon; title: string; copy: string; compact?: boolean }) {
   return <div data-testid={`empty-state-${title.toLowerCase().replace(/\s+/g, '-')}`} className={`flex flex-col items-center justify-center text-center ${compact ? 'px-5 py-10' : 'min-h-[350px] p-8'}`}><div className="mb-3 grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground"><Icon className="h-5 w-5" /></div><h3 className="text-sm font-extrabold">{title}</h3><p className="mt-1 max-w-xs text-xs leading-5 text-muted-foreground">{copy}</p></div>;
 }

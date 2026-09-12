@@ -12,6 +12,7 @@ import dashboardConfigRouter from "./dashboard-config";
 import changelogRouter from "./changelog";
 import searchRouter from "./search";
 import tasksRouter from "./tasks";
+import dashboardLayoutRouter from "./dashboard-layout";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(dashboardConfigRouter);
 router.use(changelogRouter);
 router.use(searchRouter);
 router.use(tasksRouter);
+router.use(dashboardLayoutRouter);
 
 export default router;
