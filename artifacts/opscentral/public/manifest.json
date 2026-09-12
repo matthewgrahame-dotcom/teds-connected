@@ -1,0 +1,24 @@
+{
+  "name": "Ted's Connected",
+  "short_name": "Connected",
+  "description": "Ted's Connected — the staff portal for Connected operations.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5C518",
+  "theme_color": "#F5C518",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
