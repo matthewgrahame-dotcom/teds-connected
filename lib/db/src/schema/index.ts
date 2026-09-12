@@ -24,3 +24,4 @@ export * from "./calendar";
 export * from "./news";
 export * from "./portal-users";
 export * from "./dashboard-config";
+export * from "./changelog";

@@ -7,6 +7,11 @@ const router: IRouter = Router();
 
 // -- App settings (generic key/value) ---------------------------------
 
+router.get("/app-settings", requireSession, async (_req, res) => {
+  const rows = await db.select().from(appSettingsTable).orderBy(asc(appSettingsTable.key));
+  res.json(rows);
+});
+
 router.get("/app-settings/:key", requireSession, async (req, res) => {
   const key = String(req.params.key);
   const [row] = await db.select().from(appSettingsTable).where(eq(appSettingsTable.key, key));
@@ -25,6 +30,12 @@ router.put("/app-settings/:key", requireFullLevel, async (req, res) => {
     .values({ key, value })
     .onConflictDoUpdate({ target: appSettingsTable.key, set: { value, updatedAt: new Date() } });
   res.json({ ok: true, key, value });
+});
+
+router.delete("/app-settings/:key", requireFullLevel, async (req, res) => {
+  const key = String(req.params.key);
+  await db.delete(appSettingsTable).where(eq(appSettingsTable.key, key));
+  res.json({ ok: true });
 });
 
 // -- Quick Links --------------------------------------------------------

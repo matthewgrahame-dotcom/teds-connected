@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, CircleUserRound, Globe, HelpCircle, ListChecks, LogOut, MousePointer2, Rocket, Search, Settings, User, Users } from 'lucide-react';
+import { Bell, CircleUserRound, HelpCircle, ListChecks, LogOut, MousePointer2, Rocket, Search, Settings, User, Users } from 'lucide-react';
+import { Link } from 'wouter';
 import { useAuth } from '@/lib/auth';
 import heroBanner from '@/assets/hero-banner.png';
 
 const profileMenuItems = [
-  { label: 'My Profile', icon: User },
-  { label: 'Directory', icon: Users },
-  { label: 'Language (English)', icon: Globe },
-  { label: 'Product Updates', icon: Rocket },
-  { label: 'System Settings', icon: Settings },
+  { label: 'My Profile', icon: User, href: '/profile' },
+  { label: 'Directory', icon: Users, href: '/people/directory' },
+  { label: 'Product Updates', icon: Rocket, href: '/updates' },
+  { label: 'System Settings', icon: Settings, href: '/admin/portal-settings' },
 ] as const;
 
 export function AppHeader({ userName }: { userName: string }) {
@@ -73,15 +73,16 @@ export function AppHeader({ userName }: { userName: string }) {
             </button>
             {menuOpen && (
               <div className="absolute right-0 top-full z-40 mt-2 w-56 rounded-lg border border-border bg-card py-2 shell-shadow">
-                {profileMenuItems.map(({ label, icon: Icon }) => (
-                  <button
+                {profileMenuItems.map(({ label, icon: Icon, href }) => (
+                  <Link
                     key={label}
-                    type="button"
+                    href={href}
+                    onClick={() => setMenuOpen(false)}
                     className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-foreground transition hover:bg-muted"
                   >
                     <Icon className="h-4 w-4 text-muted-foreground" />
                     {label}
-                  </button>
+                  </Link>
                 ))}
                 <div className="my-1 border-t border-border" />
                 <button

@@ -9,6 +9,7 @@ import calendarRouter from "./calendar";
 import newsRouter from "./news";
 import portalUsersRouter from "./portal-users";
 import dashboardConfigRouter from "./dashboard-config";
+import changelogRouter from "./changelog";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(calendarRouter);
 router.use(newsRouter);
 router.use(portalUsersRouter);
 router.use(dashboardConfigRouter);
+router.use(changelogRouter);
 
 export default router;
