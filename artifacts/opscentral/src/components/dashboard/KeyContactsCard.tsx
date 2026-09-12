@@ -113,39 +113,45 @@ export function KeyContactsCard() {
   }, [allUsers, pickerSearch, contacts]);
 
   return (
-    <DashboardCard title="Key Contacts" noPadding actions={canEdit ? <CardIconButton icon={Settings} label="Edit key contacts" onClick={openSettings} /> : <></>}>
-      <div className="divide-y divide-border">
-        {contacts === null && <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p>}
-        {contacts?.map((contact) => (
-          <div key={contact.id} data-testid={`contact-${contact.name.toLowerCase().replace(/\s+/g, '-')}`} className="flex items-center gap-4 px-5 py-4">
-            <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-muted text-muted-foreground">
-              {contact.photoUrl ? (
-                <img src={contact.photoUrl} alt={contact.name} className="h-full w-full object-cover" />
-              ) : (
-                <User className="h-6 w-6" />
-              )}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="font-extrabold text-foreground">{contact.name}</p>
-              <p className="truncate text-sm text-muted-foreground">{contact.title}</p>
+    <DashboardCard title="Key Contacts" actions={canEdit ? <CardIconButton icon={Settings} label="Edit key contacts" onClick={openSettings} /> : <></>}>
+      {contacts === null && <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p>}
+      {contacts !== null && (
+        <div className="flex gap-4 overflow-x-auto pb-1">
+          {contacts.map((contact) => (
+            <div
+              key={contact.id}
+              data-testid={`contact-${contact.name.toLowerCase().replace(/\s+/g, '-')}`}
+              className="flex w-40 shrink-0 flex-col items-center gap-2 rounded-lg border border-border p-3 text-center"
+            >
+              <span className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full bg-muted text-muted-foreground">
+                {contact.photoUrl ? (
+                  <img src={contact.photoUrl} alt={contact.name} className="h-full w-full object-cover" />
+                ) : (
+                  <User className="h-7 w-7" />
+                )}
+              </span>
+              <div className="min-w-0">
+                <p className="font-extrabold text-foreground">{contact.name}</p>
+                <p className="text-xs leading-tight text-muted-foreground">{contact.title}</p>
+              </div>
               {(contact.phone || contact.email) && (
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                <div className="flex flex-col items-center gap-0.5 text-xs text-muted-foreground">
                   {contact.phone && (
                     <a href={`tel:${contact.phone}`} className="flex items-center gap-1 hover:text-accent">
                       <Phone className="h-3 w-3" /> {contact.phone}
                     </a>
                   )}
                   {contact.email && (
-                    <a href={`mailto:${contact.email}`} className="flex items-center gap-1 hover:text-accent">
-                      <Mail className="h-3 w-3" /> {contact.email}
+                    <a href={`mailto:${contact.email}`} className="flex items-center gap-1 truncate hover:text-accent" title={contact.email}>
+                      <Mail className="h-3 w-3 shrink-0" /> <span className="truncate">{contact.email}</span>
                     </a>
                   )}
                 </div>
               )}
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       <Dialog open={editing} onOpenChange={setEditing}>
         <DialogContent className="max-w-2xl">
