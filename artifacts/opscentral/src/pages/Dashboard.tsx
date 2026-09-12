@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { GripVertical, LayoutGrid, Check, RotateCcw } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { GripVertical, Check, RotateCcw, Scale } from 'lucide-react';
 import {
   DndContext,
   DragOverlay,
@@ -19,7 +19,15 @@ import { DASHBOARD_WIDGET_REGISTRY, DEFAULT_DASHBOARD_LAYOUT, type DashboardColu
 
 type LayoutItem = { widgetKey: string; column: DashboardColumn };
 
-function SortableWidget({ item, editing }: { item: LayoutItem; editing: boolean }) {
+function SortableWidget({
+  item,
+  editing,
+  registerRef,
+}: {
+  item: LayoutItem;
+  editing: boolean;
+  registerRef: (key: string, node: HTMLDivElement | null) => void;
+}) {
   const entry = DASHBOARD_WIDGET_REGISTRY[item.widgetKey];
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.widgetKey, disabled: !editing });
 
@@ -29,7 +37,14 @@ function SortableWidget({ item, editing }: { item: LayoutItem; editing: boolean 
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
 
   return (
-    <div ref={setNodeRef} style={style} className="relative">
+    <div
+      ref={(node) => {
+        setNodeRef(node);
+        registerRef(item.widgetKey, node);
+      }}
+      style={style}
+      className="relative"
+    >
       {editing && (
         <button
           type="button"
@@ -55,6 +70,7 @@ export default function Dashboard() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const widgetRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const canEdit = session?.level === 'full';
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
@@ -70,10 +86,34 @@ export default function Dashboard() {
 
   useEffect(load, []);
 
+  // Lets the header's "Edit Layout" trigger (lives in the profile menu, not
+  // on this page -- see AppHeader) work from anywhere. Two paths: arriving
+  // fresh via ?editLayout=1 (handled here on mount), or already being on
+  // this page, in which case AppHeader dispatches this event directly
+  // since navigate()-ing to the same pathname wouldn't otherwise re-fire
+  // this effect.
+  useEffect(() => {
+    if (!canEdit) return;
+    const trigger = () => requirePublishAccess(() => setEditing(true));
+
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('editLayout') === '1') {
+      url.searchParams.delete('editLayout');
+      window.history.replaceState({}, '', url.toString());
+      trigger();
+    }
+
+    window.addEventListener('connected:edit-layout', trigger);
+    return () => window.removeEventListener('connected:edit-layout', trigger);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canEdit]);
+
+  const registerRef = (key: string, node: HTMLDivElement | null) => {
+    widgetRefs.current[key] = node;
+  };
+
   const mainItems = useMemo(() => layout.filter((i) => i.column === 'main'), [layout]);
   const sidebarItems = useMemo(() => layout.filter((i) => i.column === 'sidebar'), [layout]);
-
-  const startEditing = () => requirePublishAccess(() => setEditing(true));
 
   const handleDragStart = (event: DragStartEvent) => setActiveId(String(event.active.id));
 
@@ -108,6 +148,33 @@ export default function Dashboard() {
     });
   };
 
+  // Measures each widget's actual rendered height and redistributes them
+  // across the two columns with a greedy bin-pack (largest first, always
+  // added to the currently-shorter column) -- gets both columns as close to
+  // equal total height as possible given the discrete set of widget sizes
+  // in play, which is what actually determines whether the bottoms line up
+  // (dragging alone can't fix that -- it's a height-sum problem, not an
+  // ordering problem).
+  const balanceColumns = () => {
+    const heights = layout.map((item) => ({ item, height: widgetRefs.current[item.widgetKey]?.offsetHeight ?? 0 }));
+    heights.sort((a, b) => b.height - a.height);
+
+    let mainHeight = 0;
+    let sidebarHeight = 0;
+    const mainOut: LayoutItem[] = [];
+    const sidebarOut: LayoutItem[] = [];
+    for (const { item, height } of heights) {
+      if (mainHeight <= sidebarHeight) {
+        mainOut.push({ ...item, column: 'main' });
+        mainHeight += height;
+      } else {
+        sidebarOut.push({ ...item, column: 'sidebar' });
+        sidebarHeight += height;
+      }
+    }
+    setLayout([...mainOut, ...sidebarOut]);
+  };
+
   const saveLayout = async () => {
     setSaving(true);
     try {
@@ -140,38 +207,34 @@ export default function Dashboard() {
   return (
     <div className="px-5 py-8 lg:px-10 lg:py-10">
       <div className="mx-auto max-w-[1400px]">
-        {canEdit && (
+        {editing && (
           <div className="mb-4 flex items-center justify-end gap-2">
-            {!editing ? (
-              <button
-                type="button"
-                onClick={startEditing}
-                className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-bold text-muted-foreground transition hover:bg-muted hover:text-foreground"
-              >
-                <LayoutGrid className="h-3.5 w-3.5" /> Edit Layout
-              </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={resetToDefault}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-bold text-muted-foreground transition hover:bg-muted"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" /> Reset to default
-                </button>
-                <button type="button" onClick={cancelEditing} className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-bold text-muted-foreground transition hover:bg-muted">
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={saveLayout}
-                  disabled={saving}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-extrabold text-primary-foreground transition hover:brightness-95 disabled:opacity-50"
-                >
-                  <Check className="h-3.5 w-3.5" /> {saving ? 'Saving…' : 'Save Layout'}
-                </button>
-              </>
-            )}
+            <button
+              type="button"
+              onClick={balanceColumns}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-bold text-muted-foreground transition hover:bg-muted"
+              title="Redistribute widgets across both columns to even out their heights"
+            >
+              <Scale className="h-3.5 w-3.5" /> Balance Columns
+            </button>
+            <button
+              type="button"
+              onClick={resetToDefault}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-bold text-muted-foreground transition hover:bg-muted"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Reset to default
+            </button>
+            <button type="button" onClick={cancelEditing} className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-bold text-muted-foreground transition hover:bg-muted">
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={saveLayout}
+              disabled={saving}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-extrabold text-primary-foreground transition hover:brightness-95 disabled:opacity-50"
+            >
+              <Check className="h-3.5 w-3.5" /> {saving ? 'Saving…' : 'Save Layout'}
+            </button>
           </div>
         )}
 
@@ -194,14 +257,14 @@ export default function Dashboard() {
             <SortableContext items={mainItems.map((i) => i.widgetKey)} strategy={verticalListSortingStrategy}>
               <div className="space-y-6">
                 {mainItems.map((item) => (
-                  <SortableWidget key={item.widgetKey} item={item} editing={editing} />
+                  <SortableWidget key={item.widgetKey} item={item} editing={editing} registerRef={registerRef} />
                 ))}
               </div>
             </SortableContext>
             <SortableContext items={sidebarItems.map((i) => i.widgetKey)} strategy={verticalListSortingStrategy}>
               <div className="space-y-6">
                 {sidebarItems.map((item) => (
-                  <SortableWidget key={item.widgetKey} item={item} editing={editing} />
+                  <SortableWidget key={item.widgetKey} item={item} editing={editing} registerRef={registerRef} />
                 ))}
               </div>
             </SortableContext>

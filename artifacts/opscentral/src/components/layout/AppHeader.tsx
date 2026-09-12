@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, CalendarCheck, CircleUserRound, GraduationCap, HelpCircle, ListChecks, LogOut, MousePointer2, Rocket, Search, Settings, User, Users } from 'lucide-react';
+import { Bell, CalendarCheck, CircleUserRound, GraduationCap, HelpCircle, LayoutGrid, ListChecks, LogOut, MousePointer2, Rocket, Search, Settings, User, Users } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
@@ -42,7 +42,7 @@ export function AppHeader({ userName }: { userName: string }) {
   const [bellOpen, setBellOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const { session, logout } = useAuth();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const menuRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLDivElement>(null);
   const [trainingTasks, setTrainingTasks] = useState<TrainingTask[]>([]);
@@ -177,6 +177,25 @@ export function AppHeader({ userName }: { userName: string }) {
                     {label}
                   </Link>
                 ))}
+                {session?.level === 'full' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      // navigate() alone won't re-trigger Dashboard's mount
+                      // effect if we're already on "/" (same pathname, wouter
+                      // won't remount it) -- dispatch directly in that case;
+                      // otherwise navigate there and let the mount effect
+                      // pick up the query param on arrival.
+                      if (location === '/') window.dispatchEvent(new CustomEvent('connected:edit-layout'));
+                      else navigate('/?editLayout=1');
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-foreground transition hover:bg-muted"
+                  >
+                    <LayoutGrid className="h-4 w-4 text-muted-foreground" />
+                    Edit Dashboard Layout
+                  </button>
+                )}
                 <div className="my-1 border-t border-border" />
                 <button
                   type="button"
