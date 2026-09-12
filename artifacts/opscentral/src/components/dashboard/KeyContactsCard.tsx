@@ -137,7 +137,7 @@ export function KeyContactsCard() {
             <div
               key={contact.id}
               data-testid={`contact-${contact.name.toLowerCase().replace(/\s+/g, '-')}`}
-              className="flex w-40 shrink-0 flex-col items-center gap-2 rounded-lg border border-border p-3 text-center"
+              className="flex h-56 w-40 shrink-0 flex-col items-center gap-2 rounded-lg border border-border p-3 text-center"
             >
               <span className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full bg-muted text-muted-foreground">
                 {contact.photoUrl ? (
@@ -147,11 +147,11 @@ export function KeyContactsCard() {
                 )}
               </span>
               <div className="min-w-0">
-                <p className="font-extrabold text-foreground">{contact.name}</p>
-                <p className="text-xs leading-tight text-muted-foreground">{contact.title}</p>
+                <p className="line-clamp-1 font-extrabold text-foreground">{contact.name}</p>
+                <p className="line-clamp-2 min-h-[2rem] text-xs leading-tight text-muted-foreground">{contact.title}</p>
               </div>
               {(contact.phone || contact.email) && (
-                <div className="flex flex-col items-center gap-0.5 text-xs text-muted-foreground">
+                <div className="mt-auto flex w-full flex-col items-center gap-0.5 text-xs text-muted-foreground">
                   {contact.phone && (
                     <a href={`tel:${contact.phone}`} className="flex items-center gap-1 hover:text-accent">
                       <Phone className="h-3 w-3" /> {contact.phone}
