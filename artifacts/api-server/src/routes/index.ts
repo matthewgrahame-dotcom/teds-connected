@@ -13,6 +13,7 @@ import changelogRouter from "./changelog";
 import searchRouter from "./search";
 import tasksRouter from "./tasks";
 import dashboardLayoutRouter from "./dashboard-layout";
+import aiHelpRouter from "./ai-help";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(changelogRouter);
 router.use(searchRouter);
 router.use(tasksRouter);
 router.use(dashboardLayoutRouter);
+router.use(aiHelpRouter);
 
 export default router;

@@ -129,6 +129,14 @@ export default function Dashboard() {
 
   const resetToDefault = () => setLayout(DEFAULT_DASHBOARD_LAYOUT);
 
+  const activeKeys = new Set(layout.map((i) => i.widgetKey));
+  const toggleWidget = (widgetKey: string) => {
+    setLayout((prev) => {
+      if (activeKeys.has(widgetKey)) return prev.filter((i) => i.widgetKey !== widgetKey);
+      return [...prev, { widgetKey, column: 'sidebar' as DashboardColumn }];
+    });
+  };
+
   return (
     <div className="px-5 py-8 lg:px-10 lg:py-10">
       <div className="mx-auto max-w-[1400px]">
@@ -164,6 +172,20 @@ export default function Dashboard() {
                 </button>
               </>
             )}
+          </div>
+        )}
+
+        {editing && (
+          <div className="mb-4 rounded-xl border border-border bg-card p-4">
+            <p className="mb-2 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">Widgets shown on the dashboard</p>
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+              {Object.entries(DASHBOARD_WIDGET_REGISTRY).map(([key, entry]) => (
+                <label key={key} className="flex items-center gap-2 text-sm text-foreground">
+                  <input type="checkbox" checked={activeKeys.has(key)} onChange={() => toggleWidget(key)} />
+                  {entry.label}
+                </label>
+              ))}
+            </div>
           </div>
         )}
 

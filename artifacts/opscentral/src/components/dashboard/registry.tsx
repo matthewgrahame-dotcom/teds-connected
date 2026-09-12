@@ -8,6 +8,7 @@ import { QuickLinksCard } from './QuickLinksCard';
 import { OutstandingTasksCard } from './OutstandingTasksCard';
 import { KeyContactsCard } from './KeyContactsCard';
 import { RosteringCard } from './RosteringCard';
+import { AiHelpCard } from './AiHelpCard';
 
 export type DashboardColumn = 'main' | 'sidebar';
 
@@ -24,6 +25,7 @@ export const DASHBOARD_WIDGET_REGISTRY: Record<string, { label: string; componen
   outstandingTasks: { label: 'Outstanding Tasks', component: OutstandingTasksCard },
   keyContacts: { label: 'Key Contacts', component: KeyContactsCard },
   rostering: { label: 'Rostering', component: RosteringCard },
+  aiHelp: { label: 'AI Help', component: AiHelpCard },
 };
 
 // Falls back to this when nothing's been saved yet (first load, or nobody's
@@ -37,6 +39,7 @@ export const DEFAULT_DASHBOARD_LAYOUT: { widgetKey: string; column: DashboardCol
   { widgetKey: 'facebook', column: 'main' },
   { widgetKey: 'calendar', column: 'sidebar' },
   { widgetKey: 'quickLinks', column: 'sidebar' },
+  { widgetKey: 'aiHelp', column: 'sidebar' },
   { widgetKey: 'outstandingTasks', column: 'sidebar' },
   { widgetKey: 'keyContacts', column: 'sidebar' },
   { widgetKey: 'rostering', column: 'sidebar' },
