@@ -41,6 +41,7 @@ export function requireFullLevel(req: Request, res: Response, next: NextFunction
 // real, unexpired session, no level requirement.
 export function requireSession(req: Request, res: Response, next: NextFunction) {
   const token = req.header("x-session-token");
+  console.log("[requireSession debug]", { path: req.path, hasHeader: !!token, tokenPreview: token ? token.slice(0, 20) : null });
   const payload = verifyCrossAppToken(token);
   if (!payload) {
     res.status(401).json({ error: "Missing or expired session. Please log in again." });
