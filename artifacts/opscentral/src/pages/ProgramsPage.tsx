@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Circle, CircleDot, CheckCircle2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { Circle, CircleDot, CheckCircle2, ExternalLink, ChevronDown, ChevronUp, ListChecks } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 import { RichContent } from '@/components/RichContent';
+import { QuizTaker } from '@/components/QuizTaker';
 
 type ModuleStatus = 'not_started' | 'in_progress' | 'completed';
 
@@ -13,6 +14,7 @@ type Module = {
   content: string | null;
   externalUrl: string | null;
   status: ModuleStatus;
+  hasQuiz: boolean;
 };
 
 type Program = {
@@ -40,6 +42,7 @@ export default function ProgramsPage() {
   const { session } = useAuth();
   const [programs, setPrograms] = useState<Program[] | null>(null);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [quizOpenFor, setQuizOpenFor] = useState<number | null>(null);
 
   const toggleExpanded = (id: number) => {
     setExpanded((prev) => {
@@ -103,6 +106,7 @@ export default function ProgramsPage() {
               {program.modules.map((module) => {
                 const { label, icon: Icon, className } = statusConfig[module.status];
                 const isExpanded = expanded.has(module.id);
+                const isQuizOpen = quizOpenFor === module.id;
                 return (
                   <div key={module.id} data-testid={`module-${module.id}`}>
                     <div className="flex items-center justify-between gap-4 px-5 py-3">
@@ -115,7 +119,7 @@ export default function ProgramsPage() {
                         {module.content && (isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />)}
                         <span className="truncate text-sm text-foreground">
                           {module.title}
-                          {module.moduleType === 'quiz' && <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">Quiz</span>}
+                          {module.hasQuiz && <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">Quiz</span>}
                         </span>
                         {module.externalUrl && (
                           <a href={module.externalUrl} target="_blank" rel="noreferrer" aria-label="Open module content" onClick={(e) => e.stopPropagation()}>
@@ -123,20 +127,49 @@ export default function ProgramsPage() {
                           </a>
                         )}
                       </button>
-                      <button
-                        type="button"
-                        data-testid={`button-status-${module.id}`}
-                        onClick={() => cycleStatus(module)}
-                        className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition hover:brightness-95 ${className}`}
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                        {label}
-                      </button>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {module.hasQuiz ? (
+                          <>
+                            <span className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${className}`}>
+                              <Icon className="h-3.5 w-3.5" />
+                              {label}
+                            </span>
+                            <button
+                              type="button"
+                              data-testid={`button-take-quiz-${module.id}`}
+                              onClick={() => setQuizOpenFor(isQuizOpen ? null : module.id)}
+                              className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground transition hover:brightness-95"
+                            >
+                              <ListChecks className="h-3.5 w-3.5" />
+                              {module.status === 'completed' ? 'Retake Quiz' : 'Take Quiz'}
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            data-testid={`button-status-${module.id}`}
+                            onClick={() => cycleStatus(module)}
+                            className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition hover:brightness-95 ${className}`}
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                            {label}
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {isExpanded && module.content && (
                       <div className="px-5 pb-4">
                         <RichContent text={module.content} />
                       </div>
+                    )}
+                    {isQuizOpen && (
+                      <QuizTaker
+                        moduleId={module.id}
+                        onDone={() => {
+                          setQuizOpenFor(null);
+                          load();
+                        }}
+                      />
                     )}
                   </div>
                 );

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useLocation, Link } from 'wouter';
-import { ChevronLeft, Plus, Trash2, GripVertical, Save, Users, UserCog, Layers } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, GripVertical, Save, Users, UserCog, Layers, ListChecks } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
@@ -9,7 +9,18 @@ import { useToast } from '@/hooks/use-toast';
 type Level = 'optional' | 'mandatory';
 type PortalUserOption = { id: number; firstName: string; lastName: string; role: string };
 type UserGroup = { id: number; name: string; members: { userId: number; name: string }[] };
-type ProgramModule = { id: number; title: string; moduleType: 'lesson' | 'quiz'; content: string | null; externalUrl: string | null; sortOrder: number };
+type QuizQuestionType = 'single' | 'multi' | 'text';
+type QuizQuestionDraft = { id?: number; questionText: string; questionType: QuizQuestionType; options: string[]; correctOptionIndices: number[] };
+type ProgramModule = {
+  id: number;
+  title: string;
+  moduleType: 'lesson' | 'quiz';
+  content: string | null;
+  externalUrl: string | null;
+  passThresholdPercent: number;
+  sortOrder: number;
+  quizQuestions: QuizQuestionDraft[];
+};
 type ProgramSummary = { id: number; title: string };
 
 type ProgramDetail = {
@@ -55,6 +66,9 @@ export default function ProgramEditorPage() {
   const [userPickerOpen, setUserPickerOpen] = useState(false);
   const [groupPickerOpen, setGroupPickerOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
+  const [quizEditorFor, setQuizEditorFor] = useState<number | null>(null);
+  const [quizDraft, setQuizDraft] = useState<QuizQuestionDraft[]>([]);
+  const [savingQuiz, setSavingQuiz] = useState(false);
 
   // Create-mode uses a lightweight local draft; edit-mode loads the real thing.
   const [draft, setDraft] = useState({ title: '', description: '', category: '', thumbnailUrl: '', startDate: '', endDate: '' });
@@ -170,7 +184,7 @@ export default function ProgramEditorPage() {
     }
   };
 
-  const updateModule = async (moduleId: number, patch: Partial<{ title: string; externalUrl: string; content: string; moduleType: string }>) => {
+  const updateModule = async (moduleId: number, patch: Partial<{ title: string; externalUrl: string; content: string; moduleType: string; passThresholdPercent: number }>) => {
     await fetch(`/api/training/modules/${moduleId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
@@ -183,6 +197,32 @@ export default function ProgramEditorPage() {
     if (!confirm('Remove this module?')) return;
     await fetch(`/api/training/modules/${moduleId}`, { method: 'DELETE', headers: authHeaders(session) });
     loadProgram();
+  };
+
+  const openQuizEditor = (module: ProgramModule) => {
+    setQuizDraft(module.quizQuestions.length ? module.quizQuestions.map((q) => ({ ...q, options: [...q.options], correctOptionIndices: [...q.correctOptionIndices] })) : []);
+    setQuizEditorFor(module.id);
+  };
+
+  const saveQuiz = async () => {
+    if (quizEditorFor === null) return;
+    setSavingQuiz(true);
+    try {
+      const res = await fetch(`/api/training/modules/${quizEditorFor}/quiz`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+        body: JSON.stringify({ questions: quizDraft.filter((q) => q.questionText.trim()) }),
+      });
+      if (res.ok) {
+        toast({ title: 'Quiz questions saved' });
+        setQuizEditorFor(null);
+        loadProgram();
+      } else {
+        toast({ title: 'Could not save quiz questions', variant: 'destructive' });
+      }
+    } finally {
+      setSavingQuiz(false);
+    }
   };
 
   const createGroup = async () => {
@@ -321,6 +361,133 @@ export default function ProgramEditorPage() {
                   rows={3}
                   className="w-full resize-y rounded-md border border-input bg-background px-2 py-1.5 text-xs outline-none"
                 />
+                <div className="flex items-center justify-between gap-2 pl-6">
+                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    Pass mark:
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      defaultValue={m.passThresholdPercent}
+                      key={`pt-${m.id}`}
+                      onBlur={(e) => Number(e.target.value) !== m.passThresholdPercent && updateModule(m.id, { passThresholdPercent: Number(e.target.value) })}
+                      className="h-7 w-16 rounded-md border border-input bg-background px-1.5 text-xs outline-none"
+                    />
+                    %
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => openQuizEditor(m)}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-accent hover:underline"
+                  >
+                    <ListChecks className="h-3.5 w-3.5" />
+                    {m.quizQuestions.length > 0 ? `Manage Quiz (${m.quizQuestions.length})` : 'Add Quiz Questions'}
+                  </button>
+                </div>
+
+                {quizEditorFor === m.id && (
+                  <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                    {quizDraft.map((q, qi) => (
+                      <div key={qi} className="space-y-2 rounded-md border border-border bg-card p-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            value={q.questionText}
+                            onChange={(e) => setQuizDraft((prev) => prev.map((qq, i) => (i === qi ? { ...qq, questionText: e.target.value } : qq)))}
+                            placeholder="Question text"
+                            className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs outline-none"
+                          />
+                          <select
+                            value={q.questionType}
+                            onChange={(e) =>
+                              setQuizDraft((prev) =>
+                                prev.map((qq, i) => (i === qi ? { ...qq, questionType: e.target.value as QuizQuestionType, correctOptionIndices: [] } : qq)),
+                              )
+                            }
+                            className="h-8 rounded-md border border-input bg-background px-1.5 text-xs outline-none"
+                          >
+                            <option value="single">Single choice</option>
+                            <option value="multi">Multi choice</option>
+                            <option value="text">Text (not scored)</option>
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => setQuizDraft((prev) => prev.filter((_, i) => i !== qi))}
+                            className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        {q.questionType !== 'text' && (
+                          <div className="space-y-1 pl-2">
+                            {q.options.map((opt, oi) => (
+                              <div key={oi} className="flex items-center gap-2">
+                                <input
+                                  type={q.questionType === 'single' ? 'radio' : 'checkbox'}
+                                  name={`correct-${qi}`}
+                                  checked={q.correctOptionIndices.includes(oi)}
+                                  onChange={() =>
+                                    setQuizDraft((prev) =>
+                                      prev.map((qq, i) => {
+                                        if (i !== qi) return qq;
+                                        const isChecked = qq.correctOptionIndices.includes(oi);
+                                        const correctOptionIndices =
+                                          qq.questionType === 'single' ? (isChecked ? [] : [oi]) : isChecked ? qq.correctOptionIndices.filter((x) => x !== oi) : [...qq.correctOptionIndices, oi];
+                                        return { ...qq, correctOptionIndices };
+                                      }),
+                                    )
+                                  }
+                                />
+                                <input
+                                  value={opt}
+                                  onChange={(e) => setQuizDraft((prev) => prev.map((qq, i) => (i === qi ? { ...qq, options: qq.options.map((o, oj) => (oj === oi ? e.target.value : o)) } : qq)))}
+                                  placeholder={`Option ${oi + 1}`}
+                                  className="h-7 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs outline-none"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setQuizDraft((prev) =>
+                                      prev.map((qq, i) =>
+                                        i === qi
+                                          ? { ...qq, options: qq.options.filter((_, oj) => oj !== oi), correctOptionIndices: qq.correctOptionIndices.filter((x) => x !== oi).map((x) => (x > oi ? x - 1 : x)) }
+                                          : qq,
+                                      ),
+                                    )
+                                  }
+                                  className="text-muted-foreground hover:text-destructive"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => setQuizDraft((prev) => prev.map((qq, i) => (i === qi ? { ...qq, options: [...qq.options, ''] } : qq)))}
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-accent hover:underline"
+                            >
+                              <Plus className="h-3 w-3" /> Add option
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setQuizDraft((prev) => [...prev, { questionText: '', questionType: 'single', options: ['', ''], correctOptionIndices: [] }])}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-accent hover:underline"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add question
+                    </button>
+                    <div className="flex justify-end gap-2 border-t border-border pt-2">
+                      <button type="button" onClick={() => setQuizEditorFor(null)} className="rounded-md px-3 py-1.5 text-xs font-bold text-muted-foreground hover:bg-muted">
+                        Cancel
+                      </button>
+                      <button type="button" onClick={saveQuiz} disabled={savingQuiz} className="rounded-md bg-primary px-3 py-1.5 text-xs font-extrabold text-primary-foreground hover:brightness-95 disabled:opacity-50">
+                        {savingQuiz ? 'Saving…' : 'Save Quiz Questions'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
             <div className="flex items-center gap-2">

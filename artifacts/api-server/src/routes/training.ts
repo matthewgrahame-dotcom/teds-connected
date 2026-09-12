@@ -10,6 +10,9 @@ import {
   trainingUserAssignmentsTable,
   trainingGroupAssignmentsTable,
   trainingAssignmentLevelSchema,
+  trainingQuizQuestionsTable,
+  trainingQuizAttemptsTable,
+  trainingQuizQuestionTypeSchema,
   userGroupMembersTable,
   portalUsersTable,
 } from "@workspace/db";
@@ -65,6 +68,8 @@ router.get("/training/programs", requireSession, async (req, res) => {
   const progress = staffName
     ? await db.select().from(moduleProgressTable).where(eq(moduleProgressTable.staffName, staffName))
     : [];
+  const quizCounts = await db.select({ moduleId: trainingQuizQuestionsTable.moduleId }).from(trainingQuizQuestionsTable);
+  const moduleIdsWithQuiz = new Set(quizCounts.map((q) => q.moduleId));
 
   const progressByModule = new Map(progress.map((p) => [p.moduleId, p.status]));
 
@@ -72,10 +77,76 @@ router.get("/training/programs", requireSession, async (req, res) => {
     ...program,
     modules: modules
       .filter((m) => m.programId === program.id)
-      .map((m) => ({ ...m, status: progressByModule.get(m.id) ?? "not_started" })),
+      .map((m) => ({ ...m, status: progressByModule.get(m.id) ?? "not_started", hasQuiz: moduleIdsWithQuiz.has(m.id) })),
   }));
 
   res.json(result);
+});
+
+// -- Quiz taking (staff-facing) ---------------------------------------------
+// GET strips correctOptionIndices -- never send the answer key to someone
+// about to take the quiz. Scoring happens server-side on submit instead.
+router.get("/training/modules/:id/quiz", requireSession, async (req, res) => {
+  const moduleId = Number(req.params.id);
+  if (!Number.isInteger(moduleId)) {
+    res.status(400).json({ error: "Invalid module id" });
+    return;
+  }
+  const questions = await db
+    .select({ id: trainingQuizQuestionsTable.id, questionText: trainingQuizQuestionsTable.questionText, questionType: trainingQuizQuestionsTable.questionType, options: trainingQuizQuestionsTable.options, sortOrder: trainingQuizQuestionsTable.sortOrder })
+    .from(trainingQuizQuestionsTable)
+    .where(eq(trainingQuizQuestionsTable.moduleId, moduleId))
+    .orderBy(asc(trainingQuizQuestionsTable.sortOrder));
+  const [module_] = await db.select({ passThresholdPercent: trainingModulesTable.passThresholdPercent }).from(trainingModulesTable).where(eq(trainingModulesTable.id, moduleId));
+  res.json({ questions, passThresholdPercent: module_?.passThresholdPercent ?? 100 });
+});
+
+router.post("/training/modules/:id/quiz/submit", requireSession, async (req, res) => {
+  const moduleId = Number(req.params.id);
+  if (!Number.isInteger(moduleId)) {
+    res.status(400).json({ error: "Invalid module id" });
+    return;
+  }
+  const staffName = typeof req.body?.staffName === "string" ? req.body.staffName.trim() : "";
+  const answers = req.body?.answers; // { [questionId]: number[] } -- selected option indices per question
+  if (!staffName || typeof answers !== "object" || answers === null) {
+    res.status(400).json({ error: "staffName and answers are required" });
+    return;
+  }
+
+  const [module_, questions] = await Promise.all([
+    db.select({ passThresholdPercent: trainingModulesTable.passThresholdPercent }).from(trainingModulesTable).where(eq(trainingModulesTable.id, moduleId)).then((r) => r[0]),
+    db.select().from(trainingQuizQuestionsTable).where(eq(trainingQuizQuestionsTable.moduleId, moduleId)),
+  ]);
+  if (!module_) {
+    res.status(404).json({ error: "Module not found" });
+    return;
+  }
+
+  // Only single/multi questions are auto-scored -- 'text' (scenario/reflection)
+  // questions have no correct answer to check against, so they're excluded
+  // from both the denominator and numerator of the score entirely.
+  const scorable = questions.filter((q) => q.questionType !== "text");
+  let correctCount = 0;
+  for (const q of scorable) {
+    const given: number[] = Array.isArray(answers[q.id]) ? answers[q.id].map(Number).sort() : [];
+    const correct = [...q.correctOptionIndices].sort();
+    if (given.length === correct.length && given.every((v, i) => v === correct[i])) correctCount += 1;
+  }
+  const scorePercent = scorable.length > 0 ? Math.round((correctCount / scorable.length) * 100) : 100;
+  const passed = scorePercent >= (module_.passThresholdPercent ?? 100);
+
+  await db.insert(trainingQuizAttemptsTable).values({ moduleId, staffName, scorePercent, passed });
+
+  const newStatus = passed ? "completed" : "in_progress";
+  const existingProgress = await db.select().from(moduleProgressTable).where(and(eq(moduleProgressTable.moduleId, moduleId), eq(moduleProgressTable.staffName, staffName)));
+  if (existingProgress.length > 0) {
+    await db.update(moduleProgressTable).set({ status: newStatus }).where(and(eq(moduleProgressTable.moduleId, moduleId), eq(moduleProgressTable.staffName, staffName)));
+  } else {
+    await db.insert(moduleProgressTable).values({ moduleId, staffName, status: newStatus });
+  }
+
+  res.json({ ok: true, scorePercent, passed, correctCount, totalScorable: scorable.length, status: newStatus });
 });
 
 router.post("/training/modules/:id/progress", requireSession, async (req, res) => {
@@ -154,7 +225,19 @@ router.get("/training/admin/programs/:id", requireSession, async (req, res) => {
   ]);
   const enrolled = (await resolveEnrolledUserIds(id, program.status)).size;
 
-  res.json({ ...program, modules, roleAssignments, userAssignments, groupAssignments, enrolled });
+  const moduleIds = modules.map((m) => m.id);
+  const quizQuestions = moduleIds.length
+    ? await db.select().from(trainingQuizQuestionsTable).where(inArray(trainingQuizQuestionsTable.moduleId, moduleIds)).orderBy(asc(trainingQuizQuestionsTable.sortOrder))
+    : [];
+  const questionsByModule = new Map<number, typeof quizQuestions>();
+  for (const q of quizQuestions) {
+    const list = questionsByModule.get(q.moduleId) ?? [];
+    list.push(q);
+    questionsByModule.set(q.moduleId, list);
+  }
+  const modulesWithQuiz = modules.map((m) => ({ ...m, quizQuestions: questionsByModule.get(m.id) ?? [] }));
+
+  res.json({ ...program, modules: modulesWithQuiz, roleAssignments, userAssignments, groupAssignments, enrolled });
 });
 
 // Creates a program and its modules together -- that's the natural unit
@@ -313,12 +396,13 @@ router.patch("/training/modules/:id", requireFullLevel, async (req, res) => {
     res.status(400).json({ error: "Invalid module id" });
     return;
   }
-  const { title, externalUrl, content, moduleType, sortOrder } = req.body ?? {};
+  const { title, externalUrl, content, moduleType, passThresholdPercent, sortOrder } = req.body ?? {};
   const updates: Partial<typeof trainingModulesTable.$inferInsert> = {};
   if (typeof title === "string") updates.title = title.trim();
   if (externalUrl !== undefined) updates.externalUrl = externalUrl?.trim() || null;
   if (content !== undefined) updates.content = content?.trim() || null;
   if (moduleType === "quiz" || moduleType === "lesson") updates.moduleType = moduleType;
+  if (Number.isInteger(passThresholdPercent)) updates.passThresholdPercent = Math.min(100, Math.max(0, passThresholdPercent));
   if (typeof sortOrder === "number") updates.sortOrder = sortOrder;
 
   const [module_] = await db.update(trainingModulesTable).set(updates).where(eq(trainingModulesTable.id, id)).returning();
@@ -337,6 +421,38 @@ router.delete("/training/modules/:id", requireFullLevel, async (req, res) => {
   }
   await db.delete(trainingModulesTable).where(eq(trainingModulesTable.id, id));
   res.json({ ok: true });
+});
+
+// -- Quiz questions (admin editing) -----------------------------------------
+// Wholesale replace, same reasoning as dashboard_widgets/assignments -- the
+// editor naturally produces the whole new question list at once.
+router.put("/training/modules/:id/quiz", requireFullLevel, async (req, res) => {
+  const moduleId = Number(req.params.id);
+  if (!Number.isInteger(moduleId)) {
+    res.status(400).json({ error: "Invalid module id" });
+    return;
+  }
+  const { questions } = req.body ?? {};
+  if (!Array.isArray(questions)) {
+    res.status(400).json({ error: "questions must be an array" });
+    return;
+  }
+
+  const clean = questions
+    .filter((q) => typeof q?.questionText === "string" && q.questionText.trim())
+    .map((q, i) => {
+      const type = trainingQuizQuestionTypeSchema.safeParse(q.questionType).success ? q.questionType : "single";
+      const options = type === "text" ? [] : Array.isArray(q.options) ? q.options.filter((o: unknown) => typeof o === "string").map((o: string) => o.trim()) : [];
+      const correctOptionIndices = type === "text" ? [] : Array.isArray(q.correctOptionIndices) ? q.correctOptionIndices.map(Number).filter(Number.isInteger) : [];
+      return { moduleId, questionText: q.questionText.trim(), questionType: type, options, correctOptionIndices, sortOrder: i };
+    });
+
+  await db.transaction(async (tx) => {
+    await tx.delete(trainingQuizQuestionsTable).where(eq(trainingQuizQuestionsTable.moduleId, moduleId));
+    if (clean.length) await tx.insert(trainingQuizQuestionsTable).values(clean);
+  });
+
+  res.json({ ok: true, count: clean.length });
 });
 
 // -- Assignments (role / user / group) --------------------------------------

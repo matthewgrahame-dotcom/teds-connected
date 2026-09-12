@@ -44,10 +44,43 @@ export const trainingModulesTable = pgTable("training_modules", {
   id: serial("id").primaryKey(),
   programId: integer("program_id").notNull(),
   title: text("title").notNull(),
-  moduleType: text("module_type").notNull().default("lesson"), // lesson | quiz -- quiz content is stored as plain reference text for now (see `content`), not an interactive scored quiz engine
-  content: text("content"), // full lesson text or quiz questions, plain text -- optional so a module can still be just a title+link pointing elsewhere
+  moduleType: text("module_type").notNull().default("lesson"), // lesson | quiz -- lesson content/description lives in `content`; if the module also has quiz questions (see trainingQuizQuestionsTable), a "Take Quiz" flow appears in addition to any content/video
+  content: text("content"), // full lesson text (Module Overview etc), plain text -- optional so a module can still be just a title+link pointing elsewhere
   externalUrl: text("external_url"), // optional link out to the actual video/content (e.g. on Myagi)
+  passThresholdPercent: integer("pass_threshold_percent").notNull().default(100), // matches source exports ("A score of 100% is required to pass") -- only relevant if the module has quiz questions
   sortOrder: integer("sort_order").notNull().default(0),
+});
+
+// Real, structured quiz questions -- separate from trainingModulesTable.content
+// (which is just descriptive lesson text) so an attempt can actually be
+// scored server-side, rather than a person reading "(correct)" markers off
+// plain text. questionType 'text' (free-text/scenario questions, as seen in
+// the M.A.T.C.H export) is intentionally never auto-scored -- correctOptionIndices
+// stays empty for those, and they're excluded from the score calculation
+// entirely (see routes/training.ts quiz submit handler), shown to the grader
+// as a reflection prompt rather than marked right/wrong.
+export const trainingQuizQuestionTypeSchema = z.enum(["single", "multi", "text"]);
+export const trainingQuizQuestionsTable = pgTable("training_quiz_questions", {
+  id: serial("id").primaryKey(),
+  moduleId: integer("module_id").notNull(),
+  questionText: text("question_text").notNull(),
+  questionType: text("question_type").notNull().default("single"), // single | multi | text
+  options: text("options").array().notNull().default([]), // empty for 'text' type
+  correctOptionIndices: integer("correct_option_indices").array().notNull().default([]), // empty for 'text' type
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+// One row per completed attempt (not per in-progress draft) -- staffName-keyed,
+// same reasoning as moduleProgressTable. A person can retake and re-pass;
+// history isn't deleted, the most recent attempt is what module_progress
+// reflects.
+export const trainingQuizAttemptsTable = pgTable("training_quiz_attempts", {
+  id: serial("id").primaryKey(),
+  moduleId: integer("module_id").notNull(),
+  staffName: text("staff_name").notNull(),
+  scorePercent: integer("score_percent").notNull(), // out of the auto-scorable (non-text) questions only
+  passed: boolean("passed").notNull(),
+  answeredAt: timestamp("answered_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // Self-reported by each staff member -- keyed by their name from the shared
@@ -108,6 +141,8 @@ export const insertTrainingModuleSchema = createInsertSchema(trainingModulesTabl
 export type TrainingProgram = typeof trainingProgramsTable.$inferSelect;
 export type TrainingModule = typeof trainingModulesTable.$inferSelect;
 export type ModuleProgress = typeof moduleProgressTable.$inferSelect;
+export type TrainingQuizQuestion = typeof trainingQuizQuestionsTable.$inferSelect;
+export type TrainingQuizAttempt = typeof trainingQuizAttemptsTable.$inferSelect;
 export type TrainingRoleAssignment = typeof trainingRoleAssignmentsTable.$inferSelect;
 export type TrainingUserAssignment = typeof trainingUserAssignmentsTable.$inferSelect;
 export type TrainingGroupAssignment = typeof trainingGroupAssignmentsTable.$inferSelect;
