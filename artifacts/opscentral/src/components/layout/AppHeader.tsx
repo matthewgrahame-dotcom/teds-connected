@@ -34,7 +34,7 @@ export function AppHeader({ userName }: { userName: string }) {
       </div>
 
       {/* Utility bar */}
-      <div className="flex h-14 items-center justify-between gap-4 bg-foreground px-5 sm:px-10">
+      <div className="flex h-14 items-center justify-between gap-4 bg-foreground px-5 sm:px-10 md:pl-[280px]">
         <p className="truncate text-sm font-semibold text-background">
           Welcome, <span className="font-extrabold">{userName}</span>
         </p>
