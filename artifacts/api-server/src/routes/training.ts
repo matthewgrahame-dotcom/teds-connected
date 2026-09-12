@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { and, asc, eq } from "drizzle-orm";
 import { db, moduleProgressTable, moduleStatusSchema, trainingModulesTable, trainingProgramsTable } from "@workspace/db";
+import { requireFullLevel } from "../lib/sessionAuth";
 
 const router: IRouter = Router();
 
@@ -56,6 +57,44 @@ router.post("/training/modules/:id/progress", async (req, res) => {
   }
 
   res.json({ ok: true });
+});
+
+// Creates a program and its modules together -- that's the natural unit
+// (a program with no modules isn't useful yet, and the AI Help "create a
+// training program" action always proposes both at once), so one endpoint
+// rather than a separate create-then-add-modules round trip.
+router.post("/training/programs", requireFullLevel, async (req, res) => {
+  const { title, description, startDate, endDate, modules } = req.body ?? {};
+  if (typeof title !== "string" || !title.trim()) {
+    res.status(400).json({ error: "title is required" });
+    return;
+  }
+  const moduleTitles: { title: string; externalUrl?: string }[] = Array.isArray(modules)
+    ? modules.filter((m) => typeof m?.title === "string" && m.title.trim()).map((m) => ({ title: m.title.trim(), externalUrl: typeof m.externalUrl === "string" ? m.externalUrl.trim() || undefined : undefined }))
+    : [];
+
+  const result = await db.transaction(async (tx) => {
+    const [program] = await tx
+      .insert(trainingProgramsTable)
+      .values({
+        title: title.trim(),
+        description: typeof description === "string" ? description.trim() || null : null,
+        startDate: typeof startDate === "string" ? startDate.trim() || null : null,
+        endDate: typeof endDate === "string" ? endDate.trim() || null : null,
+      })
+      .returning();
+
+    const insertedModules = moduleTitles.length
+      ? await tx
+          .insert(trainingModulesTable)
+          .values(moduleTitles.map((m, i) => ({ programId: program.id, title: m.title, externalUrl: m.externalUrl ?? null, sortOrder: i })))
+          .returning()
+      : [];
+
+    return { program, modules: insertedModules };
+  });
+
+  res.json({ ok: true, ...result });
 });
 
 export default router;
