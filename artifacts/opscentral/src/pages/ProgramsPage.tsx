@@ -84,7 +84,7 @@ export default function ProgramsPage() {
   return (
     <div className="px-5 py-8 lg:px-10 lg:py-10">
       <div className="mx-auto max-w-3xl space-y-6">
-        <h1 className="text-2xl font-extrabold text-foreground">Programs</h1>
+        <h1 className="text-2xl font-extrabold text-foreground">Training and Programs</h1>
 
         {programs === null && <p className="text-sm text-muted-foreground">Loading…</p>}
         {programs?.length === 0 && <p className="text-sm text-muted-foreground">No active programs right now.</p>}

@@ -36,11 +36,7 @@ const secondaryNav: NavItem[] = [
     label: 'Learn',
     icon: GraduationCap,
     children: [
-      { label: 'My Training' },
-      { label: 'Manual Assessments' },
-      { label: 'Observations' },
-      { label: 'Workshops' },
-      { label: 'Programs', href: '/learn/programs' },
+      { label: 'Training and Programs', href: '/learn/programs' },
     ],
   },
   {
