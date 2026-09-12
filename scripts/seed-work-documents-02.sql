@@ -1,0 +1,16 @@
+INSERT INTO work_documents (category_slug, title, version, href, note, section, sort_order) VALUES
+('hr-handbook', 'Police Check Consent Form', NULL, '/documents/hr/hr-police-check-consent-form.pdf', NULL, '3.0 Recruitment', 13),
+('hr-handbook', 'Superannuation Choice Form', NULL, '/documents/hr/hr-superannuation-choice-form.pdf', NULL, '3.0 Recruitment', 14),
+('hr-handbook', 'Recruitment & Selection Procedure', NULL, '/documents/hr/hr-recruitment-selection-procedure.pdf', NULL, '3.0 Recruitment', 15),
+('hr-handbook', 'Application for Employment with Police Check Consent Form', NULL, '/documents/hr/hr-application-for-employment.pdf', NULL, '3.0 Recruitment', 16),
+('hr-handbook', 'Ted''s Emplive and ADP New Starter Info', NULL, '/documents/hr/hr-teds-emplive-and-adp-new-starter-info.pdf', NULL, '4.0 Onboarding', 17),
+('hr-handbook', 'Welcome Letter - Existing', NULL, '/documents/hr/hr-welcome-letter-existing.pdf', NULL, '4.0 Onboarding', 18),
+('hr-handbook', 'Welcome Letter - Christmas (needs editing in source)', NULL, '/documents/hr/hr-welcome-letter-christmas-needs-editing.pdf', NULL, '4.0 Onboarding', 19),
+('hr-handbook', 'Welcome Letter - Employee Store (needs editing in source)', NULL, '/documents/hr/hr-welcome-letter-employee-store-needs-editing.pdf', NULL, '4.0 Onboarding', 20),
+('hr-handbook', 'Welcome Letter - Assistant Manager (needs editing in source)', NULL, '/documents/hr/hr-welcome-letter-assistant-manager-needs-editing.pdf', NULL, '4.0 Onboarding', 21),
+('hr-handbook', 'Welcome Letter - Store Manager (needs editing in source)', NULL, '/documents/hr/hr-welcome-letter-store-manager-needs-editing.pdf', NULL, '4.0 Onboarding', 22),
+('hr-handbook', 'Welcome Letter - Employee Office (needs editing in source)', NULL, '/documents/hr/hr-welcome-letter-employee-office-needs-editing.pdf', NULL, '4.0 Onboarding', 23),
+('hr-handbook', 'Code of Conduct Letter', NULL, '/documents/hr/hr-code-of-conduct-letter.pdf', NULL, '4.0 Onboarding', 24),
+('hr-handbook', 'Break Obligations', NULL, '/documents/hr/hr-break-obligations.pdf', NULL, '5.0 General Retail Industry Award 2020', 25),
+('current-campaigns', 'Ted''s Cameras — Current Sales & Offers', NULL, 'https://www.teds.com.au/pages/sales', NULL, NULL, 0),
+('pronto', 'Cash Sale', NULL, '/documents/pronto/cash-sale.pdf', NULL, '1.0 Point of Sale', 0);

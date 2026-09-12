@@ -1,0 +1,16 @@
+INSERT INTO work_documents (category_slug, title, version, href, note, section, sort_order) VALUES
+('pronto', 'IPS - Agfa Cameras Credits Procedure', NULL, '/documents/pronto/ips-agfa-credits-procedure.doc', NULL, '6.0 Repairs and Credits', 46),
+('pronto', 'Maxxum Credits Procedure', NULL, '/documents/pronto/maxxum-credits-procedure.pdf', NULL, '6.0 Repairs and Credits', 47),
+('pronto', 'Nextbase', NULL, '/documents/pronto/nextbase-credits-procedure.pdf', NULL, '6.0 Repairs and Credits', 48),
+('pronto', 'Nikon Credits Procedure', NULL, '/documents/pronto/nikon-credits-procedure.pdf', NULL, '6.0 Repairs and Credits', 49),
+('pronto', 'Olympus Credits Procedure', NULL, '/documents/pronto/olympus-credits-procedure.pdf', NULL, '6.0 Repairs and Credits', 50),
+('pronto', 'Panasonic Credits Procedure', NULL, '/documents/pronto/panasonic-credits-procedure.docx', NULL, '6.0 Repairs and Credits', 51),
+('pronto', 'Polaroid Credits Procedure', NULL, '/documents/pronto/polaroid-credits-procedure.pdf', NULL, '6.0 Repairs and Credits', 52),
+('pronto', 'Region4 (Brinno) Credits Procedure', NULL, '/documents/pronto/region4-credits-procedure.docx', NULL, '6.0 Repairs and Credits', 53),
+('pronto', 'Rode Credits Procedure', NULL, '/documents/pronto/rode-credits-procedure.pdf', NULL, '6.0 Repairs and Credits', 54),
+('pronto', 'Sony Credits Procedure', NULL, '/documents/pronto/sony-credits-procedure.xlsx', NULL, '6.0 Repairs and Credits', 55),
+('pronto', 'Tasco Credits Procedure', NULL, '/documents/pronto/tasco-credits-procedure.pdf', NULL, '6.0 Repairs and Credits', 56),
+('pronto', 'UCC Australia - Kodak Credits Procedure', NULL, '/documents/pronto/ucc-kodak-credits-procedure.pdf', NULL, '6.0 Repairs and Credits', 57),
+('pronto', 'Videndum - Accessory Credits Procedure', NULL, '/documents/pronto/videndum-accessory-credits-procedure.pdf', NULL, '6.0 Repairs and Credits', 58),
+('pronto', 'Videndum - Manfrotto Credits Procedure', NULL, '/documents/pronto/videndum-manfrotto-credits-procedure.pdf', NULL, '6.0 Repairs and Credits', 59),
+('pronto', 'Kayell - Credits, Returns and Repair Procedure', NULL, '/documents/pronto/kayell-credits-procedure.pdf', NULL, '6.0 Repairs and Credits', 60);

@@ -1,0 +1,16 @@
+INSERT INTO work_documents (category_slug, title, version, href, note, section, sort_order) VALUES
+('pronto', 'Exchange - Acumen Purchase', NULL, '/documents/pronto/exchange-acumen-purchase.pdf', NULL, '1.0 Point of Sale', 1),
+('pronto', 'Customer Order - New', NULL, '/documents/pronto/customer-order-new.pdf', NULL, '1.0 Point of Sale', 2),
+('pronto', 'Customer Order - Converting to Cash Sale', NULL, '/documents/pronto/customer-order-collection.pdf', NULL, '1.0 Point of Sale', 3),
+('pronto', 'Transfer Request', NULL, '/documents/pronto/transfer-request.pdf', NULL, '1.0 Point of Sale', 4),
+('pronto', 'Studio 19', NULL, '/documents/pronto/studio-19.pdf', NULL, '1.0 Point of Sale', 5),
+('pronto', 'Repair - Charge Repair', NULL, '/documents/pronto/repair-charge-repair.pdf', NULL, '1.0 Point of Sale', 6),
+('pronto', 'Repair - Changing a Repair Service Agent', NULL, '/documents/pronto/repair-changing-service-agent.pdf', NULL, '1.0 Point of Sale', 7),
+('pronto', 'Negative Stock Restrictions', NULL, '/documents/pronto/negative-stock-restrictions.pdf', NULL, '1.0 Point of Sale', 8),
+('pronto', 'Petty Cash', NULL, '/documents/pronto/petty-cash.pdf', NULL, '1.0 Point of Sale', 9),
+('pronto', 'Second Hand - Looking up Buy/Tradein Price', NULL, '/documents/pronto/second-hand-lookup-buy-tradein-price.pdf', NULL, '1.0 Point of Sale', 10),
+('pronto', 'How To Lookup Second Hand Retail Prices', NULL, '/documents/pronto/how-to-lookup-second-hand-retail-prices.pdf', NULL, '1.0 Point of Sale', 11),
+('pronto', 'Secondhand - Transferring item from/or dispatching from another store', NULL, '/documents/pronto/secondhand-transferring-item.pdf', NULL, '1.0 Point of Sale', 12),
+('pronto', 'Changing Warehouse for Stock Dispatch in Pronto', NULL, '/documents/pronto/changing-warehouse-stock-dispatch.pdf', NULL, '1.0 Point of Sale', 13),
+('pronto', 'Humm Portal Process', NULL, '/documents/pronto/humm-portal-process.pdf', NULL, '1.0 Point of Sale', 14),
+('pronto', 'Processing Zip Money Payments', NULL, '/documents/pronto/processing-zip-money-payments.pdf', NULL, '1.0 Point of Sale', 15);

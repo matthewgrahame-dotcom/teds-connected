@@ -1,0 +1,15 @@
+INSERT INTO work_documents (category_slug, title, version, href, note, section, sort_order) VALUES
+('operations', 'Digital Camera Warehouse Who to Contact List', 'Version 1', NULL, NULL, NULL, 2),
+('operations', 'Dress Code Policy - Ted’s Cameras and Digital Camera Warehouse', 'Version 1', NULL, NULL, NULL, 3),
+('operations', 'Film Development Processing (SOP) - Ted’s Cameras and Digital Camera Warehouse', 'Version 1', '/documents/film-development-sop.pdf', NULL, NULL, 4),
+('operations', 'Loss Prevention Policy and Procedure - Ted’s Cameras and Digital Camera Warehouse', 'Version 1', '/documents/loss-prevention-policy.pdf', NULL, NULL, 5),
+('operations', 'Manual Credit Card Payment Policy - Ted''s Cameras & Digital Camera Warehouse', 'Version 1', '/documents/manual-credit-card-payment-policy.pdf', NULL, NULL, 6),
+('operations', 'Privacy and Customer Data Policy - Ted’s Cameras and Digital Camera Warehouse', 'Version 1', '/documents/privacy-customer-data-policy.pdf', NULL, NULL, 7),
+('operations', 'Risk Management Procedure - Ted’s Cameras and Digital Camera Warehouse', 'Version 1', NULL, NULL, NULL, 8),
+('operations', 'Sales Procedures Policy and Procedures - Ted’s Cameras and Digital Camera Warehouse', 'Version 1', '/documents/sales-procedures-policy.pdf', NULL, NULL, 9),
+('operations', 'Staff Purchasing Policy - Ted’s Cameras and Digital Camera Warehouse', 'Version 1', '/documents/staff-purchasing-policy.pdf', NULL, NULL, 10),
+('operations', 'Ted''s Camera''s Group Phone Listing', 'Version 1.1', '/documents/teds-group-phone-listing.pdf', NULL, NULL, 11),
+('operations', 'Ted''s Camera''s Store Contacts', 'Version 2.3', '/documents/teds-store-contacts.pdf', NULL, NULL, 12),
+('operations', 'Ted''s Cameras and DCW Price Match Policy', 'Version 1', '/documents/dcw-price-match-policy.pdf', NULL, NULL, 13),
+('operations', 'Ted''s Cameras Who to Contact List', 'Version 1.1', '/documents/teds-who-to-contact-list.pdf', NULL, NULL, 14),
+('operations', 'Telephone Policy - Ted’s Cameras and Digital Camera Warehouse', 'Version 1.1', '/documents/telephone-policy.pdf', NULL, NULL, 15);

@@ -1,0 +1,16 @@
+INSERT INTO work_documents (category_slug, title, version, href, note, section, sort_order) VALUES
+('pronto', 'Forfeit a Customer Deposit SOP', NULL, '/documents/pronto/forfeit-customer-deposit-sop.pdf', NULL, '1.0 Point of Sale', 16),
+('pronto', 'Second Hand Trade-in Check List', NULL, '/documents/pronto/second-hand-tradein-checklist.pdf', NULL, '2.0 Second-Hand Procedures', 17),
+('pronto', 'Second-Hand Processing Guide for Store Credit', NULL, '/documents/pronto/second-hand-processing-store-credit.pdf', NULL, '2.0 Second-Hand Procedures', 18),
+('pronto', 'Second-Hand Processing Guide for Bank Transfer', NULL, '/documents/pronto/second-hand-processing-bank-transfer.pdf', NULL, '2.0 Second-Hand Procedures', 19),
+('pronto', 'Trade In Sign Up Form', NULL, '/documents/pronto/trade-in-sign-up-form.pdf', NULL, '2.0 Second-Hand Procedures', 20),
+('pronto', 'Trade In Sign Up Form for Western Australia', NULL, '/documents/pronto/trade-in-sign-up-form-wa.pdf', NULL, '2.0 Second-Hand Procedures', 21),
+('pronto', 'Trade-In Voucher With Partial Bank Transfer SOP', NULL, '/documents/pronto/tradein-voucher-partial-bank-transfer.pdf', NULL, '2.0 Second-Hand Procedures', 22),
+('pronto', 'iPad Click & Collect - Customer Handover SOP', NULL, '/documents/pronto/ipad-click-collect-handover-sop.pdf', NULL, '3.0 Click and Collect', 23),
+('pronto', 'Banking Cash Draw', NULL, '/documents/pronto/banking-cash-draw.pdf', NULL, '4.0 End of Day Banking', 24),
+('pronto', 'How to Bank the POS app on Ipads', NULL, '/documents/pronto/how-to-bank-pos-app-ipads.pdf', NULL, '4.0 End of Day Banking', 25),
+('pronto', 'Dispatching Goods in Xi', NULL, '/documents/pronto/dispatching-goods-in-xi.pdf', NULL, '5.0 Pronto Xi', 26),
+('pronto', 'Stock Transfer', NULL, '/documents/pronto/stock-transfer.pdf', NULL, '5.0 Pronto Xi', 27),
+('pronto', 'Receiving Stock', NULL, '/documents/pronto/receiving-stock.pdf', NULL, '5.0 Pronto Xi', 28),
+('pronto', 'Trade In Process', NULL, '/documents/pronto/trade-in-process.mp4', NULL, '5.0 Pronto Xi', 29),
+('pronto', 'Putting Faulty Goods on QA Hold', NULL, '/documents/pronto/putting-faulty-goods-qa-hold.pdf', NULL, '5.0 Pronto Xi', 30);

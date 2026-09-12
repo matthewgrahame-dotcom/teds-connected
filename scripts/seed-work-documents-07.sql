@@ -1,0 +1,16 @@
+INSERT INTO work_documents (category_slug, title, version, href, note, section, sort_order) VALUES
+('pronto', 'Protog Credit Claim Procedure', NULL, '/documents/pronto/protog-credit-claim-procedure.pdf', NULL, '6.0 Repairs and Credits', 61),
+('pronto', 'TecArt Credit Claims Procedure', NULL, '/documents/pronto/tecart-credit-claims-procedure.pdf', NULL, '6.0 Repairs and Credits', 62),
+('product-information', 'Mirrorless Camera Accessories Checklist', NULL, '/documents/product-information/mirrorless-camera-accessories-checklist.pdf', NULL, '1.0 Accessories Guides & Checklist', 0),
+('product-information', 'Video & Cinema Camera Accessories Checklist', NULL, '/documents/product-information/video-cinema-camera-accessories-checklist.pdf', NULL, '1.0 Accessories Guides & Checklist', 1),
+('product-information', 'Mirrorless Camera Memory Card Guide', NULL, '/documents/product-information/mirrorless-camera-memory-card-guide.pdf', NULL, '2.0 Mirrorless Camera Memory Card Guide', 2),
+('product-information', 'Camera Sensor Size Guide', NULL, '/documents/product-information/camera-sensor-size-guide.pdf', NULL, '3.0 Printable Sensor Size Guide', 3),
+('op-central-training', 'What happened to Op Central Training?', NULL, NULL, 'This section used to host Op Central training content. Connected is taking over from Op Central — the resources you need now live across this platform''s Learn, Work, and People sections.', NULL, 0),
+('op-central-training', 'How do I log in?', NULL, NULL, 'Connected uses the same staff code and initials as Phocal — log in once and both apps recognise you, no separate login to remember.', NULL, 1),
+('op-central-training', 'What''s Phocal?', NULL, NULL, 'Ted''s internal SEO and content operations platform. Jump to it directly from the Phocal tile in Quick Links on the Dashboard.', NULL, 2),
+('op-central-training', 'Is the Social Timeline the same as Ted’s Talks in Phocal?', NULL, NULL, 'Yes — it''s the exact same live feed, not a separate copy. Posting here posts there too, and vice versa.', NULL, 3),
+('op-central-training', 'Where do I find training programs (e.g. the Canon Sep-Nov program)?', NULL, NULL, 'Learn > Programs.', NULL, 4),
+('op-central-training', 'Where are the staff forms (refunds, expense claims, etc.)?', NULL, NULL, 'People > Forms.', NULL, 5),
+('op-central-training', 'Something''s missing or wrong — who do I tell?', NULL, NULL, 'Speak to your manager or the Connected admin team.', NULL, 6),
+('operations', 'Brand Separation Policy - Ted’s Cameras and Digital Camera Warehouse', 'Version 1', '/documents/brand-separation-policy.pdf', NULL, NULL, 0),
+('operations', 'Cash Handling Policy and Procedure - Ted’s Cameras and Digital Camera Warehouse', 'Version 1', '/documents/cash-handling-policy.pdf', NULL, NULL, 1);

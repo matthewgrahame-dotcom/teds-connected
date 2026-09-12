@@ -1,0 +1,16 @@
+INSERT INTO work_documents (category_slug, title, version, href, note, section, sort_order) VALUES
+('welcome', 'Code of Conduct Ted''s Cameras', 'Version 1', '/documents/code-of-conduct.pdf', NULL, NULL, 0),
+('customer-experience', 'F.O.C.U.S. Sales Framework', 'Version 1.2', '/documents/focus-sales-framework.pdf', 'At Ted''s Cameras, we believe that every customer interaction is an opportunity to inspire, educate, and build lasting relationships — a consistent, customer-first approach built on five pillars: First Impressions, Open-Ended Questions, Customised Solutions, Upsell With Value, and Secure Satisfaction.', NULL, 0),
+('hr-handbook', 'Acceptable Workplace Behaviour Policy & Procedure', NULL, '/documents/hr/hr-acceptable-workplace-behaviour-policy-procedure.pdf', NULL, '1.0 Team Support Policies', 0),
+('hr-handbook', 'Drug and Alcohol Policy & Procedure', NULL, '/documents/hr/hr-drug-and-alcohol-policy-procedure.pdf', NULL, '1.0 Team Support Policies', 1),
+('hr-handbook', 'Smoke Free Policy', NULL, '/documents/hr/hr-smoke-free-policy.pdf', NULL, '1.0 Team Support Policies', 2),
+('hr-handbook', 'Electronic Communication Policy & Procedure', NULL, '/documents/hr/hr-electronic-communication-policy-procedure.pdf', NULL, '1.0 Team Support Policies', 3),
+('hr-handbook', 'Social Media Policy', NULL, '/documents/hr/hr-social-media-policy.pdf', NULL, '1.0 Team Support Policies', 4),
+('hr-handbook', 'Leave Policy', NULL, '/documents/hr/hr-leave-policy.pdf', NULL, '1.0 Team Support Policies', 5),
+('hr-handbook', 'Code of Conduct', NULL, '/documents/hr/hr-code-of-conduct.pdf', NULL, '1.0 Team Support Policies', 6),
+('hr-handbook', 'Code of Conduct Cover Letter - Ted''s Staff', NULL, '/documents/hr/hr-code-of-conduct-cover-letter.pdf', NULL, '1.0 Team Support Policies', 7),
+('hr-handbook', 'Work Health & Safety Policy', NULL, '/documents/hr/hr-work-health-safety-policy.pdf', NULL, '2.0 WHS Policies and Procedures', 8),
+('hr-handbook', 'WHS Induction & Training Procedure', NULL, '/documents/hr/hr-whs-induction-training-procedure.pdf', NULL, '2.0 WHS Policies and Procedures', 9),
+('hr-handbook', 'Incident & Emergency Management Procedure', NULL, '/documents/hr/hr-incident-emergency-management-procedure.pdf', NULL, '2.0 WHS Policies and Procedures', 10),
+('hr-handbook', 'Work Health & Safety Consultation Procedure', NULL, '/documents/hr/hr-work-health-safety-consultation-procedure.pdf', NULL, '2.0 WHS Policies and Procedures', 11),
+('hr-handbook', 'Return to Work Policy', NULL, '/documents/hr/hr-return-to-work-policy.pdf', NULL, '2.0 WHS Policies and Procedures', 12);

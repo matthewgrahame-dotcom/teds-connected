@@ -1,0 +1,16 @@
+INSERT INTO work_documents (category_slug, title, version, href, note, section, sort_order) VALUES
+('pronto', 'Item Receipt Adjustment', NULL, '/documents/pronto/item-receipt-adjustment.pdf', NULL, '5.0 Pronto Xi', 31),
+('pronto', 'Repair Agent List', NULL, '/documents/pronto/repair-agent-list.pdf', NULL, '6.0 Repairs and Credits', 32),
+('pronto', 'Instructions for Processing Credits In Pronto Xi', NULL, '/documents/pronto/instructions-processing-credits-pronto-xi.pdf', NULL, '6.0 Repairs and Credits', 33),
+('pronto', 'Credits Procedure in Pronto', NULL, '/documents/pronto/credits-procedure-in-pronto.pdf', NULL, '6.0 Repairs and Credits', 34),
+('pronto', 'Goods Exchange', NULL, '/documents/pronto/goods-exchange.docx', NULL, '6.0 Repairs and Credits', 35),
+('pronto', 'All Interactive Credits Procedure', NULL, '/documents/pronto/all-interactive-credits-procedure.docx', NULL, '6.0 Repairs and Credits', 36),
+('pronto', 'Blond Robot Credits Procedure', NULL, '/documents/pronto/blond-robot-credits-procedure.pdf', NULL, '6.0 Repairs and Credits', 37),
+('pronto', 'Canon Credits Procedure', NULL, '/documents/pronto/canon-credits-procedure.xlsx', NULL, '6.0 Repairs and Credits', 38),
+('pronto', 'CR Kennedy Credit Procedure', NULL, '/documents/pronto/cr-kennedy-credit-procedure.pdf', NULL, '6.0 Repairs and Credits', 39),
+('pronto', 'DJI AU Technology Warranty, DOA & Change of Mind Process', NULL, '/documents/pronto/dji-warranty-doa-change-of-mind.pdf', NULL, '6.0 Repairs and Credits', 40),
+('pronto', 'DJI Technology Credits Procedure', NULL, '/documents/pronto/dji-technology-credits-procedure.pdf', NULL, '6.0 Repairs and Credits', 41),
+('pronto', 'EE Group Credits Procedure', NULL, '/documents/pronto/ee-group-credits-procedure.pdf', NULL, '6.0 Repairs and Credits', 42),
+('pronto', 'Fujifilm Credits Procedure', NULL, '/documents/pronto/fujifilm-credits-procedure.pdf', NULL, '6.0 Repairs and Credits', 43),
+('pronto', 'FVE Pty Ltd Credits Procedure', NULL, '/documents/pronto/fve-credits-procedure.pdf', NULL, '6.0 Repairs and Credits', 44),
+('pronto', 'Haldex Credits Procedure', NULL, '/documents/pronto/haldex-credits-procedure.pdf', NULL, '6.0 Repairs and Credits', 45);
