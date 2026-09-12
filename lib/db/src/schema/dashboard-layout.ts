@@ -10,7 +10,7 @@ import { integer, pgTable, text } from "drizzle-orm/pg-core";
 // produces the full new arrangement at once anyway.
 export const dashboardWidgetsTable = pgTable("dashboard_widgets", {
   widgetKey: text("widget_key").primaryKey(),
-  column: text("column").notNull(), // 'main' | 'sidebar'
+  column: text("column_name").notNull(), // 'main' | 'sidebar' -- "column" itself is a reserved word in Postgres, hence column_name
   sortOrder: integer("sort_order").notNull().default(0),
 });
 
