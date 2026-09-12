@@ -10,6 +10,7 @@ import newsRouter from "./news";
 import portalUsersRouter from "./portal-users";
 import dashboardConfigRouter from "./dashboard-config";
 import changelogRouter from "./changelog";
+import searchRouter from "./search";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(newsRouter);
 router.use(portalUsersRouter);
 router.use(dashboardConfigRouter);
 router.use(changelogRouter);
+router.use(searchRouter);
 
 export default router;

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bell, CircleUserRound, HelpCircle, ListChecks, LogOut, MousePointer2, Rocket, Search, Settings, User, Users } from 'lucide-react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/lib/auth';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import heroBanner from '@/assets/hero-banner.png';
 
 const profileMenuItems = [
@@ -11,10 +12,22 @@ const profileMenuItems = [
   { label: 'System Settings', icon: Settings, href: '/admin/portal-settings' },
 ] as const;
 
+const guideSections = [
+  { title: 'Dashboard', body: "Your homepage — News, Ted's Calendar, Ted's Talks, Quick Links, Key Contacts and more, all in one place." },
+  { title: 'News', body: 'Company-wide announcements and updates.' },
+  { title: 'Work', body: 'Policies and reference docs, grouped by topic (Operations, HR Handbook, Pronto, etc).' },
+  { title: 'Learn', body: 'Training, assessments, and development programs.' },
+  { title: 'People', body: 'Forms, performance reviews, onboarding, and other people-ops tools.' },
+  { title: 'Admin', body: 'User Management and Portal Settings (full-level staff).' },
+  { title: 'Search (top right)', body: 'Searches News, Work hub docs, the Directory, and Quick Links at once.' },
+];
+
 export function AppHeader({ userName }: { userName: string }) {
   const [search, setSearch] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const { logout } = useAuth();
+  const [, navigate] = useLocation();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,6 +38,10 @@ export function AppHeader({ userName }: { userName: string }) {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [menuOpen]);
+
+  const submitSearch = () => {
+    if (search.trim()) navigate(`/search?q=${encodeURIComponent(search.trim())}`);
+  };
 
   return (
     <header className="relative z-30">
@@ -39,16 +56,19 @@ export function AppHeader({ userName }: { userName: string }) {
           Welcome, <span className="font-extrabold">{userName}</span>
         </p>
         <div className="flex items-center gap-3 sm:gap-4">
-          <MousePointer2 className="hidden h-4 w-4 text-background/70 sm:block" />
-          <button type="button" aria-label="Help" className="hidden text-background/70 transition hover:text-background sm:block">
-            <HelpCircle className="h-5 w-5" />
+          <button type="button" aria-label="Getting started guide" onClick={() => setGuideOpen(true)} className="hidden text-background/70 transition hover:text-background sm:block">
+            <MousePointer2 className="h-4 w-4" />
           </button>
+          <Link href="/work/op-central-training" aria-label="Help" className="hidden text-background/70 transition hover:text-background sm:block">
+            <HelpCircle className="h-5 w-5" />
+          </Link>
           <div className="relative hidden md:block">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-background/50" />
             <input
               data-testid="input-header-search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={(event) => event.key === 'Enter' && submitSearch()}
               placeholder="Search…"
               className="h-9 w-48 rounded-md bg-background/10 pl-9 pr-3 text-sm text-background outline-none placeholder:text-background/50 focus:bg-background/15 lg:w-64"
             />
@@ -99,6 +119,22 @@ export function AppHeader({ userName }: { userName: string }) {
           </div>
         </div>
       </div>
+
+      <Dialog open={guideOpen} onOpenChange={setGuideOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Getting Started with Connected</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {guideSections.map((s) => (
+              <div key={s.title}>
+                <p className="text-sm font-extrabold text-foreground">{s.title}</p>
+                <p className="text-sm text-muted-foreground">{s.body}</p>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }
