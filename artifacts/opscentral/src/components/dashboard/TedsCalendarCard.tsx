@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { format, isToday } from 'date-fns';
-import { Clock, MapPin, Plus, X } from 'lucide-react';
+import { Clock, MapPin, Plus, X, Pencil, Trash2 } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { Calendar } from '@/components/ui/calendar';
 import { useAuth } from '@/lib/auth';
+import { usePublishAccess } from '@/lib/publishAccess';
 import { authHeaders } from '@/lib/sessionAuth';
 
 type Rsvp = { staffName: string; response: 'yes' | 'no' | 'maybe' };
@@ -30,14 +31,21 @@ function toDateKey(date: Date): string {
 
 // TODO: once role-based permissions exist, restrict adding events to
 // Admin/Manager levels -- open to any logged-in staff member for now, per
-// explicit instruction to scope that properly later.
+// explicit instruction to scope that properly later. Editing/deleting
+// someone else's event is more consequential though, so those two are
+// full-level + publish-password gated (see canEdit below), matching how
+// Ted's Talks message deletion works elsewhere in this app.
 export function TedsCalendarCard() {
   const { session } = useAuth();
+  const { requirePublishAccess } = usePublishAccess();
+  const canEdit = session?.level === 'full';
   const [events, setEvents] = useState<CalendarEvent[] | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<number | null>(null);
   const [draft, setDraft] = useState({ title: '', time: '', location: '', requiresRsvp: false });
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rsvpSaving, setRsvpSaving] = useState<number | null>(null);
 
@@ -68,13 +76,35 @@ export function TedsCalendarCard() {
 
   const selectedEvents = eventsByDate.get(toDateKey(selectedDate)) ?? [];
 
-  const handleAddEvent = async () => {
+  const closeForm = () => {
+    setShowAddForm(false);
+    setEditingEventId(null);
+    setDraft({ title: '', time: '', location: '', requiresRsvp: false });
+    setError(null);
+  };
+
+  const openAddForm = () => {
+    setEditingEventId(null);
+    setDraft({ title: '', time: '', location: '', requiresRsvp: false });
+    setShowAddForm(true);
+  };
+
+  const openEditForm = (event: CalendarEvent) => {
+    requirePublishAccess(() => {
+      setEditingEventId(event.id);
+      setDraft({ title: event.title, time: event.time ?? '', location: event.location ?? '', requiresRsvp: event.requiresRsvp });
+      setShowAddForm(true);
+    });
+  };
+
+  const handleSaveEvent = async () => {
     if (!draft.title.trim() || !session?.name) return;
     setSubmitting(true);
     setError(null);
     try {
-      const resp = await fetch('/api/calendar/events', {
-        method: 'POST',
+      const isEditing = editingEventId !== null;
+      const resp = await fetch(isEditing ? `/api/calendar/events/${editingEventId}` : '/api/calendar/events', {
+        method: isEditing ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
         body: JSON.stringify({
           title: draft.title.trim(),
@@ -86,16 +116,28 @@ export function TedsCalendarCard() {
       });
       if (!resp.ok) {
         const data = await resp.json();
-        throw new Error(data.error || 'Failed to add event');
+        throw new Error(data.error || `Failed to ${isEditing ? 'save' : 'add'} event`);
       }
-      setDraft({ title: '', time: '', location: '', requiresRsvp: false });
-      setShowAddForm(false);
+      closeForm();
       await loadEvents();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add event');
+      setError(err instanceof Error ? err.message : 'Failed to save event');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleDeleteEvent = (event: CalendarEvent) => {
+    if (!confirm(`Remove "${event.title}"?`)) return;
+    requirePublishAccess(async () => {
+      setDeletingId(event.id);
+      try {
+        await fetch(`/api/calendar/events/${event.id}`, { method: 'DELETE', headers: authHeaders(session) });
+        await loadEvents();
+      } finally {
+        setDeletingId(null);
+      }
+    });
   };
 
   const rsvp = async (eventId: number, response: 'yes' | 'no' | 'maybe') => {
@@ -120,7 +162,7 @@ export function TedsCalendarCard() {
         selected={selectedDate}
         onSelect={(date) => {
           setSelectedDate(date);
-          setShowAddForm(false);
+          closeForm();
         }}
         modifiers={{ hasEvent: (date) => eventsByDate.has(toDateKey(date)) }}
         modifiersClassNames={{
@@ -139,7 +181,7 @@ export function TedsCalendarCard() {
           <button
             type="button"
             data-testid="button-add-event"
-            onClick={() => setShowAddForm((v) => !v)}
+            onClick={() => (showAddForm ? closeForm() : openAddForm())}
             aria-label={showAddForm ? 'Cancel' : 'Add event'}
             className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
           >
@@ -180,11 +222,11 @@ export function TedsCalendarCard() {
             <button
               type="button"
               data-testid="button-save-event"
-              onClick={handleAddEvent}
+              onClick={handleSaveEvent}
               disabled={submitting || !draft.title.trim()}
               className="w-full rounded-md bg-primary px-3 py-1.5 text-xs font-extrabold text-primary-foreground transition hover:brightness-95 disabled:opacity-60"
             >
-              {submitting ? 'Adding…' : `Add to ${format(selectedDate, 'd MMM')}`}
+              {submitting ? 'Saving…' : editingEventId !== null ? 'Save Changes' : `Add to ${format(selectedDate, 'd MMM')}`}
             </button>
           </div>
         )}
@@ -201,7 +243,30 @@ export function TedsCalendarCard() {
               const myRsvp = event.rsvps.find((r) => r.staffName === session?.name);
               return (
                 <div key={event.id} data-testid={`event-${event.id}`} className="py-3 first:pt-2">
-                  <p className="font-extrabold text-foreground">{event.title}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-extrabold text-foreground">{event.title}</p>
+                    {canEdit && (
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button
+                          type="button"
+                          aria-label="Edit event"
+                          onClick={() => openEditForm(event)}
+                          className="grid h-6 w-6 place-items-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Delete event"
+                          disabled={deletingId === event.id}
+                          onClick={() => handleDeleteEvent(event)}
+                          className="grid h-6 w-6 place-items-center rounded text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   {(event.time || event.location) && (
                     <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                       {event.time && (
