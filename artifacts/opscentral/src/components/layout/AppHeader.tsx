@@ -35,28 +35,28 @@ export function AppHeader({ userName }: { userName: string }) {
 
       {/* Utility bar */}
       <div className="flex h-14 items-center justify-between gap-4 bg-foreground px-5 sm:px-10">
-        <p className="truncate text-sm font-semibold text-primary-foreground">
+        <p className="truncate text-sm font-semibold text-background">
           Welcome, <span className="font-extrabold">{userName}</span>
         </p>
         <div className="flex items-center gap-3 sm:gap-4">
-          <MousePointer2 className="hidden h-4 w-4 text-primary-foreground/70 sm:block" />
-          <button type="button" aria-label="Help" className="hidden text-primary-foreground/70 transition hover:text-primary-foreground sm:block">
+          <MousePointer2 className="hidden h-4 w-4 text-background/70 sm:block" />
+          <button type="button" aria-label="Help" className="hidden text-background/70 transition hover:text-background sm:block">
             <HelpCircle className="h-5 w-5" />
           </button>
           <div className="relative hidden md:block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary-foreground/50" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-background/50" />
             <input
               data-testid="input-header-search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search…"
-              className="h-9 w-48 rounded-md bg-primary-foreground/10 pl-9 pr-3 text-sm text-primary-foreground outline-none placeholder:text-primary-foreground/50 focus:bg-primary-foreground/15 lg:w-64"
+              className="h-9 w-48 rounded-md bg-background/10 pl-9 pr-3 text-sm text-background outline-none placeholder:text-background/50 focus:bg-background/15 lg:w-64"
             />
           </div>
-          <button type="button" aria-label="Tasks" className="text-primary-foreground/70 transition hover:text-primary-foreground">
+          <button type="button" aria-label="Tasks" className="text-background/70 transition hover:text-background">
             <ListChecks className="h-5 w-5" />
           </button>
-          <button type="button" aria-label="Notifications" className="text-primary-foreground/70 transition hover:text-primary-foreground">
+          <button type="button" aria-label="Notifications" className="text-background/70 transition hover:text-background">
             <Bell className="h-5 w-5" />
             {/* TODO: wire to a real notifications count once that system exists. Showing an invented number here would be worse than showing none. */}
           </button>
@@ -67,7 +67,7 @@ export function AppHeader({ userName }: { userName: string }) {
               aria-label="Profile menu"
               data-testid="button-profile-menu"
               onClick={() => setMenuOpen((open) => !open)}
-              className="text-primary-foreground/70 transition hover:text-primary-foreground"
+              className="text-background/70 transition hover:text-background"
             >
               <CircleUserRound className="h-7 w-7" />
             </button>
