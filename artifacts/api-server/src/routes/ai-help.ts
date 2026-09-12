@@ -19,6 +19,7 @@ router.post("/ai-help", requireSession, async (req, res) => {
     res.status(400).json({ error: "Missing question" });
     return;
   }
+  const history = Array.isArray(req.body?.history) ? req.body.history : [];
   const sessionToken = req.header("x-session-token");
 
   // Grounds "update my most recent article" / "the one about X" style
@@ -35,7 +36,7 @@ router.post("/ai-help", requireSession, async (req, res) => {
     const resp = await fetch(`${PHOCAL_BASE_URL}/api/connected-ai-help`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, sessionToken, recentNewsArticles }),
+      body: JSON.stringify({ question, history, sessionToken, recentNewsArticles }),
     });
     const data = await resp.json();
     if (!resp.ok) {

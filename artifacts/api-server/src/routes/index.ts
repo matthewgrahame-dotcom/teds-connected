@@ -16,6 +16,7 @@ import dashboardLayoutRouter from "./dashboard-layout";
 import aiHelpRouter from "./ai-help";
 import userGroupsRouter from "./user-groups";
 import workDocumentsRouter from "./work-documents";
+import aiHelpTemplatesRouter from "./ai-help-templates";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(dashboardLayoutRouter);
 router.use(aiHelpRouter);
 router.use(userGroupsRouter);
 router.use(workDocumentsRouter);
+router.use(aiHelpTemplatesRouter);
 
 export default router;

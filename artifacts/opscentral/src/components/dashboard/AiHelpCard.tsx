@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Sparkles, Send, RotateCcw, FileText, GraduationCap, Newspaper, Check, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Sparkles, Send, RotateCcw, FileText, GraduationCap, Newspaper, CalendarPlus, Check, X, Settings } from 'lucide-react';
 import { Link } from 'wouter';
-import { DashboardCard } from './DashboardCard';
+import { DashboardCard, CardIconButton } from './DashboardCard';
+import { AiHelpTemplatesDialog } from './AiHelpTemplatesDialog';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 
@@ -26,41 +27,66 @@ type UpdateNewsCall = {
   input: { articleId: number; title: string; addImage?: boolean; newTitle?: string; newSnippet?: string; newBody?: string };
   image?: UnsplashImage | null;
 };
-type ToolCall = CreateFormCall | CreateTrainingCall | CreateNewsCall | UpdateNewsCall;
+type CreateCalendarEventCall = {
+  name: 'create_calendar_event';
+  input: { title: string; date: string; time?: string; location?: string; requiresRsvp?: boolean };
+};
+type ToolCall = CreateFormCall | CreateTrainingCall | CreateNewsCall | UpdateNewsCall | CreateCalendarEventCall;
 
 type CreatedResult =
   | { kind: 'form'; slug: string; title: string }
   | { kind: 'training'; title: string }
   | { kind: 'news'; id: number; title: string }
-  | { kind: 'news-updated'; id: number; title: string };
+  | { kind: 'news-updated'; id: number; title: string }
+  | { kind: 'calendar-event'; title: string };
+
+type ChatTurn = { role: 'user' | 'assistant'; content: string };
+type Template = { id: number; label: string; prompt: string };
 
 export function AiHelpCard() {
   const { session } = useAuth();
+  const canManageTemplates = session?.level === 'full';
   const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatTurn[]>([]);
   const [toolCall, setToolCall] = useState<ToolCall | null>(null);
   const [asking, setAsking] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreatedResult | null>(null);
+  const [templates, setTemplates] = useState<Template[] | null>(null);
+  const [templatesDialogOpen, setTemplatesDialogOpen] = useState(false);
+
+  const loadTemplates = () => {
+    fetch('/api/ai-help/templates', { headers: authHeaders(session) })
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setTemplates)
+      .catch(() => setTemplates([]));
+  };
+
+  useEffect(loadTemplates, []);
 
   const ask = async () => {
-    if (!question.trim() || asking) return;
+    const q = question.trim();
+    if (!q || asking) return;
     setAsking(true);
     setError(null);
-    setAnswer(null);
     setToolCall(null);
     setCreated(null);
+    setQuestion('');
     try {
       const res = await fetch('/api/ai-help', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
-        body: JSON.stringify({ question: question.trim() }),
+        body: JSON.stringify({ question: q, history: messages }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Something went wrong');
-      if (data.toolCall) setToolCall(data.toolCall);
-      else setAnswer(data.answer);
+      if (data.toolCall) {
+        setToolCall(data.toolCall);
+        setMessages([]); // a proposal is a self-contained action, not something to keep chatting about
+      } else {
+        setMessages((prev) => [...prev, { role: 'user', content: q }, { role: 'assistant', content: data.answer }]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -91,6 +117,15 @@ export function AiHelpCard() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Could not create the training program');
         setCreated({ kind: 'training', title: data.program.title });
+      } else if (toolCall.name === 'create_calendar_event') {
+        const res = await fetch('/api/calendar/events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+          body: JSON.stringify(toolCall.input),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not create the event');
+        setCreated({ kind: 'calendar-event', title: data.event.title });
       } else if (toolCall.name === 'create_news_article') {
         // If a photo came with the proposal, fire Unsplash's required
         // download-tracking ping now (the moment it's actually used, not
@@ -162,17 +197,56 @@ export function AiHelpCard() {
 
   const reset = () => {
     setQuestion('');
-    setAnswer(null);
+    setMessages([]);
     setToolCall(null);
     setCreated(null);
     setError(null);
   };
 
+  const useTemplate = (template: Template) => {
+    setQuestion(template.prompt);
+  };
+
   return (
-    <DashboardCard title="AI Help">
+    <DashboardCard
+      title="AI Help"
+      actions={canManageTemplates ? <CardIconButton icon={Settings} label="Manage AI Help quick actions" onClick={() => setTemplatesDialogOpen(true)} /> : <></>}
+    >
       <p className="mb-3 text-sm text-muted-foreground">
-        Ask anything about using Connected, draft a new form, training program, or news article, or ask it to update an existing news article (e.g. add a photo).
+        Ask anything about using Connected, or ask it to draft a new form, training program, calendar event, or news article.
       </p>
+
+      {!!templates?.length && !toolCall && !created && (
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {templates.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => useTemplate(t)}
+              className="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {messages.length > 0 && (
+        <div className="mb-3 max-h-56 space-y-2 overflow-y-auto rounded-lg border border-border bg-muted/20 p-3">
+          {messages.map((m, i) => (
+            <div key={i} className={m.role === 'user' ? 'text-right' : ''}>
+              <span
+                className={`inline-block max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-1.5 text-sm ${
+                  m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-card text-foreground/90'
+                }`}
+              >
+                {m.content}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Sparkles className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -180,7 +254,7 @@ export function AiHelpCard() {
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && ask()}
-            placeholder="e.g. Create a training program for the new EOS R6 launch"
+            placeholder={messages.length > 0 ? 'Reply…' : 'e.g. Create a training program for the new EOS R6 launch'}
             className="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm outline-none focus:border-accent"
           />
         </div>
@@ -194,18 +268,14 @@ export function AiHelpCard() {
           <Send className="h-4 w-4" />
         </button>
       </div>
+      {messages.length > 0 && !asking && (
+        <button type="button" onClick={reset} className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-accent hover:underline">
+          <RotateCcw className="h-3 w-3" /> Start over
+        </button>
+      )}
 
       {asking && <p className="mt-3 text-sm text-muted-foreground">Thinking…</p>}
       {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
-
-      {answer && (
-        <div className="mt-3 rounded-lg border border-border bg-muted/30 p-3">
-          <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/90">{answer}</p>
-          <button type="button" onClick={reset} className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-accent hover:underline">
-            <RotateCcw className="h-3 w-3" /> Ask another
-          </button>
-        </div>
-      )}
 
       {toolCall && (
         <div className="mt-3 rounded-lg border border-primary/40 bg-primary/5 p-3">
@@ -213,6 +283,7 @@ export function AiHelpCard() {
             {toolCall.name === 'create_form' && <FileText className="h-4 w-4" />}
             {toolCall.name === 'create_training_program' && <GraduationCap className="h-4 w-4" />}
             {(toolCall.name === 'create_news_article' || toolCall.name === 'update_news_article') && <Newspaper className="h-4 w-4" />}
+            {toolCall.name === 'create_calendar_event' && <CalendarPlus className="h-4 w-4" />}
             Proposed:{' '}
             {toolCall.name === 'create_form'
               ? 'New Form'
@@ -220,7 +291,9 @@ export function AiHelpCard() {
                 ? 'New Training Program'
                 : toolCall.name === 'create_news_article'
                   ? 'New News Article'
-                  : 'Update to News Article'}
+                  : toolCall.name === 'create_calendar_event'
+                    ? 'New Calendar Event'
+                    : 'Update to News Article'}
           </div>
           <p className="mt-1 text-sm font-semibold text-foreground">{toolCall.name === 'update_news_article' ? toolCall.input.newTitle || toolCall.input.title : toolCall.input.title}</p>
 
@@ -242,6 +315,14 @@ export function AiHelpCard() {
                 ))}
               </ul>
             </>
+          )}
+          {toolCall.name === 'create_calendar_event' && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {toolCall.input.date}
+              {toolCall.input.time ? ` · ${toolCall.input.time}` : ''}
+              {toolCall.input.location ? ` · ${toolCall.input.location}` : ''}
+              {toolCall.input.requiresRsvp ? ' · RSVP required' : ''}
+            </p>
           )}
           {toolCall.name === 'create_news_article' && (
             <>
@@ -306,7 +387,9 @@ export function AiHelpCard() {
                 ? 'Training program created.'
                 : created.kind === 'news'
                   ? 'News article created.'
-                  : 'News article updated.'}
+                  : created.kind === 'calendar-event'
+                    ? 'Calendar event created.'
+                    : 'News article updated.'}
           </p>
           {created.kind === 'form' && (
             <Link href={`/people/forms/${created.slug}`} className="text-accent hover:underline">
@@ -318,6 +401,7 @@ export function AiHelpCard() {
               View in Learn → Programs
             </Link>
           )}
+          {created.kind === 'calendar-event' && <span className="text-muted-foreground">"{created.title}" is on Teds Calendar.</span>}
           {(created.kind === 'news' || created.kind === 'news-updated') && (
             <Link href={`/news/${created.id}`} className="text-accent hover:underline">
               View "{created.title}"
@@ -328,6 +412,8 @@ export function AiHelpCard() {
           </button>
         </div>
       )}
+
+      <AiHelpTemplatesDialog open={templatesDialogOpen} onClose={() => setTemplatesDialogOpen(false)} onChanged={loadTemplates} />
     </DashboardCard>
   );
 }

@@ -28,3 +28,4 @@ export * from "./changelog";
 export * from "./dashboard-layout";
 export * from "./user-groups";
 export * from "./work-documents";
+export * from "./ai-help-templates";
