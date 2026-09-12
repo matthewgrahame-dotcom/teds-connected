@@ -1,0 +1,12 @@
+INSERT INTO training_quiz_questions (module_id, question_text, question_type, options, correct_option_indices, sort_order)
+SELECT tm.id, v.question_text, v.question_type, v.options, v.correct_option_indices, v.sort_order
+FROM (VALUES
+  ('What is the primary goal of a price match conversation at Ted''s?', 'single', ARRAY['To always offer the lowest price possible','To match competitors as quickly as possible','To guide the customer toward the best overall value and a confident purchase','To avoid losing margin at all costs']::text[], ARRAY[2]::integer[], 0),
+  ('When a customer asks for a price match, what does it typically indicate?', 'single', ARRAY['They are not serious about buying','They are only interested in discounts','They have already decided to buy elsewhere','They are already interested and close to making a purchase']::text[], ARRAY[3]::integer[], 1),
+  ('What is the purpose of the "A - Assess the Situation" step?', 'single', ARRAY['To immediately decide whether to match the price','To slow the conversation down, gather information, and verify details','To explain the Ted''s Difference','To offer a discount quickly']::text[], ARRAY[1]::integer[], 2),
+  ('Why is it important to communicate our difference?', 'single', ARRAY['To shift the focus from price to overall value','To delay the conversation','To justify higher prices','To avoid answering the customer''s question']::text[], ARRAY[0]::integer[], 3),
+  ('If a price match is not possible, what should you do?', 'single', ARRAY['End the conversation','Tell the customer to buy elsewhere','Ignore the customer''s request','Offer alternatives such as the best available price, bundles, or second-hand options']::text[], ARRAY[3]::integer[], 4),
+  ('Scenario: A customer says "I''ve found this camera $200 cheaper online - can you match it?" Using the M.A.T.C.H framework, what would you say or ask first to respond to this customer?', 'text', ARRAY[]::text[], ARRAY[]::integer[], 5),
+  ('After assessing the situation, you determine that you cannot fully match the competitor''s price. How would you respond to the customer to keep the conversation moving forward and maximise the chance of a sale?', 'text', ARRAY[]::text[], ARRAY[]::integer[], 6)
+) AS v(question_text, question_type, options, correct_option_indices, sort_order)
+JOIN training_modules tm ON tm.title = 'M.A.T.C.H Price Match Training Module';

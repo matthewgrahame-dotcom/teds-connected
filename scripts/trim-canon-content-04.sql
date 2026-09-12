@@ -1,0 +1,4 @@
+UPDATE training_modules
+SET content = '## Module Introduction
+Welcome to the Canon EOS R1 training module, Canon''s flagship full-frame mirrorless camera designed for professional photographers who demand exceptional speed, autofocus performance and reliability. This module will take you through the R1''s key features, technologies and real-world applications, with a focus on how to confidently translate its capabilities into meaningful customer benefits. **To be eligible for the Canon training competition prize pool, you must watch the full training video and complete the accompanying questionnaire.** Make sure you pay close attention throughout the video, as the questionnaire will test your understanding of the content covered.'
+WHERE title = 'Canon EOS R1 with Wildlife Photographer - Jan Wegener - R1 In Hand (Sep-Nov)';

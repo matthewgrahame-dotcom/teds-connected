@@ -1,0 +1,9 @@
+INSERT INTO training_quiz_questions (module_id, question_text, question_type, options, correct_option_indices, sort_order)
+SELECT tm.id, v.question_text, v.question_type, v.options, v.correct_option_indices, v.sort_order
+FROM (VALUES
+  ('What does Action Priority AF enable?', 'single' , ARRAY['Enables the camera to determine the main subject in basketball, soccer and volleyball','Register people within the camera for detection','Pre-continuous shooting of 20 frames before the shutter is fully pressed']::text[], ARRAY[0]::integer[], 0),
+  ('Which feature allows sports photographers to single out specific players on the team for the camera to focus on?', 'single' , ARRAY['Register People Priority','In camera upscaling','Blackout-free EVF','Pre-shooting']::text[], ARRAY[0]::integer[], 1),
+  ('Why is pre-capture important for sports photographers like Atiba?', 'single' , ARRAY['The pre-capture images are more stable with reduced shake','Allows users to capture the decisive moment in sharp focus even before they''ve pressed the button','Greater detail is captured in the pre-capture files']::text[], ARRAY[1]::integer[], 2),
+  ('Cross type AF supports with', 'single' , ARRAY['Uses a single focus point and surrounding points to track a moving subject','Increasing accuracy especially in situations where subjects have many horizontal lines, small sizes or when the subject is low contrast','Locking focus on a subject and ignore anything that comes between the camera and the subject']::text[], ARRAY[1]::integer[], 3)
+) AS v(question_text, question_type, options, correct_option_indices, sort_order)
+JOIN training_modules tm ON tm.title = 'Canon EOS R1 Pro Tech Talk - Atiba Jefferson - AF (Sep-Nov)';

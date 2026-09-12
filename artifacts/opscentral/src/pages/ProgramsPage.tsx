@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 import { RichContent } from '@/components/RichContent';
 import { QuizTaker } from '@/components/QuizTaker';
+import { getYouTubeEmbedId } from '@/lib/youtube';
 
 type ModuleStatus = 'not_started' | 'in_progress' | 'completed';
 
@@ -107,21 +108,23 @@ export default function ProgramsPage() {
                 const { label, icon: Icon, className } = statusConfig[module.status];
                 const isExpanded = expanded.has(module.id);
                 const isQuizOpen = quizOpenFor === module.id;
+                const embedId = getYouTubeEmbedId(module.externalUrl);
+                const canExpand = !!module.content || !!embedId;
                 return (
                   <div key={module.id} data-testid={`module-${module.id}`}>
                     <div className="flex items-center justify-between gap-4 px-5 py-3">
                       <button
                         type="button"
-                        onClick={() => module.content && toggleExpanded(module.id)}
-                        disabled={!module.content}
+                        onClick={() => canExpand && toggleExpanded(module.id)}
+                        disabled={!canExpand}
                         className="flex min-w-0 items-center gap-2 text-left disabled:cursor-default"
                       >
-                        {module.content && (isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />)}
+                        {canExpand && (isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />)}
                         <span className="truncate text-sm text-foreground">
                           {module.title}
                           {module.hasQuiz && <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">Quiz</span>}
                         </span>
-                        {module.externalUrl && (
+                        {module.externalUrl && !embedId && (
                           <a href={module.externalUrl} target="_blank" rel="noreferrer" aria-label="Open module content" onClick={(e) => e.stopPropagation()}>
                             <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground hover:text-foreground" />
                           </a>
@@ -157,9 +160,25 @@ export default function ProgramsPage() {
                         )}
                       </div>
                     </div>
-                    {isExpanded && module.content && (
-                      <div className="px-5 pb-4">
-                        <RichContent text={module.content} />
+                    {isExpanded && (embedId || module.content) && (
+                      <div className="space-y-3 px-5 pb-4">
+                        {embedId && (
+                          <div className="aspect-video w-full overflow-hidden rounded-lg border border-border">
+                            <iframe
+                              src={`https://www.youtube.com/embed/${embedId}`}
+                              title={module.title}
+                              className="h-full w-full"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          </div>
+                        )}
+                        {module.externalUrl && !embedId && (
+                          <a href={module.externalUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-accent hover:underline">
+                            <ExternalLink className="h-3 w-3" /> This video can't be embedded here — open it directly
+                          </a>
+                        )}
+                        {module.content && <RichContent text={module.content} />}
                       </div>
                     )}
                     {isQuizOpen && (
