@@ -65,7 +65,8 @@ router.get("/tasks", requireSession, async (req, res) => {
     res.json({ trainingTasks, rsvpTasks });
   } catch (err) {
     console.error("[GET /tasks] error:", err);
-    res.status(500).json({ error: err instanceof Error ? err.message : "Unknown error", stack: err instanceof Error ? err.stack : undefined });
+    const cause = err instanceof Error && err.cause instanceof Error ? err.cause.message : undefined;
+    res.status(500).json({ error: err instanceof Error ? err.message : "Unknown error", cause, stack: err instanceof Error ? err.stack : undefined });
   }
 });
 
