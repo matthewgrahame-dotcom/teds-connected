@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useAuth } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
 import { authHeaders } from '@/lib/sessionAuth';
+import { fileToSquareDataUri } from '@/lib/imageUpload';
 
 type KeyContactRow = {
   id: number;
@@ -66,43 +67,11 @@ export function KeyContactsCard() {
   // Resizes/crops to a small square JPEG and stores it directly as a data
   // URI in the existing photoUrl text column -- no separate file-storage
   // service to wire up, and these are just small avatar thumbnails so the
-  // base64 overhead is negligible. Downscaling client-side (not just
-  // relying on CSS to shrink a huge original) keeps what actually gets
-  // saved small regardless of the source photo's size.
+  // base64 overhead is negligible.
   const handlePhotoUpload = async (contactId: number, file: File) => {
     setUploadError(null);
-    if (!file.type.startsWith('image/')) {
-      setUploadError('Please choose an image file.');
-      return;
-    }
     try {
-      const dataUri = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = () => reject(new Error('Could not read that file.'));
-        reader.onload = () => {
-          const img = new Image();
-          img.onerror = () => reject(new Error('Could not read that image.'));
-          img.onload = () => {
-            const size = 240;
-            const canvas = document.createElement('canvas');
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-              reject(new Error('Could not process that image.'));
-              return;
-            }
-            // Cover-crop to a square so every avatar fills the circular frame consistently.
-            const scale = Math.max(size / img.width, size / img.height);
-            const drawWidth = img.width * scale;
-            const drawHeight = img.height * scale;
-            ctx.drawImage(img, (size - drawWidth) / 2, (size - drawHeight) / 2, drawWidth, drawHeight);
-            resolve(canvas.toDataURL('image/jpeg', 0.85));
-          };
-          img.src = reader.result as string;
-        };
-        reader.readAsDataURL(file);
-      });
+      const dataUri = await fileToSquareDataUri(file);
       await saveContact(contactId, { photoUrl: dataUri });
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Could not upload that image.');
