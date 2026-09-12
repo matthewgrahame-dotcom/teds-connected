@@ -38,7 +38,7 @@ export function KeyContactsCard() {
 
   const load = () => {
     fetch('/api/key-contacts', { headers: authHeaders(session) })
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then(setContacts)
       .catch(() => setContacts([]));
   };
@@ -67,7 +67,7 @@ export function KeyContactsCard() {
     setPicking(true);
     if (!allUsers) {
       fetch('/api/users?status=active', { headers: authHeaders(session) })
-        .then((r) => r.json())
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
         .then(setAllUsers)
         .catch(() => setAllUsers([]));
     }

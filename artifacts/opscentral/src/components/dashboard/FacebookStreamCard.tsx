@@ -43,7 +43,7 @@ export function FacebookStreamCard() {
 
   useEffect(() => {
     fetch('/api/app-settings/facebook_page_url', { headers: authHeaders(session) })
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((data) => {
         if (data.value) setPageUrl(data.value);
       })

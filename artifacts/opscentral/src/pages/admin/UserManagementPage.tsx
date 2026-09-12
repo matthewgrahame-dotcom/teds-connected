@@ -102,7 +102,7 @@ export default function UserManagementPage() {
   const load = () => {
     setUsers(null);
     fetch(`/api/users?status=${tab}`, { headers: authHeaders(session) })
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then(setUsers)
       .catch(() => setUsers([]));
   };
@@ -192,8 +192,9 @@ export default function UserManagementPage() {
       setProfile(emptyProfile);
       setProfileLoading(true);
       fetch(`/api/users/${user.id}/profile`, { headers: authHeaders(session) })
-        .then((r) => r.json())
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
         .then(setProfile)
+        .catch(() => toast({ title: 'Could not load profile', description: 'Your session may have expired — try logging out and back in.', variant: 'destructive' }))
         .finally(() => setProfileLoading(false));
     });
   };

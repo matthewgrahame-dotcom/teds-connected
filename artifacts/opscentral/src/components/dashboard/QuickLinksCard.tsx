@@ -40,7 +40,7 @@ export function QuickLinksCard() {
 
   const load = () => {
     fetch('/api/quick-links', { headers: authHeaders(session) })
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then(setLinks)
       .catch(() => setLinks([]));
   };
