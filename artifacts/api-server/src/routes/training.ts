@@ -569,4 +569,193 @@ router.put("/training/programs/:id/assignments", requireFullLevel, async (req, r
   res.json({ ok: true });
 });
 
+// -- Reporting ----------------------------------------------------------
+// Aggregates existing progress/assignment data -- no new tracking tables.
+// Matches staff between portal_users and module_progress by full name
+// ("First Last"), since that's the only link available (module_progress is
+// keyed by the Phocal-login staffName, portal_users is a separate HR-style
+// roster with no numeric id shared between the two -- same gap noted
+// elsewhere in this file's resolveEnrolledUserIds).
+
+type ResolvedAssignment = { programId: number; level: "optional" | "mandatory" };
+
+// For every active user, works out which live programs actually apply to
+// them and at what level -- inverse of resolveEnrolledUserIds (which goes
+// program -> users; this goes user -> programs). If a person qualifies for
+// the same program via more than one path (e.g. their role says optional
+// but they're also individually assigned mandatory), mandatory wins --
+// that's the stricter, more correct reading of "does this apply to me".
+async function resolveProgramAssignmentsByUser(): Promise<Map<number, ResolvedAssignment[]>> {
+  const [programs, roleAssignments, userAssignments, groupAssignments, groupMembers, users] = await Promise.all([
+    db.select({ id: trainingProgramsTable.id, status: trainingProgramsTable.status }).from(trainingProgramsTable),
+    db.select().from(trainingRoleAssignmentsTable),
+    db.select().from(trainingUserAssignmentsTable),
+    db.select().from(trainingGroupAssignmentsTable),
+    db.select().from(userGroupMembersTable),
+    db.select({ id: portalUsersTable.id, role: portalUsersTable.role }).from(portalUsersTable),
+  ]);
+
+  const liveProgramIds = new Set(programs.filter((p) => p.status === "live").map((p) => p.id));
+  const byUser = new Map<number, Map<number, "optional" | "mandatory">>();
+
+  const grant = (userId: number, programId: number, level: "optional" | "mandatory") => {
+    if (!liveProgramIds.has(programId)) return;
+    const existing = byUser.get(userId) ?? new Map<number, "optional" | "mandatory">();
+    const current = existing.get(programId);
+    if (!current || (current === "optional" && level === "mandatory")) existing.set(programId, level);
+    byUser.set(userId, existing);
+  };
+
+  const roleToUsers = new Map<string, number[]>();
+  for (const u of users) {
+    const list = roleToUsers.get(u.role) ?? [];
+    list.push(u.id);
+    roleToUsers.set(u.role, list);
+  }
+  for (const a of roleAssignments) (roleToUsers.get(a.role) ?? []).forEach((userId) => grant(userId, a.programId, a.level as "optional" | "mandatory"));
+
+  for (const a of userAssignments) grant(a.userId, a.programId, a.level as "optional" | "mandatory");
+
+  const groupToUsers = new Map<number, number[]>();
+  for (const m of groupMembers) {
+    const list = groupToUsers.get(m.groupId) ?? [];
+    list.push(m.userId);
+    groupToUsers.set(m.groupId, list);
+  }
+  for (const a of groupAssignments) (groupToUsers.get(a.groupId) ?? []).forEach((userId) => grant(userId, a.programId, a.level as "optional" | "mandatory"));
+
+  const result = new Map<number, ResolvedAssignment[]>();
+  for (const [userId, programLevels] of byUser) {
+    result.set(userId, Array.from(programLevels, ([programId, level]) => ({ programId, level })));
+  }
+  return result;
+}
+
+router.get("/training/reporting/learners", requireFullLevel, async (_req, res) => {
+  const [users, assignmentsByUser, modules, progress] = await Promise.all([
+    db
+      .select({ id: portalUsersTable.id, firstName: portalUsersTable.firstName, lastName: portalUsersTable.lastName, role: portalUsersTable.role, locations: portalUsersTable.locations })
+      .from(portalUsersTable)
+      .where(eq(portalUsersTable.archived, false)),
+    resolveProgramAssignmentsByUser(),
+    db.select({ id: trainingModulesTable.id, programId: trainingModulesTable.programId }).from(trainingModulesTable),
+    db.select().from(moduleProgressTable),
+  ]);
+
+  const modulesByProgram = new Map<number, number[]>();
+  for (const m of modules) {
+    const list = modulesByProgram.get(m.programId) ?? [];
+    list.push(m.id);
+    modulesByProgram.set(m.programId, list);
+  }
+
+  const progressByStaff = new Map<string, Map<number, { status: string; updatedAt: string }>>();
+  for (const p of progress) {
+    const byModule = progressByStaff.get(p.staffName) ?? new Map();
+    byModule.set(p.moduleId, { status: p.status, updatedAt: p.updatedAt.toISOString() });
+    progressByStaff.set(p.staffName, byModule);
+  }
+
+  const rows = users.map((u) => {
+    const fullName = `${u.firstName} ${u.lastName}`;
+    const assignments = assignmentsByUser.get(u.id) ?? [];
+    const myProgress = progressByStaff.get(fullName) ?? new Map();
+
+    const tally = (levelFilter?: "optional" | "mandatory") => {
+      let total = 0;
+      let completed = 0;
+      let latestUpdate: string | null = null;
+      for (const a of assignments) {
+        if (levelFilter && a.level !== levelFilter) continue;
+        for (const moduleId of modulesByProgram.get(a.programId) ?? []) {
+          total += 1;
+          const entry = myProgress.get(moduleId);
+          if (entry?.status === "completed") completed += 1;
+          if (entry && (!latestUpdate || entry.updatedAt > latestUpdate)) latestUpdate = entry.updatedAt;
+        }
+      }
+      return { total, completed, latestUpdate };
+    };
+
+    const overall = tally();
+    const mandatory = tally("mandatory");
+    const optional = tally("optional");
+
+    return {
+      userId: u.id,
+      name: fullName,
+      role: u.role,
+      location: u.locations[0] ?? null,
+      overallProgressPercent: overall.total > 0 ? Math.round((overall.completed / overall.total) * 1000) / 10 : 0,
+      mandatoryProgressPercent: mandatory.total > 0 ? Math.round((mandatory.completed / mandatory.total) * 1000) / 10 : 0,
+      optionalProgressPercent: optional.total > 0 ? Math.round((optional.completed / optional.total) * 1000) / 10 : 0,
+      updatedAt: overall.latestUpdate,
+    };
+  });
+
+  res.json(rows);
+});
+
+router.get("/training/reporting/by-location", requireFullLevel, async (req, res) => {
+  const programIdFilter = typeof req.query.programId === "string" && req.query.programId !== "all" ? Number(req.query.programId) : null;
+
+  const [users, assignmentsByUser, modules, progress] = await Promise.all([
+    db
+      .select({ id: portalUsersTable.id, firstName: portalUsersTable.firstName, lastName: portalUsersTable.lastName, locations: portalUsersTable.locations })
+      .from(portalUsersTable)
+      .where(eq(portalUsersTable.archived, false)),
+    resolveProgramAssignmentsByUser(),
+    db.select({ id: trainingModulesTable.id, programId: trainingModulesTable.programId }).from(trainingModulesTable),
+    db.select().from(moduleProgressTable),
+  ]);
+
+  const modulesByProgram = new Map<number, number[]>();
+  for (const m of modules) {
+    const list = modulesByProgram.get(m.programId) ?? [];
+    list.push(m.id);
+    modulesByProgram.set(m.programId, list);
+  }
+
+  const progressByStaff = new Map<string, Map<number, string>>();
+  for (const p of progress) {
+    const byModule = progressByStaff.get(p.staffName) ?? new Map();
+    byModule.set(p.moduleId, p.status);
+    progressByStaff.set(p.staffName, byModule);
+  }
+
+  const tallyByLocation = new Map<string, { completed: number; inProgress: number; notStarted: number }>();
+
+  for (const u of users) {
+    const fullName = `${u.firstName} ${u.lastName}`;
+    const assignments = assignmentsByUser.get(u.id) ?? [];
+    const myProgress = progressByStaff.get(fullName) ?? new Map();
+
+    for (const a of assignments) {
+      if (programIdFilter !== null && a.programId !== programIdFilter) continue;
+      for (const moduleId of modulesByProgram.get(a.programId) ?? []) {
+        const status = myProgress.get(moduleId) ?? "not_started";
+        for (const location of u.locations.length ? u.locations : ["(No location set)"]) {
+          const bucket = tallyByLocation.get(location) ?? { completed: 0, inProgress: 0, notStarted: 0 };
+          if (status === "completed") bucket.completed += 1;
+          else if (status === "in_progress") bucket.inProgress += 1;
+          else bucket.notStarted += 1;
+          tallyByLocation.set(location, bucket);
+        }
+      }
+    }
+  }
+
+  const result = Array.from(tallyByLocation, ([location, counts]) => {
+    const total = counts.completed + counts.inProgress + counts.notStarted;
+    return {
+      location,
+      completedPercent: total > 0 ? Math.round((counts.completed / total) * 1000) / 10 : 0,
+      inProgressPercent: total > 0 ? Math.round((counts.inProgress / total) * 1000) / 10 : 0,
+      notStartedPercent: total > 0 ? Math.round((counts.notStarted / total) * 1000) / 10 : 0,
+    };
+  }).sort((a, b) => a.location.localeCompare(b.location));
+
+  res.json(result);
+});
+
 export default router;
