@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Circle, CircleDot, CheckCircle2, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { authHeaders } from '@/lib/sessionAuth';
 
 type ModuleStatus = 'not_started' | 'in_progress' | 'completed';
 
@@ -38,9 +39,13 @@ export default function ProgramsPage() {
 
   const load = async () => {
     const params = session?.name ? `?staffName=${encodeURIComponent(session.name)}` : '';
-    const resp = await fetch(`/api/training/programs${params}`);
-    const data = await resp.json();
-    setPrograms(data);
+    try {
+      const resp = await fetch(`/api/training/programs${params}`, { headers: authHeaders(session) });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      setPrograms(await resp.json());
+    } catch {
+      setPrograms([]);
+    }
   };
 
   useEffect(() => {
@@ -52,7 +57,7 @@ export default function ProgramsPage() {
     const status = nextStatus[module.status];
     await fetch(`/api/training/modules/${module.id}/progress`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
       body: JSON.stringify({ staffName: session.name, status }),
     });
     await load();
