@@ -63,24 +63,29 @@ async function resolveEnrolledUserIds(programId: number, status: string): Promis
 router.get("/training/programs", requireSession, async (req, res) => {
   const staffName = typeof req.query.staffName === "string" ? req.query.staffName : null;
 
-  const programs = await db.select().from(trainingProgramsTable).where(eq(trainingProgramsTable.status, "live"));
-  const modules = await db.select().from(trainingModulesTable).orderBy(asc(trainingModulesTable.sortOrder));
-  const progress = staffName
-    ? await db.select().from(moduleProgressTable).where(eq(moduleProgressTable.staffName, staffName))
-    : [];
-  const quizCounts = await db.select({ moduleId: trainingQuizQuestionsTable.moduleId }).from(trainingQuizQuestionsTable);
-  const moduleIdsWithQuiz = new Set(quizCounts.map((q) => q.moduleId));
+  try {
+    const programs = await db.select().from(trainingProgramsTable).where(eq(trainingProgramsTable.status, "live"));
+    const modules = await db.select().from(trainingModulesTable).orderBy(asc(trainingModulesTable.sortOrder));
+    const progress = staffName
+      ? await db.select().from(moduleProgressTable).where(eq(moduleProgressTable.staffName, staffName))
+      : [];
+    const quizCounts = await db.select({ moduleId: trainingQuizQuestionsTable.moduleId }).from(trainingQuizQuestionsTable);
+    const moduleIdsWithQuiz = new Set(quizCounts.map((q) => q.moduleId));
 
-  const progressByModule = new Map(progress.map((p) => [p.moduleId, p.status]));
+    const progressByModule = new Map(progress.map((p) => [p.moduleId, p.status]));
 
-  const result = programs.map((program) => ({
-    ...program,
-    modules: modules
-      .filter((m) => m.programId === program.id)
-      .map((m) => ({ ...m, status: progressByModule.get(m.id) ?? "not_started", hasQuiz: moduleIdsWithQuiz.has(m.id) })),
-  }));
+    const result = programs.map((program) => ({
+      ...program,
+      modules: modules
+        .filter((m) => m.programId === program.id)
+        .map((m) => ({ ...m, status: progressByModule.get(m.id) ?? "not_started", hasQuiz: moduleIdsWithQuiz.has(m.id) })),
+    }));
 
-  res.json(result);
+    res.json(result);
+  } catch (err) {
+    console.error("[GET /training/programs] error:", err);
+    res.status(500).json({ error: err instanceof Error ? err.message : "Unknown error", stack: err instanceof Error ? err.stack : undefined });
+  }
 });
 
 // -- Quiz taking (staff-facing) ---------------------------------------------

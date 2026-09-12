@@ -27,41 +27,46 @@ function todayKey(): string {
 router.get("/tasks", requireSession, async (req, res) => {
   const staffName = req.sessionPayload!.name;
 
-  const [programs, modules, progress, events, myRsvps] = await Promise.all([
-    db.select().from(trainingProgramsTable).where(eq(trainingProgramsTable.status, "live")),
-    db.select().from(trainingModulesTable).orderBy(asc(trainingModulesTable.sortOrder)),
-    db.select().from(moduleProgressTable).where(eq(moduleProgressTable.staffName, staffName)),
-    db
-      .select()
-      .from(calendarEventsTable)
-      .where(and(eq(calendarEventsTable.requiresRsvp, true), gte(calendarEventsTable.date, todayKey())))
-      .orderBy(asc(calendarEventsTable.date)),
-    db.select().from(eventRsvpsTable).where(eq(eventRsvpsTable.staffName, staffName)),
-  ]);
+  try {
+    const [programs, modules, progress, events, myRsvps] = await Promise.all([
+      db.select().from(trainingProgramsTable).where(eq(trainingProgramsTable.status, "live")),
+      db.select().from(trainingModulesTable).orderBy(asc(trainingModulesTable.sortOrder)),
+      db.select().from(moduleProgressTable).where(eq(moduleProgressTable.staffName, staffName)),
+      db
+        .select()
+        .from(calendarEventsTable)
+        .where(and(eq(calendarEventsTable.requiresRsvp, true), gte(calendarEventsTable.date, todayKey())))
+        .orderBy(asc(calendarEventsTable.date)),
+      db.select().from(eventRsvpsTable).where(eq(eventRsvpsTable.staffName, staffName)),
+    ]);
 
-  const programsById = new Map(programs.map((p) => [p.id, p]));
-  const completedModuleIds = new Set(progress.filter((p) => p.status === "completed").map((p) => p.moduleId));
-  const trainingTasks = modules
-    .filter((m) => programsById.has(m.programId) && !completedModuleIds.has(m.id))
-    .map((m) => ({
-      type: "training" as const,
-      moduleId: m.id,
-      title: m.title,
-      programTitle: programsById.get(m.programId)!.title,
-    }));
+    const programsById = new Map(programs.map((p) => [p.id, p]));
+    const completedModuleIds = new Set(progress.filter((p) => p.status === "completed").map((p) => p.moduleId));
+    const trainingTasks = modules
+      .filter((m) => programsById.has(m.programId) && !completedModuleIds.has(m.id))
+      .map((m) => ({
+        type: "training" as const,
+        moduleId: m.id,
+        title: m.title,
+        programTitle: programsById.get(m.programId)!.title,
+      }));
 
-  const respondedEventIds = new Set(myRsvps.map((r) => r.eventId));
-  const rsvpTasks = events
-    .filter((e) => !respondedEventIds.has(e.id))
-    .map((e) => ({
-      type: "rsvp" as const,
-      eventId: e.id,
-      title: e.title,
-      date: e.date,
-      time: e.time,
-    }));
+    const respondedEventIds = new Set(myRsvps.map((r) => r.eventId));
+    const rsvpTasks = events
+      .filter((e) => !respondedEventIds.has(e.id))
+      .map((e) => ({
+        type: "rsvp" as const,
+        eventId: e.id,
+        title: e.title,
+        date: e.date,
+        time: e.time,
+      }));
 
-  res.json({ trainingTasks, rsvpTasks });
+    res.json({ trainingTasks, rsvpTasks });
+  } catch (err) {
+    console.error("[GET /tasks] error:", err);
+    res.status(500).json({ error: err instanceof Error ? err.message : "Unknown error", stack: err instanceof Error ? err.stack : undefined });
+  }
 });
 
 export default router;
