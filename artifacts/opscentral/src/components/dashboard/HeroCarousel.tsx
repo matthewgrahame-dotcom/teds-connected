@@ -70,12 +70,12 @@ export function HeroCarousel() {
           </>
         )}
 
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/35 px-8 text-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/35 px-8 text-center pointer-events-none">
           <h3 className="max-w-lg text-2xl font-extrabold uppercase leading-tight text-white sm:text-3xl">{slide.title}</h3>
           <a
             href={`/news/${slide.id}`}
             data-testid="button-hero-cta"
-            className="rounded-lg bg-primary px-5 py-2.5 text-sm font-extrabold text-primary-foreground transition hover:brightness-95"
+            className="pointer-events-auto rounded-lg bg-primary px-5 py-2.5 text-sm font-extrabold text-primary-foreground transition hover:brightness-95"
           >
             Read Article
           </a>

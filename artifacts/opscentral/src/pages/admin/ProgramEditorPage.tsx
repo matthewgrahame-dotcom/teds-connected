@@ -389,6 +389,18 @@ export default function ProgramEditorPage() {
                     {m.quizQuestions.length > 0 ? `Manage Quiz (${m.quizQuestions.length})` : 'Add Quiz Questions'}
                   </button>
                 </div>
+                <div className="pl-6">
+                  <ToggleRow
+                    label="Requires full viewing"
+                    checked={m.requiresFullViewing}
+                    onChange={(v) => updateModule(m.id, { requiresFullViewing: v })}
+                  >
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Shows a notice telling the learner to watch the whole video before continuing. This can't technically block
+                      skipping ahead on an embedded YouTube video -- it's a notice, not an enforced lock.
+                    </p>
+                  </ToggleRow>
+                </div>
 
                 {quizEditorFor === m.id && (
                   <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">

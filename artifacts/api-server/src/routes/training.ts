@@ -12,6 +12,7 @@ import {
   trainingAssignmentLevelSchema,
   trainingQuizQuestionsTable,
   trainingQuizAttemptsTable,
+  trainingQuizProgressTable,
   trainingQuizQuestionTypeSchema,
   userGroupMembersTable,
   portalUsersTable,
@@ -106,6 +107,71 @@ router.get("/training/modules/:id/quiz", requireSession, async (req, res) => {
   res.json({ questions, passThresholdPercent: module_?.passThresholdPercent ?? 100 });
 });
 
+// -- Quiz in-progress save (staff-facing) -----------------------------------
+// Lets a learner close the quiz partway through and resume later (even
+// after logging out and back in) instead of losing everything -- see
+// schema comment on trainingQuizProgressTable for why this is a separate
+// table from trainingQuizAttemptsTable rather than a new column there.
+router.get("/training/modules/:id/quiz/progress", requireSession, async (req, res) => {
+  const moduleId = Number(req.params.id);
+  const staffName = typeof req.query.staffName === "string" ? req.query.staffName.trim() : "";
+  if (!Number.isInteger(moduleId) || !staffName) {
+    res.status(400).json({ error: "Invalid module id or missing staffName" });
+    return;
+  }
+  const [draft] = await db
+    .select({ answers: trainingQuizProgressTable.answers, textAnswers: trainingQuizProgressTable.textAnswers })
+    .from(trainingQuizProgressTable)
+    .where(and(eq(trainingQuizProgressTable.moduleId, moduleId), eq(trainingQuizProgressTable.staffName, staffName)));
+  res.json({ answers: draft?.answers ?? {}, textAnswers: draft?.textAnswers ?? {} });
+});
+
+// Upsert -- called on every debounced change from QuizTaker while the
+// learner is still answering, not just once. onConflictDoUpdate rather than
+// a manual select-then-insert-or-update, since this can fire fairly often
+// and a single round trip matters more here than it does on the lower-
+// frequency admin CRUD routes elsewhere in this file.
+router.put("/training/modules/:id/quiz/progress", requireSession, async (req, res) => {
+  const moduleId = Number(req.params.id);
+  if (!Number.isInteger(moduleId)) {
+    res.status(400).json({ error: "Invalid module id" });
+    return;
+  }
+  const staffName = typeof req.body?.staffName === "string" ? req.body.staffName.trim() : "";
+  const { answers, textAnswers } = req.body ?? {};
+  if (!staffName || typeof answers !== "object" || answers === null || typeof textAnswers !== "object" || textAnswers === null) {
+    res.status(400).json({ error: "staffName, answers, and textAnswers are required" });
+    return;
+  }
+  await db
+    .insert(trainingQuizProgressTable)
+    .values({ moduleId, staffName, answers, textAnswers })
+    .onConflictDoUpdate({
+      target: [trainingQuizProgressTable.moduleId, trainingQuizProgressTable.staffName],
+      set: { answers, textAnswers, updatedAt: new Date() },
+    });
+
+  // Bump module_progress to "in_progress" the first time a draft actually
+  // has something in it -- otherwise the status badge on Programs stays
+  // stuck on "Not Started" even though real answers are being saved, since
+  // until now only a full quiz submit ever touched this table. Only moves
+  // "not_started" -> "in_progress", and only inserts a fresh row when none
+  // exists yet -- deliberately does NOT touch an already-"completed" status,
+  // so idly reopening a passed quiz (or a stray autosave firing before
+  // "Retake" is clicked) can't make a finished module look unfinished again.
+  const hasAnyAnswer = Object.keys(answers).length > 0 || Object.keys(textAnswers).length > 0;
+  if (hasAnyAnswer) {
+    const [existingProgress] = await db.select().from(moduleProgressTable).where(and(eq(moduleProgressTable.moduleId, moduleId), eq(moduleProgressTable.staffName, staffName)));
+    if (!existingProgress) {
+      await db.insert(moduleProgressTable).values({ moduleId, staffName, status: "in_progress" });
+    } else if (existingProgress.status === "not_started") {
+      await db.update(moduleProgressTable).set({ status: "in_progress" }).where(and(eq(moduleProgressTable.moduleId, moduleId), eq(moduleProgressTable.staffName, staffName)));
+    }
+  }
+
+  res.json({ ok: true });
+});
+
 router.post("/training/modules/:id/quiz/submit", requireSession, async (req, res) => {
   const moduleId = Number(req.params.id);
   if (!Number.isInteger(moduleId)) {
@@ -142,6 +208,12 @@ router.post("/training/modules/:id/quiz/submit", requireSession, async (req, res
   const passed = scorePercent >= (module_.passThresholdPercent ?? 100);
 
   await db.insert(trainingQuizAttemptsTable).values({ moduleId, staffName, scorePercent, passed });
+  // The attempt above is now the real, scored record -- the in-progress
+  // draft's job is done regardless of pass/fail, so clear it rather than
+  // leaving a stale draft that would otherwise silently repopulate the form
+  // if this learner opens the quiz again (which "Retake Quiz" explicitly
+  // expects to start blank).
+  await db.delete(trainingQuizProgressTable).where(and(eq(trainingQuizProgressTable.moduleId, moduleId), eq(trainingQuizProgressTable.staffName, staffName)));
 
   const newStatus = passed ? "completed" : "in_progress";
   const existingProgress = await db.select().from(moduleProgressTable).where(and(eq(moduleProgressTable.moduleId, moduleId), eq(moduleProgressTable.staffName, staffName)));

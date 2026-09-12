@@ -1,5 +1,5 @@
 import { createInsertSchema } from "drizzle-zod";
-import { boolean, integer, pgTable, serial, text, timestamp, unique } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, pgTable, serial, text, timestamp, unique } from "drizzle-orm/pg-core";
 import { z } from "zod/v4";
 
 // A Program is a time-boxed training initiative (e.g. "Canon Full Frame
@@ -48,7 +48,14 @@ export const trainingModulesTable = pgTable("training_modules", {
   content: text("content"), // full lesson text (Module Overview etc), plain text -- optional so a module can still be just a title+link pointing elsewhere
   externalUrl: text("external_url"), // optional link out to the actual video/content (e.g. on Myagi)
   passThresholdPercent: integer("pass_threshold_percent").notNull().default(100), // matches source exports ("A score of 100% is required to pass") -- only relevant if the module has quiz questions
-  requiresFullViewing: boolean("requires_full_viewing").notNull().default(false), // matches source export text ("videos may be paused, however progress is not saved and skipping is disabled") -- shown as a notice on the intro screen; a real technical seek-block isn't achievable with a standard YouTube embed (no such embed option exists), so this is honest UI copy, not an enforced restriction
+  // Admin-set NOTICE only, not a technical restriction -- a standard YouTube
+  // embed genuinely can't be made to block seeking, so this doesn't (and
+  // can't) actually lock the scrubber. Matches source export text ("videos
+  // may be paused, however progress is not saved and skipping is disabled"),
+  // shown to the learner as a plain-text warning on the module's intro
+  // screen instead (see ModuleWizard.tsx / ProgramsPage.tsx), same honesty
+  // tradeoff as the "feedback only shown after quiz" notice.
+  requiresFullViewing: boolean("requires_full_viewing").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
 });
 
@@ -83,6 +90,28 @@ export const trainingQuizAttemptsTable = pgTable("training_quiz_attempts", {
   passed: boolean("passed").notNull(),
   answeredAt: timestamp("answered_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// In-progress answers, saved as the learner goes rather than only on submit
+// -- so closing the quiz partway through (or just logging back in later)
+// resumes where they left off instead of starting over. Deliberately a
+// separate table from trainingQuizAttemptsTable above, not a new column
+// there: an attempt is a completed, scored, historical record; this is a
+// live scratch pad that gets deleted the moment a real attempt is submitted
+// (see routes/training.ts's quiz submit handler), so there's never a stale
+// draft hanging around once the quiz that draft belonged to has actually
+// been finished.
+export const trainingQuizProgressTable = pgTable(
+  "training_quiz_progress",
+  {
+    id: serial("id").primaryKey(),
+    moduleId: integer("module_id").notNull(),
+    staffName: text("staff_name").notNull(),
+    answers: jsonb("answers").notNull().$type<Record<number, number[]>>().default({}), // { [questionId]: selected option indices }, same shape QuizTaker already keeps in local state
+    textAnswers: jsonb("text_answers").notNull().$type<Record<number, string>>().default({}), // { [questionId]: free-text draft }, for questionType 'text'
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  },
+  (table) => [unique().on(table.moduleId, table.staffName)],
+);
 
 // Self-reported by each staff member -- keyed by their name from the shared
 // Phocal login (see Connected's auth routes), not a numeric user id, since
@@ -144,6 +173,7 @@ export type TrainingModule = typeof trainingModulesTable.$inferSelect;
 export type ModuleProgress = typeof moduleProgressTable.$inferSelect;
 export type TrainingQuizQuestion = typeof trainingQuizQuestionsTable.$inferSelect;
 export type TrainingQuizAttempt = typeof trainingQuizAttemptsTable.$inferSelect;
+export type TrainingQuizProgress = typeof trainingQuizProgressTable.$inferSelect;
 export type TrainingRoleAssignment = typeof trainingRoleAssignmentsTable.$inferSelect;
 export type TrainingUserAssignment = typeof trainingUserAssignmentsTable.$inferSelect;
 export type TrainingGroupAssignment = typeof trainingGroupAssignmentsTable.$inferSelect;

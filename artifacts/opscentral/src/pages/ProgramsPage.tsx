@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Circle, CircleDot, CheckCircle2, ExternalLink, ChevronDown, ChevronUp, PlayCircle } from 'lucide-react';
+import { Circle, CircleDot, CheckCircle2, ExternalLink, ChevronDown, ChevronUp, PlayCircle, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 import { RichContent } from '@/components/RichContent';
@@ -181,6 +181,12 @@ export default function ProgramsPage() {
                             />
                           </div>
                         )}
+                        {module.requiresFullViewing && embedId && (
+                          <div className="flex items-start gap-2 rounded-md border border-yellow-300/60 bg-yellow-50 px-3 py-2.5 text-sm text-foreground">
+                            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600" />
+                            Please watch the whole video before marking this as complete.
+                          </div>
+                        )}
                         {module.externalUrl && !embedId && (
                           <a href={module.externalUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-accent hover:underline">
                             <ExternalLink className="h-3 w-3" /> This video can't be embedded here — open it directly
@@ -200,7 +206,15 @@ export default function ProgramsPage() {
       {wizardFor && (
         <ModuleWizard
           module={wizardFor}
-          onClose={() => setWizardFor(null)}
+          // Refresh on close too, not just on a full quiz submit -- closing
+          // the dialog partway through (X, backdrop click, "Back to intro")
+          // can now mean real progress was autosaved server-side, so the
+          // status badge behind the dialog needs to catch up even when
+          // nothing was actually submitted.
+          onClose={() => {
+            setWizardFor(null);
+            load();
+          }}
           onQuizDone={() => {
             setWizardFor(null);
             load();

@@ -50,6 +50,12 @@ export function ModuleWizard({ module, onClose, onQuizDone }: { module: WizardMo
                 />
               </div>
             )}
+            {module.requiresFullViewing && embedId && (
+              <div className="flex items-start gap-2 rounded-md border border-yellow-300/60 bg-yellow-50 px-3 py-2.5 text-sm text-foreground">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600" />
+                Please watch the whole video before starting the quiz.
+              </div>
+            )}
             {module.externalUrl && !embedId && (
               <a href={module.externalUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-accent hover:underline">
                 <ExternalLink className="h-3 w-3" /> This video can't be embedded here — open it directly
