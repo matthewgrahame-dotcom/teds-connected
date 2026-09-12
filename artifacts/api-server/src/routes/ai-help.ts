@@ -1,4 +1,6 @@
 import { Router, type IRouter } from "express";
+import { desc } from "drizzle-orm";
+import { db, newsArticlesTable } from "@workspace/db";
 import { requireSession } from "../lib/sessionAuth";
 
 const router: IRouter = Router();
@@ -19,11 +21,21 @@ router.post("/ai-help", requireSession, async (req, res) => {
   }
   const sessionToken = req.header("x-session-token");
 
+  // Grounds "update my most recent article" / "the one about X" style
+  // requests in something real -- Phocal has no DB access of its own, so
+  // without this the model would have to either guess an id or refuse
+  // every update_news_article request outright.
+  const recentNewsArticles = await db
+    .select({ id: newsArticlesTable.id, title: newsArticlesTable.title, createdAt: newsArticlesTable.createdAt })
+    .from(newsArticlesTable)
+    .orderBy(desc(newsArticlesTable.createdAt))
+    .limit(15);
+
   try {
     const resp = await fetch(`${PHOCAL_BASE_URL}/api/connected-ai-help`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, sessionToken }),
+      body: JSON.stringify({ question, sessionToken, recentNewsArticles }),
     });
     const data = await resp.json();
     if (!resp.ok) {

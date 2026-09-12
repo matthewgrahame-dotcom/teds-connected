@@ -21,9 +21,18 @@ type UnsplashImage = {
   downloadLocationUrl: string;
 };
 type CreateNewsCall = { name: 'create_news_article'; input: { title: string; snippet: string; body?: string }; image?: UnsplashImage | null };
-type ToolCall = CreateFormCall | CreateTrainingCall | CreateNewsCall;
+type UpdateNewsCall = {
+  name: 'update_news_article';
+  input: { articleId: number; title: string; addImage?: boolean; newTitle?: string; newSnippet?: string; newBody?: string };
+  image?: UnsplashImage | null;
+};
+type ToolCall = CreateFormCall | CreateTrainingCall | CreateNewsCall | UpdateNewsCall;
 
-type CreatedResult = { kind: 'form'; slug: string; title: string } | { kind: 'training'; title: string } | { kind: 'news'; id: number; title: string };
+type CreatedResult =
+  | { kind: 'form'; slug: string; title: string }
+  | { kind: 'training'; title: string }
+  | { kind: 'news'; id: number; title: string }
+  | { kind: 'news-updated'; id: number; title: string };
 
 export function AiHelpCard() {
   const { session } = useAuth();
@@ -82,7 +91,7 @@ export function AiHelpCard() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Could not create the training program');
         setCreated({ kind: 'training', title: data.program.title });
-      } else {
+      } else if (toolCall.name === 'create_news_article') {
         // If a photo came with the proposal, fire Unsplash's required
         // download-tracking ping now (the moment it's actually used, not
         // when it was merely shown in the proposal) before creating the
@@ -112,6 +121,36 @@ export function AiHelpCard() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Could not create the news article');
         setCreated({ kind: 'news', id: data.article.id, title: data.article.title });
+      } else {
+        // update_news_article
+        if (toolCall.image) {
+          try {
+            await fetch('/api/ai-help/confirm-image', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+              body: JSON.stringify({ downloadLocationUrl: toolCall.image.downloadLocationUrl }),
+            });
+          } catch {
+            // non-fatal
+          }
+        }
+        const patch: Record<string, unknown> = {};
+        if (toolCall.input.newTitle) patch.title = toolCall.input.newTitle;
+        if (toolCall.input.newSnippet) patch.snippet = toolCall.input.newSnippet;
+        if (toolCall.input.newBody) patch.body = toolCall.input.newBody;
+        if (toolCall.image) {
+          patch.imageUrl = toolCall.image.imageUrl;
+          patch.imagePhotographerName = toolCall.image.photographerName;
+          patch.imagePhotographerUrl = toolCall.image.photographerProfileUrl;
+        }
+        const res = await fetch(`/api/news/${toolCall.input.articleId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+          body: JSON.stringify(patch),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not update the news article');
+        setCreated({ kind: 'news-updated', id: data.article.id, title: data.article.title });
       }
       setToolCall(null);
     } catch (err) {
@@ -132,7 +171,7 @@ export function AiHelpCard() {
   return (
     <DashboardCard title="AI Help">
       <p className="mb-3 text-sm text-muted-foreground">
-        Ask anything about using Connected, or ask it to draft a new form, training program, or news article.
+        Ask anything about using Connected, draft a new form, training program, or news article, or ask it to update an existing news article (e.g. add a photo).
       </p>
       <div className="flex gap-2">
         <div className="relative flex-1">
@@ -173,11 +212,17 @@ export function AiHelpCard() {
           <div className="flex items-center gap-2 text-sm font-extrabold text-foreground">
             {toolCall.name === 'create_form' && <FileText className="h-4 w-4" />}
             {toolCall.name === 'create_training_program' && <GraduationCap className="h-4 w-4" />}
-            {toolCall.name === 'create_news_article' && <Newspaper className="h-4 w-4" />}
+            {(toolCall.name === 'create_news_article' || toolCall.name === 'update_news_article') && <Newspaper className="h-4 w-4" />}
             Proposed:{' '}
-            {toolCall.name === 'create_form' ? 'New Form' : toolCall.name === 'create_training_program' ? 'New Training Program' : 'New News Article'}
+            {toolCall.name === 'create_form'
+              ? 'New Form'
+              : toolCall.name === 'create_training_program'
+                ? 'New Training Program'
+                : toolCall.name === 'create_news_article'
+                  ? 'New News Article'
+                  : 'Update to News Article'}
           </div>
-          <p className="mt-1 text-sm font-semibold text-foreground">{toolCall.input.title}</p>
+          <p className="mt-1 text-sm font-semibold text-foreground">{toolCall.name === 'update_news_article' ? toolCall.input.newTitle || toolCall.input.title : toolCall.input.title}</p>
 
           {toolCall.name === 'create_form' && (
             <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
@@ -214,8 +259,27 @@ export function AiHelpCard() {
               )}
             </>
           )}
+          {toolCall.name === 'update_news_article' && (
+            <>
+              {toolCall.input.newSnippet && <p className="mt-1 text-xs text-muted-foreground">New snippet: {toolCall.input.newSnippet}</p>}
+              {toolCall.input.newBody && <p className="mt-1 line-clamp-3 text-xs text-muted-foreground/80">New body: {toolCall.input.newBody}</p>}
+              {toolCall.input.addImage &&
+                (toolCall.image ? (
+                  <div className="mt-2">
+                    <img src={toolCall.image.thumbUrl} alt="" className="h-24 w-full rounded-md object-cover" />
+                    <p className="mt-1 text-[11px] text-muted-foreground/70">
+                      Photo by {toolCall.image.photographerName} on Unsplash
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-[11px] text-muted-foreground/70">No matching photo found.</p>
+                ))}
+            </>
+          )}
 
-          <p className="mt-2 text-xs text-muted-foreground">Nothing's been created yet — this is just a proposal.</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {toolCall.name === 'update_news_article' ? "Nothing's been changed yet" : "Nothing's been created yet"} — this is just a proposal.
+          </p>
           <div className="mt-2 flex gap-2">
             <button
               type="button"
@@ -223,7 +287,8 @@ export function AiHelpCard() {
               disabled={confirming}
               className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-extrabold text-primary-foreground transition hover:brightness-95 disabled:opacity-50"
             >
-              <Check className="h-3.5 w-3.5" /> {confirming ? 'Creating…' : 'Confirm & Create'}
+              <Check className="h-3.5 w-3.5" />{' '}
+              {confirming ? (toolCall.name === 'update_news_article' ? 'Updating…' : 'Creating…') : toolCall.name === 'update_news_article' ? 'Confirm & Update' : 'Confirm & Create'}
             </button>
             <button type="button" onClick={reset} className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-bold text-muted-foreground transition hover:bg-muted">
               <X className="h-3.5 w-3.5" /> Discard
@@ -235,7 +300,13 @@ export function AiHelpCard() {
       {created && (
         <div className="mt-3 rounded-lg border border-border bg-muted/30 p-3 text-sm">
           <p className="font-semibold text-foreground">
-            {created.kind === 'form' ? 'Form created.' : created.kind === 'training' ? 'Training program created.' : 'News article created.'}
+            {created.kind === 'form'
+              ? 'Form created.'
+              : created.kind === 'training'
+                ? 'Training program created.'
+                : created.kind === 'news'
+                  ? 'News article created.'
+                  : 'News article updated.'}
           </p>
           {created.kind === 'form' && (
             <Link href={`/people/forms/${created.slug}`} className="text-accent hover:underline">
@@ -247,7 +318,7 @@ export function AiHelpCard() {
               View in Learn → Programs
             </Link>
           )}
-          {created.kind === 'news' && (
+          {(created.kind === 'news' || created.kind === 'news-updated') && (
             <Link href={`/news/${created.id}`} className="text-accent hover:underline">
               View "{created.title}"
             </Link>
