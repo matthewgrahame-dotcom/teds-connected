@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { User, Phone, Mail, Settings, Plus, Trash2, ChevronUp, ChevronDown, X, Search } from 'lucide-react';
+import { User, Phone, Mail, Settings, Plus, Trash2, ChevronUp, ChevronDown, X, Search, Upload } from 'lucide-react';
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/lib/auth';
@@ -33,6 +33,7 @@ export function KeyContactsCard() {
   const [picking, setPicking] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
   const [allUsers, setAllUsers] = useState<PortalUserOption[] | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const canEdit = session?.level === 'full';
 
@@ -60,6 +61,52 @@ export function KeyContactsCard() {
     await fetch(`/api/key-contacts/${id}`, { method: 'DELETE', headers: authHeaders(session) });
     load();
     setSaving(null);
+  };
+
+  // Resizes/crops to a small square JPEG and stores it directly as a data
+  // URI in the existing photoUrl text column -- no separate file-storage
+  // service to wire up, and these are just small avatar thumbnails so the
+  // base64 overhead is negligible. Downscaling client-side (not just
+  // relying on CSS to shrink a huge original) keeps what actually gets
+  // saved small regardless of the source photo's size.
+  const handlePhotoUpload = async (contactId: number, file: File) => {
+    setUploadError(null);
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Please choose an image file.');
+      return;
+    }
+    try {
+      const dataUri = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Could not read that file.'));
+        reader.onload = () => {
+          const img = new Image();
+          img.onerror = () => reject(new Error('Could not read that image.'));
+          img.onload = () => {
+            const size = 240;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error('Could not process that image.'));
+              return;
+            }
+            // Cover-crop to a square so every avatar fills the circular frame consistently.
+            const scale = Math.max(size / img.width, size / img.height);
+            const drawWidth = img.width * scale;
+            const drawHeight = img.height * scale;
+            ctx.drawImage(img, (size - drawWidth) / 2, (size - drawHeight) / 2, drawWidth, drawHeight);
+            resolve(canvas.toDataURL('image/jpeg', 0.85));
+          };
+          img.src = reader.result as string;
+        };
+        reader.readAsDataURL(file);
+      });
+      await saveContact(contactId, { photoUrl: dataUri });
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Could not upload that image.');
+    }
   };
 
   const openPicker = () => {
@@ -161,6 +208,7 @@ export function KeyContactsCard() {
           <p className="text-xs text-muted-foreground">
             Name and title are pulled live from each person's User Management record. Photo and contact-detail overrides are set here.
           </p>
+          {uploadError && <p className="text-xs font-semibold text-destructive">{uploadError}</p>}
           <div className="max-h-[55vh] space-y-3 overflow-y-auto pr-1">
             {contacts?.map((contact, index) => (
               <div key={contact.id} className="rounded-lg border border-border p-3">
@@ -190,12 +238,26 @@ export function KeyContactsCard() {
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-                <div className="mt-2 grid grid-cols-3 gap-2 pl-9">
+                <div className="mt-2 grid grid-cols-2 gap-2 pl-9 sm:grid-cols-4">
+                  <label className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-input text-xs font-semibold text-muted-foreground transition hover:bg-muted">
+                    <Upload className="h-3.5 w-3.5" />
+                    Upload
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handlePhotoUpload(contact.id, file);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
                   <input
-                    defaultValue={contact.photoUrl ?? ''}
+                    defaultValue={contact.photoUrl?.startsWith('data:') ? '' : contact.photoUrl ?? ''}
                     key={`photo-${contact.id}`}
                     onBlur={(e) => e.target.value.trim() !== (contact.photoUrl ?? '') && saveContact(contact.id, { photoUrl: e.target.value.trim() })}
-                    placeholder="Photo URL"
+                    placeholder="...or paste a photo URL"
                     className="h-8 rounded-md border border-input bg-background px-2 text-xs outline-none"
                   />
                   <input
