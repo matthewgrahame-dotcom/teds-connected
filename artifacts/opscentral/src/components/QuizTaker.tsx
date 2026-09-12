@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
@@ -21,15 +21,59 @@ export function QuizTaker({ moduleId, onDone }: { moduleId: number; onDone: () =
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<QuizResult | null>(null);
 
+  // Guards the autosave effect below from firing before the initial
+  // questions+draft fetch has actually finished -- without this, mounting
+  // would immediately PUT the empty {} state right back at the server,
+  // which is harmless but pointless, and (worse) could race the draft GET
+  // below and overwrite a real in-progress draft with blank answers if the
+  // PUT somehow resolved first.
+  const hasLoadedDraft = useRef(false);
+
   useEffect(() => {
-    fetch(`/api/training/modules/${moduleId}/quiz`, { headers: authHeaders(session) })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((data) => {
-        setQuestions(data.questions);
-        setPassThresholdPercent(data.passThresholdPercent);
+    hasLoadedDraft.current = false;
+    const quizPromise = fetch(`/api/training/modules/${moduleId}/quiz`, { headers: authHeaders(session) }).then((r) =>
+      r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)),
+    );
+    // Resuming a draft needs to know whose draft it is, same requirement
+    // submit already has -- without a name, just start blank rather than
+    // failing the whole quiz load over it.
+    const draftPromise = session?.name
+      ? fetch(`/api/training/modules/${moduleId}/quiz/progress?staffName=${encodeURIComponent(session.name)}`, { headers: authHeaders(session) })
+          .then((r) => (r.ok ? r.json() : { answers: {}, textAnswers: {} }))
+          .catch(() => ({ answers: {}, textAnswers: {} }))
+      : Promise.resolve({ answers: {}, textAnswers: {} });
+
+    Promise.all([quizPromise, draftPromise])
+      .then(([quizData, draft]) => {
+        setQuestions(quizData.questions);
+        setPassThresholdPercent(quizData.passThresholdPercent);
+        setAnswers(draft.answers ?? {});
+        setTextAnswers(draft.textAnswers ?? {});
       })
-      .catch(() => setQuestions([]));
-  }, [moduleId]);
+      .catch(() => setQuestions([]))
+      .finally(() => {
+        hasLoadedDraft.current = true;
+      });
+  }, [moduleId, session?.name]);
+
+  // Autosave -- debounced so every keystroke/click doesn't fire a request,
+  // but frequent enough that closing the tab a couple seconds after the
+  // last change still saves it. Best-effort: a failed autosave doesn't
+  // interrupt the learner or show an error, since they can keep answering
+  // and the next change retries it anyway. Stops once `result` is set
+  // (quiz already submitted, server-side draft already cleared by that
+  // point -- see routes/training.ts) so there's nothing left to save.
+  useEffect(() => {
+    if (!hasLoadedDraft.current || !session?.name || result) return;
+    const timeout = setTimeout(() => {
+      fetch(`/api/training/modules/${moduleId}/quiz/progress`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+        body: JSON.stringify({ staffName: session.name, answers, textAnswers }),
+      }).catch(() => {});
+    }, 800);
+    return () => clearTimeout(timeout);
+  }, [answers, textAnswers, moduleId, session?.name, result]);
 
   const toggleOption = (question: QuizQuestion, optionIndex: number) => {
     setAnswers((prev) => {
@@ -80,6 +124,7 @@ export function QuizTaker({ moduleId, onDone }: { moduleId: number; onDone: () =
               onClick={() => {
                 setResult(null);
                 setAnswers({});
+                setTextAnswers({});
               }}
               className="rounded-md bg-primary px-3 py-1.5 text-xs font-extrabold text-primary-foreground hover:brightness-95"
             >
@@ -145,6 +190,7 @@ export function QuizTaker({ moduleId, onDone }: { moduleId: number; onDone: () =
           {!allAnswered && <p className="text-xs text-muted-foreground">Answer every question to submit.</p>}
         </div>
       )}
+      {questions.length > 0 && <p className="text-xs text-muted-foreground">Your answers are saved automatically -- you can close this and pick up where you left off later.</p>}
     </div>
   );
 }

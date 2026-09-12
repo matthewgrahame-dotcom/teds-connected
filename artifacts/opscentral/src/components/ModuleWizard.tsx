@@ -11,6 +11,7 @@ type WizardModule = {
   content: string | null;
   externalUrl: string | null;
   hasQuiz: boolean;
+  requiresFullViewing: boolean;
 };
 
 // Real two-screen flow matching the reference screenshots: an Intro screen
@@ -41,6 +42,12 @@ export function ModuleWizard({ module, onClose, onQuizDone }: { module: WizardMo
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 />
+              </div>
+            )}
+            {module.requiresFullViewing && embedId && (
+              <div className="flex items-start gap-2 rounded-md border border-yellow-300/60 bg-yellow-50 px-3 py-2.5 text-sm text-foreground">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600" />
+                Please watch the whole video before starting the quiz.
               </div>
             )}
             {module.externalUrl && !embedId && (

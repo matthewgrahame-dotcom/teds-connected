@@ -18,6 +18,7 @@ type ProgramModule = {
   content: string | null;
   externalUrl: string | null;
   passThresholdPercent: number;
+  requiresFullViewing: boolean;
   sortOrder: number;
   quizQuestions: QuizQuestionDraft[];
 };
@@ -184,7 +185,7 @@ export default function ProgramEditorPage() {
     }
   };
 
-  const updateModule = async (moduleId: number, patch: Partial<{ title: string; externalUrl: string; content: string; moduleType: string; passThresholdPercent: number }>) => {
+  const updateModule = async (moduleId: number, patch: Partial<{ title: string; externalUrl: string; content: string; moduleType: string; passThresholdPercent: number; requiresFullViewing: boolean }>) => {
     await fetch(`/api/training/modules/${moduleId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
@@ -383,6 +384,18 @@ export default function ProgramEditorPage() {
                     <ListChecks className="h-3.5 w-3.5" />
                     {m.quizQuestions.length > 0 ? `Manage Quiz (${m.quizQuestions.length})` : 'Add Quiz Questions'}
                   </button>
+                </div>
+                <div className="pl-6">
+                  <ToggleRow
+                    label="Requires full viewing"
+                    checked={m.requiresFullViewing}
+                    onChange={(v) => updateModule(m.id, { requiresFullViewing: v })}
+                  >
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Shows a notice telling the learner to watch the whole video before continuing. This can't technically block
+                      skipping ahead on an embedded YouTube video -- it's a notice, not an enforced lock.
+                    </p>
+                  </ToggleRow>
                 </div>
 
                 {quizEditorFor === m.id && (
