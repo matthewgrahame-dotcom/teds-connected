@@ -47,3 +47,10 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Real personal data (home addresses, phone numbers, emergency contacts,
+# etc.) -- generated locally from HR exports for one-off DB seeding, never
+# committed. Keep the code that reads this shape (seed-portal-users.ts and
+# similar), just not the data itself.
+scripts/src/data/portal-user-profiles-seed.json
+scripts/seed-portal-user-profiles.sql

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { asc, eq } from "drizzle-orm";
-import { db, appSettingsTable, quickLinksTable, keyContactsTable } from "@workspace/db";
+import { db, appSettingsTable, quickLinksTable, keyContactsTable, portalUsersTable, portalUserProfilesTable } from "@workspace/db";
 import { requireFullLevel, requireSession } from "../lib/sessionAuth";
 
 const router: IRouter = Router();
@@ -80,30 +80,78 @@ router.delete("/quick-links/:id", requireFullLevel, async (req, res) => {
 });
 
 // -- Key Contacts ---------------------------------------------------------
+// Each row just points at a portal_users id -- name, job title, location,
+// and (unless overridden) contact details are joined live from that
+// person's actual record at read time, per keyContactsTable's schema
+// comment. GET below does the joining/fallback so the frontend just
+// renders a flat, ready-to-display shape.
 
 router.get("/key-contacts", requireSession, async (_req, res) => {
-  const contacts = await db.select().from(keyContactsTable).orderBy(asc(keyContactsTable.sortOrder), asc(keyContactsTable.id));
+  const rows = await db
+    .select({
+      id: keyContactsTable.id,
+      userId: keyContactsTable.userId,
+      photoUrl: keyContactsTable.photoUrl,
+      phoneOverride: keyContactsTable.phoneOverride,
+      emailOverride: keyContactsTable.emailOverride,
+      sortOrder: keyContactsTable.sortOrder,
+      firstName: portalUsersTable.firstName,
+      lastName: portalUsersTable.lastName,
+      role: portalUsersTable.role,
+      locations: portalUsersTable.locations,
+      email: portalUsersTable.email,
+      jobTitle: portalUserProfilesTable.jobTitle,
+      phoneNumber: portalUserProfilesTable.phoneNumber,
+    })
+    .from(keyContactsTable)
+    .innerJoin(portalUsersTable, eq(keyContactsTable.userId, portalUsersTable.id))
+    .leftJoin(portalUserProfilesTable, eq(portalUserProfilesTable.userId, portalUsersTable.id))
+    .orderBy(asc(keyContactsTable.sortOrder), asc(keyContactsTable.id));
+
+  const contacts = rows.map((r) => ({
+    id: r.id,
+    userId: r.userId,
+    name: `${r.firstName} ${r.lastName}`,
+    title: r.jobTitle ? `${r.jobTitle}${r.locations[0] ? ` at ${r.locations[0]}` : ""}` : r.role,
+    photoUrl: r.photoUrl,
+    phone: r.phoneOverride ?? r.phoneNumber ?? null,
+    email: r.emailOverride ?? r.email,
+    sortOrder: r.sortOrder,
+  }));
   res.json(contacts);
 });
 
 router.post("/key-contacts", requireFullLevel, async (req, res) => {
-  const { name, role, photoUrl, phone, email, sortOrder } = req.body ?? {};
-  if (typeof name !== "string" || !name.trim() || typeof role !== "string" || !role.trim()) {
-    res.status(400).json({ error: "name and role are required" });
+  const { userId, photoUrl, phoneOverride, emailOverride, sortOrder } = req.body ?? {};
+  const uid = Number(userId);
+  if (!Number.isInteger(uid)) {
+    res.status(400).json({ error: "userId is required" });
     return;
   }
-  const [contact] = await db
-    .insert(keyContactsTable)
-    .values({
-      name: name.trim(),
-      role: role.trim(),
-      photoUrl: photoUrl?.trim() || null,
-      phone: phone?.trim() || null,
-      email: email?.trim() || null,
-      sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
-    })
-    .returning();
-  res.json({ ok: true, contact });
+  const [user] = await db.select({ id: portalUsersTable.id }).from(portalUsersTable).where(eq(portalUsersTable.id, uid));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  try {
+    const [contact] = await db
+      .insert(keyContactsTable)
+      .values({
+        userId: uid,
+        photoUrl: photoUrl?.trim() || null,
+        phoneOverride: phoneOverride?.trim() || null,
+        emailOverride: emailOverride?.trim() || null,
+        sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+      })
+      .returning();
+    res.json({ ok: true, contact });
+  } catch (err: unknown) {
+    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "23505") {
+      res.status(409).json({ error: "That person is already a key contact" });
+      return;
+    }
+    throw err;
+  }
 });
 
 router.patch("/key-contacts/:id", requireFullLevel, async (req, res) => {
@@ -112,13 +160,11 @@ router.patch("/key-contacts/:id", requireFullLevel, async (req, res) => {
     res.status(400).json({ error: "Invalid contact id" });
     return;
   }
-  const { name, role, photoUrl, phone, email, sortOrder } = req.body ?? {};
+  const { photoUrl, phoneOverride, emailOverride, sortOrder } = req.body ?? {};
   const updates: Partial<typeof keyContactsTable.$inferInsert> = { updatedAt: new Date() };
-  if (typeof name === "string") updates.name = name.trim();
-  if (typeof role === "string") updates.role = role.trim();
   if (photoUrl !== undefined) updates.photoUrl = photoUrl?.trim() || null;
-  if (phone !== undefined) updates.phone = phone?.trim() || null;
-  if (email !== undefined) updates.email = email?.trim() || null;
+  if (phoneOverride !== undefined) updates.phoneOverride = phoneOverride?.trim() || null;
+  if (emailOverride !== undefined) updates.emailOverride = emailOverride?.trim() || null;
   if (typeof sortOrder === "number") updates.sortOrder = sortOrder;
 
   const [contact] = await db.update(keyContactsTable).set(updates).where(eq(keyContactsTable.id, id)).returning();

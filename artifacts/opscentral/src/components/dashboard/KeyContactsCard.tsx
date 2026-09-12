@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { User, Phone, Mail, Settings, Plus, Trash2, ChevronUp, ChevronDown, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { User, Phone, Mail, Settings, Plus, Trash2, ChevronUp, ChevronDown, X, Search } from 'lucide-react';
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/lib/auth';
@@ -8,12 +8,20 @@ import { authHeaders } from '@/lib/sessionAuth';
 
 type KeyContactRow = {
   id: number;
+  userId: number;
   name: string;
-  role: string;
+  title: string;
   photoUrl: string | null;
   phone: string | null;
   email: string | null;
   sortOrder: number;
+};
+
+type PortalUserOption = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  role: string;
 };
 
 export function KeyContactsCard() {
@@ -22,6 +30,9 @@ export function KeyContactsCard() {
   const [contacts, setContacts] = useState<KeyContactRow[] | null>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState<number | 'new' | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [allUsers, setAllUsers] = useState<PortalUserOption[] | null>(null);
 
   const canEdit = session?.level === 'full';
 
@@ -36,7 +47,7 @@ export function KeyContactsCard() {
 
   const openSettings = () => requirePublishAccess(() => setEditing(true));
 
-  const saveContact = async (id: number, patch: Partial<KeyContactRow>) => {
+  const saveContact = async (id: number, patch: Partial<{ photoUrl: string; phoneOverride: string; emailOverride: string; sortOrder: number }>) => {
     setSaving(id);
     await fetch(`/api/key-contacts/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...authHeaders(session) }, body: JSON.stringify(patch) });
     load();
@@ -44,22 +55,39 @@ export function KeyContactsCard() {
   };
 
   const deleteContact = async (id: number) => {
-    if (!confirm('Remove this contact?')) return;
+    if (!confirm('Remove this key contact? (Their user account is unaffected.)')) return;
     setSaving(id);
     await fetch(`/api/key-contacts/${id}`, { method: 'DELETE', headers: authHeaders(session) });
     load();
     setSaving(null);
   };
 
-  const addContact = async () => {
+  const openPicker = () => {
+    setPickerSearch('');
+    setPicking(true);
+    if (!allUsers) {
+      fetch('/api/users?status=active', { headers: authHeaders(session) })
+        .then((r) => r.json())
+        .then(setAllUsers)
+        .catch(() => setAllUsers([]));
+    }
+  };
+
+  const addContact = async (userId: number) => {
     setSaving('new');
     const maxOrder = Math.max(0, ...(contacts ?? []).map((c) => c.sortOrder));
-    await fetch('/api/key-contacts', {
+    const res = await fetch('/api/key-contacts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
-      body: JSON.stringify({ name: 'New Contact', role: 'Role', sortOrder: maxOrder + 1 }),
+      body: JSON.stringify({ userId, sortOrder: maxOrder + 1 }),
     });
-    load();
+    if (res.ok) {
+      setPicking(false);
+      load();
+    } else {
+      const data = await res.json();
+      alert(data.error ?? 'Could not add contact');
+    }
     setSaving(null);
   };
 
@@ -73,6 +101,16 @@ export function KeyContactsCard() {
       saveContact(other.id, { sortOrder: current.sortOrder }),
     ]);
   };
+
+  const alreadyContactUserIds = new Set((contacts ?? []).map((c) => c.userId));
+  const pickerResults = useMemo(() => {
+    if (!allUsers) return [];
+    const q = pickerSearch.trim().toLowerCase();
+    return allUsers
+      .filter((u) => !alreadyContactUserIds.has(u.id))
+      .filter((u) => !q || `${u.firstName} ${u.lastName}`.toLowerCase().includes(q))
+      .slice(0, 30);
+  }, [allUsers, pickerSearch, contacts]);
 
   return (
     <DashboardCard title="Key Contacts" noPadding actions={canEdit ? <CardIconButton icon={Settings} label="Edit key contacts" onClick={openSettings} /> : <></>}>
@@ -89,7 +127,7 @@ export function KeyContactsCard() {
             </span>
             <div className="min-w-0 flex-1">
               <p className="font-extrabold text-foreground">{contact.name}</p>
-              <p className="truncate text-sm text-muted-foreground">{contact.role}</p>
+              <p className="truncate text-sm text-muted-foreground">{contact.title}</p>
               {(contact.phone || contact.email) && (
                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                   {contact.phone && (
@@ -114,7 +152,10 @@ export function KeyContactsCard() {
           <DialogHeader>
             <DialogTitle>Edit Key Contacts</DialogTitle>
           </DialogHeader>
-          <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+          <p className="text-xs text-muted-foreground">
+            Name and title are pulled live from each person's User Management record. Photo and contact-detail overrides are set here.
+          </p>
+          <div className="max-h-[55vh] space-y-3 overflow-y-auto pr-1">
             {contacts?.map((contact, index) => (
               <div key={contact.id} className="rounded-lg border border-border p-3">
                 <div className="flex items-center gap-2">
@@ -129,20 +170,10 @@ export function KeyContactsCard() {
                   <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-muted text-muted-foreground">
                     {contact.photoUrl ? <img src={contact.photoUrl} alt="" className="h-full w-full object-cover" /> : <User className="h-4 w-4" />}
                   </span>
-                  <input
-                    defaultValue={contact.name}
-                    key={`name-${contact.id}`}
-                    onBlur={(e) => e.target.value.trim() && e.target.value !== contact.name && saveContact(contact.id, { name: e.target.value.trim() })}
-                    placeholder="Name"
-                    className="h-9 w-32 rounded-md border border-input bg-background px-2 text-sm outline-none"
-                  />
-                  <input
-                    defaultValue={contact.role}
-                    key={`role-${contact.id}`}
-                    onBlur={(e) => e.target.value.trim() && e.target.value !== contact.role && saveContact(contact.id, { role: e.target.value.trim() })}
-                    placeholder="Role"
-                    className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm outline-none"
-                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-extrabold text-foreground">{contact.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">{contact.title}</p>
+                  </div>
                   <button
                     type="button"
                     aria-label="Remove contact"
@@ -157,22 +188,22 @@ export function KeyContactsCard() {
                   <input
                     defaultValue={contact.photoUrl ?? ''}
                     key={`photo-${contact.id}`}
-                    onBlur={(e) => e.target.value.trim() !== (contact.photoUrl ?? '') && saveContact(contact.id, { photoUrl: e.target.value.trim() || null })}
+                    onBlur={(e) => e.target.value.trim() !== (contact.photoUrl ?? '') && saveContact(contact.id, { photoUrl: e.target.value.trim() })}
                     placeholder="Photo URL"
                     className="h-8 rounded-md border border-input bg-background px-2 text-xs outline-none"
                   />
                   <input
                     defaultValue={contact.phone ?? ''}
                     key={`phone-${contact.id}`}
-                    onBlur={(e) => e.target.value.trim() !== (contact.phone ?? '') && saveContact(contact.id, { phone: e.target.value.trim() || null })}
-                    placeholder="Phone"
+                    onBlur={(e) => e.target.value.trim() !== (contact.phone ?? '') && saveContact(contact.id, { phoneOverride: e.target.value.trim() })}
+                    placeholder="Phone override"
                     className="h-8 rounded-md border border-input bg-background px-2 text-xs outline-none"
                   />
                   <input
                     defaultValue={contact.email ?? ''}
                     key={`email-${contact.id}`}
-                    onBlur={(e) => e.target.value.trim() !== (contact.email ?? '') && saveContact(contact.id, { email: e.target.value.trim() || null })}
-                    placeholder="Email"
+                    onBlur={(e) => e.target.value.trim() !== (contact.email ?? '') && saveContact(contact.id, { emailOverride: e.target.value.trim() })}
+                    placeholder="Email override"
                     className="h-8 rounded-md border border-input bg-background px-2 text-xs outline-none"
                   />
                 </div>
@@ -182,7 +213,7 @@ export function KeyContactsCard() {
           <div className="flex items-center justify-between border-t border-border pt-4">
             <button
               type="button"
-              onClick={addContact}
+              onClick={openPicker}
               disabled={saving === 'new'}
               className="inline-flex items-center gap-1.5 text-sm font-bold text-accent hover:underline"
             >
@@ -195,6 +226,40 @@ export function KeyContactsCard() {
             >
               <X className="h-3.5 w-3.5" /> Done
             </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={picking} onOpenChange={setPicking}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Key Contact</DialogTitle>
+          </DialogHeader>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              autoFocus
+              value={pickerSearch}
+              onChange={(e) => setPickerSearch(e.target.value)}
+              placeholder="Search people…"
+              className="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm outline-none focus:border-accent"
+            />
+          </div>
+          <div className="max-h-[50vh] space-y-1 overflow-y-auto">
+            {allUsers === null && <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p>}
+            {allUsers !== null && pickerResults.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No matches.</p>}
+            {pickerResults.map((u) => (
+              <button
+                key={u.id}
+                type="button"
+                disabled={saving === 'new'}
+                onClick={() => addContact(u.id)}
+                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition hover:bg-muted"
+              >
+                <span className="font-semibold text-foreground">{u.firstName} {u.lastName}</span>
+                <span className="text-xs text-muted-foreground">{u.role}</span>
+              </button>
+            ))}
           </div>
         </DialogContent>
       </Dialog>
