@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Circle, CircleDot, CheckCircle2, ExternalLink, ChevronDown, ChevronUp, ListChecks } from 'lucide-react';
+import { Circle, CircleDot, CheckCircle2, ExternalLink, ChevronDown, ChevronUp, PlayCircle } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 import { RichContent } from '@/components/RichContent';
-import { QuizTaker } from '@/components/QuizTaker';
+import { ModuleWizard } from '@/components/ModuleWizard';
 import { getYouTubeEmbedId } from '@/lib/youtube';
 
 type ModuleStatus = 'not_started' | 'in_progress' | 'completed';
@@ -43,7 +43,7 @@ export default function ProgramsPage() {
   const { session } = useAuth();
   const [programs, setPrograms] = useState<Program[] | null>(null);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
-  const [quizOpenFor, setQuizOpenFor] = useState<number | null>(null);
+  const [wizardFor, setWizardFor] = useState<Module | null>(null);
 
   const toggleExpanded = (id: number) => {
     setExpanded((prev) => {
@@ -106,8 +106,38 @@ export default function ProgramsPage() {
             <div className="divide-y divide-border">
               {program.modules.map((module) => {
                 const { label, icon: Icon, className } = statusConfig[module.status];
+
+                // Quiz-gated modules open the real two-screen wizard (Intro/video
+                // -> Start -> Quiz), matching the reference screenshots -- not
+                // the plain inline-expand treatment below, which is only for
+                // modules with no quiz to gate.
+                if (module.hasQuiz) {
+                  return (
+                    <div key={module.id} data-testid={`module-${module.id}`} className="flex items-center justify-between gap-4 px-5 py-3">
+                      <span className="truncate text-sm text-foreground">
+                        {module.title}
+                        <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">Quiz</span>
+                      </span>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${className}`}>
+                          <Icon className="h-3.5 w-3.5" />
+                          {label}
+                        </span>
+                        <button
+                          type="button"
+                          data-testid={`button-open-module-${module.id}`}
+                          onClick={() => setWizardFor(module)}
+                          className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground transition hover:brightness-95"
+                        >
+                          <PlayCircle className="h-3.5 w-3.5" />
+                          {module.status === 'completed' ? 'Retake' : 'Start'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
                 const isExpanded = expanded.has(module.id);
-                const isQuizOpen = quizOpenFor === module.id;
                 const embedId = getYouTubeEmbedId(module.externalUrl);
                 const canExpand = !!module.content || !!embedId;
                 return (
@@ -120,45 +150,22 @@ export default function ProgramsPage() {
                         className="flex min-w-0 items-center gap-2 text-left disabled:cursor-default"
                       >
                         {canExpand && (isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />)}
-                        <span className="truncate text-sm text-foreground">
-                          {module.title}
-                          {module.hasQuiz && <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">Quiz</span>}
-                        </span>
+                        <span className="truncate text-sm text-foreground">{module.title}</span>
                         {module.externalUrl && !embedId && (
                           <a href={module.externalUrl} target="_blank" rel="noreferrer" aria-label="Open module content" onClick={(e) => e.stopPropagation()}>
                             <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground hover:text-foreground" />
                           </a>
                         )}
                       </button>
-                      <div className="flex shrink-0 items-center gap-2">
-                        {module.hasQuiz ? (
-                          <>
-                            <span className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${className}`}>
-                              <Icon className="h-3.5 w-3.5" />
-                              {label}
-                            </span>
-                            <button
-                              type="button"
-                              data-testid={`button-take-quiz-${module.id}`}
-                              onClick={() => setQuizOpenFor(isQuizOpen ? null : module.id)}
-                              className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground transition hover:brightness-95"
-                            >
-                              <ListChecks className="h-3.5 w-3.5" />
-                              {module.status === 'completed' ? 'Retake Quiz' : 'Take Quiz'}
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            type="button"
-                            data-testid={`button-status-${module.id}`}
-                            onClick={() => cycleStatus(module)}
-                            className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition hover:brightness-95 ${className}`}
-                          >
-                            <Icon className="h-3.5 w-3.5" />
-                            {label}
-                          </button>
-                        )}
-                      </div>
+                      <button
+                        type="button"
+                        data-testid={`button-status-${module.id}`}
+                        onClick={() => cycleStatus(module)}
+                        className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition hover:brightness-95 ${className}`}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        {label}
+                      </button>
                     </div>
                     {isExpanded && (embedId || module.content) && (
                       <div className="space-y-3 px-5 pb-4">
@@ -181,15 +188,6 @@ export default function ProgramsPage() {
                         {module.content && <RichContent text={module.content} />}
                       </div>
                     )}
-                    {isQuizOpen && (
-                      <QuizTaker
-                        moduleId={module.id}
-                        onDone={() => {
-                          setQuizOpenFor(null);
-                          load();
-                        }}
-                      />
-                    )}
                   </div>
                 );
               })}
@@ -197,6 +195,17 @@ export default function ProgramsPage() {
           </section>
         ))}
       </div>
+
+      {wizardFor && (
+        <ModuleWizard
+          module={wizardFor}
+          onClose={() => setWizardFor(null)}
+          onQuizDone={() => {
+            setWizardFor(null);
+            load();
+          }}
+        />
+      )}
     </div>
   );
 }

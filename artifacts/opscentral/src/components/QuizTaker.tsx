@@ -59,11 +59,11 @@ export function QuizTaker({ moduleId, onDone }: { moduleId: number; onDone: () =
     }
   };
 
-  if (questions === null) return <p className="px-5 pb-4 text-sm text-muted-foreground">Loading quiz…</p>;
+  if (questions === null) return <p className="text-sm text-muted-foreground">Loading quiz…</p>;
 
   if (result) {
     return (
-      <div className="px-5 pb-4">
+      <div>
         <div className={`flex items-center gap-3 rounded-lg border p-4 ${result.passed ? 'border-primary/40 bg-primary/5' : 'border-destructive/40 bg-destructive/5'}`}>
           {result.passed ? <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" /> : <XCircle className="h-5 w-5 shrink-0 text-destructive" />}
           <div>
@@ -95,7 +95,7 @@ export function QuizTaker({ moduleId, onDone }: { moduleId: number; onDone: () =
   }
 
   return (
-    <div className="space-y-4 px-5 pb-4">
+    <div className="space-y-4">
       {questions.length === 0 && <p className="text-sm text-muted-foreground">No quiz questions for this module.</p>}
       {questions.map((q, i) => (
         <div key={q.id} className="rounded-lg border border-border p-3">
