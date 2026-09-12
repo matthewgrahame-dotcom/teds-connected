@@ -22,13 +22,18 @@ declare global {
  * fb-page div. Unlike Instagram, this doesn't need OAuth/Business account
  * setup, which is why it was quick to add while Instagram wasn't.
  *
- * Mobile note: the plugin renders as an iframe sized by data-width, and
- * data-adapt-container-width doesn't reliably kick in if FB.XFBML.parse()
- * runs before the container's real (CSS-computed, mobile) width has
- * settled -- easy to hit on initial load/hydration. Two things guard
- * against that here: a double-rAF delay before parsing (lets layout
- * settle first) and a wrapper that's explicitly full-width so FB reads an
- * accurate value when it does measure.
+ * Mobile/sizing note: the plugin renders as an iframe sized once, at
+ * parse() time -- data-adapt-container-width only measures the container
+ * once and never re-measures, so if the card's real layout width changes
+ * later (window resize, sidebar reflow, a slow initial layout settle) the
+ * embed is stuck at whatever width it first measured, leaving blank space
+ * in a now-wider container. Two things guard against that: a double-rAF
+ * delay before the very first parse (lets initial layout settle before
+ * FB measures it), and a ResizeObserver that forces a full fresh embed
+ * (new DOM node, re-parsed) whenever the container's width has actually
+ * changed meaningfully since the last parse -- Facebook's plugin doesn't
+ * resize an existing iframe in place, so remounting the div and
+ * re-parsing is the reliable way to pick up a new width.
  */
 export function FacebookStreamCard() {
   const { session } = useAuth();
@@ -38,6 +43,9 @@ export function FacebookStreamCard() {
   const [editing, setEditing] = useState(false);
   const [draftUrl, setDraftUrl] = useState('');
   const [saving, setSaving] = useState(false);
+  const [resizeKey, setResizeKey] = useState(0); // bumped on a real width change, to force a fresh embed re-parse
+  const lastWidthRef = useRef<number | null>(null);
+  const resizeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const canEdit = session?.level === 'full';
 
@@ -58,7 +66,10 @@ export function FacebookStreamCard() {
       // width before FB measures it, rather than whatever it was mid-render.
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          if (!cancelled && window.FB && containerRef.current) window.FB.XFBML.parse(containerRef.current);
+          if (!cancelled && window.FB && containerRef.current) {
+            window.FB.XFBML.parse(containerRef.current);
+            lastWidthRef.current = containerRef.current.offsetWidth;
+          }
         });
       });
     };
@@ -96,7 +107,42 @@ export function FacebookStreamCard() {
     return () => {
       cancelled = true;
     };
-  }, [pageUrl]); // re-parse (new fb-page div, since it's keyed by pageUrl below) whenever the configured page changes
+    // pageUrl and resizeKey both change the key on the div below, forcing a
+    // fresh .fb-page node -- re-run this same parse logic against it either way.
+  }, [pageUrl, resizeKey]);
+
+  // Detects a real, settled width change (debounced) and forces a fresh
+  // embed so FB re-measures. Ignores the initial observe() call (which
+  // always fires once immediately) and any change too small to matter.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width === undefined) return;
+
+      if (lastWidthRef.current === null) {
+        // First measurement -- just record it, nothing to compare against yet.
+        lastWidthRef.current = width;
+        return;
+      }
+
+      if (Math.abs(width - lastWidthRef.current) < 8) return; // ignore sub-pixel/noise-level changes
+
+      if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
+      resizeTimeoutRef.current = setTimeout(() => {
+        lastWidthRef.current = width;
+        setResizeKey((k) => k + 1);
+      }, 200);
+    });
+
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
+    };
+  }, []);
 
   const openSettings = () => {
     setDraftUrl(pageUrl);
@@ -121,7 +167,7 @@ export function FacebookStreamCard() {
 
   return (
     <DashboardCard title="Facebook Stream" noPadding actions={canEdit ? <CardIconButton icon={Settings} label="Change Facebook page" onClick={openSettings} /> : <></>}>
-      <div className="w-full max-w-full overflow-hidden px-5 pb-5" ref={containerRef} key={pageUrl}>
+      <div className="w-full max-w-full overflow-hidden px-5 pb-5" ref={containerRef} key={`${pageUrl}-${resizeKey}`}>
         <div
           className="fb-page w-full max-w-full"
           data-href={pageUrl}
