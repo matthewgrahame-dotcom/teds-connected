@@ -151,6 +151,25 @@ router.put("/training/modules/:id/quiz/progress", requireSession, async (req, re
       target: [trainingQuizProgressTable.moduleId, trainingQuizProgressTable.staffName],
       set: { answers, textAnswers, updatedAt: new Date() },
     });
+
+  // Bump module_progress to "in_progress" the first time a draft actually
+  // has something in it -- otherwise the status badge on Programs stays
+  // stuck on "Not Started" even though real answers are being saved, since
+  // until now only a full quiz submit ever touched this table. Only moves
+  // "not_started" -> "in_progress", and only inserts a fresh row when none
+  // exists yet -- deliberately does NOT touch an already-"completed" status,
+  // so idly reopening a passed quiz (or a stray autosave firing before
+  // "Retake" is clicked) can't make a finished module look unfinished again.
+  const hasAnyAnswer = Object.keys(answers).length > 0 || Object.keys(textAnswers).length > 0;
+  if (hasAnyAnswer) {
+    const [existingProgress] = await db.select().from(moduleProgressTable).where(and(eq(moduleProgressTable.moduleId, moduleId), eq(moduleProgressTable.staffName, staffName)));
+    if (!existingProgress) {
+      await db.insert(moduleProgressTable).values({ moduleId, staffName, status: "in_progress" });
+    } else if (existingProgress.status === "not_started") {
+      await db.update(moduleProgressTable).set({ status: "in_progress" }).where(and(eq(moduleProgressTable.moduleId, moduleId), eq(moduleProgressTable.staffName, staffName)));
+    }
+  }
+
   res.json({ ok: true });
 });
 

@@ -206,7 +206,15 @@ export default function ProgramsPage() {
       {wizardFor && (
         <ModuleWizard
           module={wizardFor}
-          onClose={() => setWizardFor(null)}
+          // Refresh on close too, not just on a full quiz submit -- closing
+          // the dialog partway through (X, backdrop click, "Back to intro")
+          // can now mean real progress was autosaved server-side, so the
+          // status badge behind the dialog needs to catch up even when
+          // nothing was actually submitted.
+          onClose={() => {
+            setWizardFor(null);
+            load();
+          }}
           onQuizDone={() => {
             setWizardFor(null);
             load();
