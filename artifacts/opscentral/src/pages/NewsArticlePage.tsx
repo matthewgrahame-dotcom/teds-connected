@@ -10,6 +10,8 @@ type NewsArticle = {
   snippet: string;
   body: string | null;
   imageUrl: string | null;
+  imagePhotographerName: string | null;
+  imagePhotographerUrl: string | null;
   linkUrl: string | null;
   tagColor: string;
   postedBy: string;
@@ -52,6 +54,22 @@ export default function NewsArticlePage() {
               <div className="grid aspect-[16/9] w-full place-items-center bg-gradient-to-br from-foreground/80 via-foreground/60 to-muted">
                 <ImageIcon className="h-10 w-10 text-primary-foreground/30" />
               </div>
+            )}
+            {article.imageUrl && article.imagePhotographerName && (
+              <p className="bg-muted/30 px-6 py-1.5 text-[11px] text-muted-foreground">
+                Photo by{' '}
+                {article.imagePhotographerUrl ? (
+                  <a href={`${article.imagePhotographerUrl}?utm_source=connected&utm_medium=referral`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                    {article.imagePhotographerName}
+                  </a>
+                ) : (
+                  article.imagePhotographerName
+                )}{' '}
+                on{' '}
+                <a href="https://unsplash.com/?utm_source=connected&utm_medium=referral" target="_blank" rel="noopener noreferrer" className="hover:underline">
+                  Unsplash
+                </a>
+              </p>
             )}
             <div className="p-6">
               <div className="flex gap-4">

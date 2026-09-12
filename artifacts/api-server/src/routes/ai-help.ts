@@ -36,4 +36,30 @@ router.post("/ai-help", requireSession, async (req, res) => {
   }
 });
 
+// Fires Unsplash's required download-tracking ping (see connected-ai-help.js)
+// once a photo proposed alongside a create_news_article tool call is
+// actually confirmed/used -- separate from the question flow above since no
+// Claude call is involved, just forwarding to Phocal (only place the
+// UNSPLASH_ACCESS_KEY lives).
+router.post("/ai-help/confirm-image", requireSession, async (req, res) => {
+  const downloadLocationUrl = typeof req.body?.downloadLocationUrl === "string" ? req.body.downloadLocationUrl : "";
+  if (!downloadLocationUrl) {
+    res.status(400).json({ error: "Missing downloadLocationUrl" });
+    return;
+  }
+  const sessionToken = req.header("x-session-token");
+
+  try {
+    const resp = await fetch(`${PHOCAL_BASE_URL}/api/connected-ai-help`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirmDownloadLocationUrl: downloadLocationUrl, sessionToken }),
+    });
+    const data = await resp.json();
+    res.status(resp.status).json(data);
+  } catch {
+    res.status(502).json({ error: "Couldn't reach the AI help service. Try again shortly." });
+  }
+});
+
 export default router;

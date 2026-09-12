@@ -13,7 +13,14 @@ type CreateTrainingCall = {
   name: 'create_training_program';
   input: { title: string; description?: string; startDate?: string; endDate?: string; modules: ModuleInput[] };
 };
-type CreateNewsCall = { name: 'create_news_article'; input: { title: string; snippet: string; body?: string } };
+type UnsplashImage = {
+  imageUrl: string;
+  thumbUrl: string;
+  photographerName: string;
+  photographerProfileUrl: string;
+  downloadLocationUrl: string;
+};
+type CreateNewsCall = { name: 'create_news_article'; input: { title: string; snippet: string; body?: string }; image?: UnsplashImage | null };
 type ToolCall = CreateFormCall | CreateTrainingCall | CreateNewsCall;
 
 type CreatedResult = { kind: 'form'; slug: string; title: string } | { kind: 'training'; title: string } | { kind: 'news'; id: number; title: string };
@@ -76,10 +83,31 @@ export function AiHelpCard() {
         if (!res.ok) throw new Error(data.error || 'Could not create the training program');
         setCreated({ kind: 'training', title: data.program.title });
       } else {
+        // If a photo came with the proposal, fire Unsplash's required
+        // download-tracking ping now (the moment it's actually used, not
+        // when it was merely shown in the proposal) before creating the
+        // article -- courtesy step, so its failure shouldn't block the
+        // actual create either.
+        if (toolCall.image) {
+          try {
+            await fetch('/api/ai-help/confirm-image', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+              body: JSON.stringify({ downloadLocationUrl: toolCall.image.downloadLocationUrl }),
+            });
+          } catch {
+            // non-fatal
+          }
+        }
         const res = await fetch('/api/news', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
-          body: JSON.stringify(toolCall.input),
+          body: JSON.stringify({
+            ...toolCall.input,
+            imageUrl: toolCall.image?.imageUrl,
+            imagePhotographerName: toolCall.image?.photographerName,
+            imagePhotographerUrl: toolCall.image?.photographerProfileUrl,
+          }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Could not create the news article');
@@ -174,6 +202,16 @@ export function AiHelpCard() {
             <>
               <p className="mt-1 text-xs text-muted-foreground">{toolCall.input.snippet}</p>
               {toolCall.input.body && <p className="mt-2 line-clamp-3 text-xs text-muted-foreground/80">{toolCall.input.body}</p>}
+              {toolCall.image ? (
+                <div className="mt-2">
+                  <img src={toolCall.image.thumbUrl} alt="" className="h-24 w-full rounded-md object-cover" />
+                  <p className="mt-1 text-[11px] text-muted-foreground/70">
+                    Photo by {toolCall.image.photographerName} on Unsplash
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-2 text-[11px] text-muted-foreground/70">No matching photo found — will use the generic placeholder.</p>
+              )}
             </>
           )}
 

@@ -25,7 +25,7 @@ router.get("/news/:id", requireSession, async (req, res) => {
 });
 
 router.post("/news", requireFullLevel, async (req, res) => {
-  const { title, snippet, body, imageUrl, linkUrl, tagColor } = req.body ?? {};
+  const { title, snippet, body, imageUrl, imagePhotographerName, imagePhotographerUrl, linkUrl, tagColor } = req.body ?? {};
   const postedBy = req.sessionPayload!.name;
   if (typeof title !== "string" || !title.trim() || typeof snippet !== "string" || !snippet.trim()) {
     res.status(400).json({ error: "title and snippet are required" });
@@ -38,6 +38,8 @@ router.post("/news", requireFullLevel, async (req, res) => {
       snippet: snippet.trim(),
       body: body?.trim() || null,
       imageUrl: imageUrl?.trim() || null,
+      imagePhotographerName: imagePhotographerName?.trim() || null,
+      imagePhotographerUrl: imagePhotographerUrl?.trim() || null,
       linkUrl: linkUrl?.trim() || null,
       tagColor: tagColor?.trim() || undefined,
       postedBy,
@@ -52,12 +54,14 @@ router.patch("/news/:id", requireFullLevel, async (req, res) => {
     res.status(400).json({ error: "Invalid article id" });
     return;
   }
-  const { title, snippet, body, imageUrl, linkUrl, tagColor, postedBy } = req.body ?? {};
+  const { title, snippet, body, imageUrl, imagePhotographerName, imagePhotographerUrl, linkUrl, tagColor, postedBy } = req.body ?? {};
   const updates: Partial<typeof newsArticlesTable.$inferInsert> = {};
   if (typeof title === "string") updates.title = title.trim();
   if (typeof snippet === "string") updates.snippet = snippet.trim();
   if (typeof body === "string") updates.body = body.trim() || null;
   if (typeof imageUrl === "string") updates.imageUrl = imageUrl.trim() || null;
+  if (typeof imagePhotographerName === "string") updates.imagePhotographerName = imagePhotographerName.trim() || null;
+  if (typeof imagePhotographerUrl === "string") updates.imagePhotographerUrl = imagePhotographerUrl.trim() || null;
   if (typeof linkUrl === "string") updates.linkUrl = linkUrl.trim() || null;
   if (typeof tagColor === "string") updates.tagColor = tagColor.trim();
   if (typeof postedBy === "string") updates.postedBy = postedBy.trim();
