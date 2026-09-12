@@ -23,17 +23,18 @@ declare global {
  * setup, which is why it was quick to add while Instagram wasn't.
  *
  * Mobile/sizing note: the plugin renders as an iframe sized once, at
- * parse() time -- data-adapt-container-width only measures the container
- * once and never re-measures, so if the card's real layout width changes
- * later (window resize, sidebar reflow, a slow initial layout settle) the
- * embed is stuck at whatever width it first measured, leaving blank space
- * in a now-wider container. Two things guard against that: a double-rAF
- * delay before the very first parse (lets initial layout settle before
- * FB measures it), and a ResizeObserver that forces a full fresh embed
- * (new DOM node, re-parsed) whenever the container's width has actually
- * changed meaningfully since the last parse -- Facebook's plugin doesn't
- * resize an existing iframe in place, so remounting the div and
- * re-parsing is the reliable way to pick up a new width.
+ * parse() time. The actual root cause of "narrow embed, blank space in the
+ * card" was that data-adapt-container-width's own measurement isn't
+ * reliable at parse time -- so this now measures the container itself in
+ * JS and sets data-width explicitly before every parse (see the `parse`
+ * function below), rather than trusting FB to get that first measurement
+ * right. Two things support that: a double-rAF delay before the very
+ * first parse (lets initial layout settle before we measure), and a
+ * ResizeObserver that forces a full fresh embed (new DOM node, re-parsed
+ * with a freshly-measured width) whenever the container's width changes
+ * meaningfully afterward -- Facebook's plugin doesn't resize an existing
+ * iframe in place, so remounting and re-parsing is the reliable way to
+ * pick up a new width, e.g. after a window resize.
  */
 export function FacebookStreamCard() {
   const { session } = useAuth();
@@ -63,13 +64,33 @@ export function FacebookStreamCard() {
 
     const parse = () => {
       // Wait two animation frames so the container has its final layout
-      // width before FB measures it, rather than whatever it was mid-render.
+      // width before we measure it, rather than whatever it was mid-render.
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          if (!cancelled && window.FB && containerRef.current) {
-            window.FB.XFBML.parse(containerRef.current);
-            lastWidthRef.current = containerRef.current.offsetWidth;
+          if (cancelled || !window.FB || !containerRef.current) return;
+
+          // Measure and set data-width explicitly on every parse (including
+          // this very first one) instead of trusting data-adapt-container-width
+          // to measure it correctly and in time -- that's the actual root
+          // cause of the blank-space bug: on desktop, nothing ever resizes
+          // after load, so if that very first FB-driven measurement was
+          // wrong, it just stays wrong forever (the ResizeObserver below
+          // only catches *later* width changes, not a bad initial one --
+          // which is exactly why this looked "fixed" on mobile, where a
+          // resize/orientation event happens to fire after load and
+          // papers over the bug, but not on a static desktop window).
+          // Facebook's Page Plugin only supports 180-500px regardless of
+          // adapt-container-width, so clamp to that rather than trying to
+          // force it wider.
+          const fbPageEl = containerRef.current.querySelector<HTMLElement>('.fb-page');
+          if (fbPageEl) {
+            const measuredWidth = Math.round(containerRef.current.offsetWidth);
+            const clampedWidth = Math.min(500, Math.max(180, measuredWidth));
+            fbPageEl.setAttribute('data-width', String(clampedWidth));
           }
+
+          window.FB.XFBML.parse(containerRef.current);
+          lastWidthRef.current = containerRef.current.offsetWidth;
         });
       });
     };
