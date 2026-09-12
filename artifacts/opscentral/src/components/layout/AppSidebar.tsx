@@ -131,6 +131,15 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
       }`}
     >
       <div className="flex h-full flex-col">
+        {/* Mobile-only logo header -- the drawer already sits below the
+            fixed header (pt-[170px] above), so this is a plain, non-overlapping
+            block, unlike the desktop version's overlap trick just below. */}
+        <div className="border-b border-sidebar-border py-4 md:hidden">
+          <Link href="/" onClick={onNavigate} className="flex items-center justify-center">
+            <img src={connectedLogo} alt="Connected" className="h-14 w-auto drop-shadow-md" />
+          </Link>
+        </div>
+
         {/* Logo panel -- the logo image intentionally overflows upward past
             this panel's own top edge to sit on top of the header's black
             utility bar above it. Needs the aside's z-40 (higher than
