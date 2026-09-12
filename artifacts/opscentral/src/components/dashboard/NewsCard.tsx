@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { ExternalLink } from 'lucide-react';
+import { useAuth } from '@/lib/auth';
+import { authHeaders } from '@/lib/sessionAuth';
 
 type NewsItem = {
   id: number;
@@ -11,11 +13,12 @@ type NewsItem = {
 };
 
 export function NewsCard() {
+  const { session } = useAuth();
   const [items, setItems] = useState<NewsItem[] | null>(null);
 
   useEffect(() => {
-    fetch('/api/news')
-      .then((r) => r.json())
+    fetch('/api/news', { headers: authHeaders(session) })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((data: NewsItem[]) => setItems(data.slice(0, 3)))
       .catch(() => setItems([]));
   }, []);

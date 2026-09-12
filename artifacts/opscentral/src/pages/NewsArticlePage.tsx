@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'wouter';
+import { useAuth } from '@/lib/auth';
+import { authHeaders } from '@/lib/sessionAuth';
 import { ChevronLeft } from 'lucide-react';
 
 type NewsArticle = {
@@ -16,10 +18,11 @@ type NewsArticle = {
 
 export default function NewsArticlePage() {
   const { id } = useParams<{ id: string }>();
+  const { session } = useAuth();
   const [article, setArticle] = useState<NewsArticle | null | undefined>(undefined);
 
   useEffect(() => {
-    fetch(`/api/news/${id}`)
+    fetch(`/api/news/${id}`, { headers: authHeaders(session) })
       .then((r) => (r.ok ? r.json() : null))
       .then(setArticle)
       .catch(() => setArticle(null));

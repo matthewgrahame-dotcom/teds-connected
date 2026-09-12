@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
+import { useAuth } from '@/lib/auth';
+import { authHeaders } from '@/lib/sessionAuth';
 
 type NewsArticle = {
   id: number;
@@ -11,11 +13,12 @@ type NewsArticle = {
 };
 
 export default function NewsPage() {
+  const { session } = useAuth();
   const [articles, setArticles] = useState<NewsArticle[] | null>(null);
 
   useEffect(() => {
-    fetch('/api/news')
-      .then((r) => r.json())
+    fetch('/api/news', { headers: authHeaders(session) })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then(setArticles)
       .catch(() => setArticles([]));
   }, []);

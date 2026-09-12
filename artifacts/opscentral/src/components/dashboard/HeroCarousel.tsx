@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react';
+import { useAuth } from '@/lib/auth';
+import { authHeaders } from '@/lib/sessionAuth';
 
 type NewsArticle = {
   id: number;
@@ -10,12 +12,13 @@ type NewsArticle = {
 const MAX_SLIDES = 5;
 
 export function HeroCarousel() {
+  const { session } = useAuth();
   const [articles, setArticles] = useState<NewsArticle[] | null>(null);
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    fetch('/api/news')
-      .then((r) => r.json())
+    fetch('/api/news', { headers: authHeaders(session) })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((data: NewsArticle[]) => setArticles(data.slice(0, MAX_SLIDES)))
       .catch(() => setArticles([]));
   }, []);

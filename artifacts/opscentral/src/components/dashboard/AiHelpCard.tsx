@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, Send, RotateCcw, FileText, GraduationCap, Check, X } from 'lucide-react';
+import { Sparkles, Send, RotateCcw, FileText, GraduationCap, Newspaper, Check, X } from 'lucide-react';
 import { Link } from 'wouter';
 import { DashboardCard } from './DashboardCard';
 import { useAuth } from '@/lib/auth';
@@ -13,9 +13,10 @@ type CreateTrainingCall = {
   name: 'create_training_program';
   input: { title: string; description?: string; startDate?: string; endDate?: string; modules: ModuleInput[] };
 };
-type ToolCall = CreateFormCall | CreateTrainingCall;
+type CreateNewsCall = { name: 'create_news_article'; input: { title: string; snippet: string; body?: string } };
+type ToolCall = CreateFormCall | CreateTrainingCall | CreateNewsCall;
 
-type CreatedResult = { kind: 'form'; slug: string; title: string } | { kind: 'training'; title: string };
+type CreatedResult = { kind: 'form'; slug: string; title: string } | { kind: 'training'; title: string } | { kind: 'news'; id: number; title: string };
 
 export function AiHelpCard() {
   const { session } = useAuth();
@@ -65,7 +66,7 @@ export function AiHelpCard() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Could not create the form');
         setCreated({ kind: 'form', slug: data.form.slug, title: data.form.title });
-      } else {
+      } else if (toolCall.name === 'create_training_program') {
         const res = await fetch('/api/training/programs', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
@@ -74,6 +75,15 @@ export function AiHelpCard() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Could not create the training program');
         setCreated({ kind: 'training', title: data.program.title });
+      } else {
+        const res = await fetch('/api/news', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+          body: JSON.stringify(toolCall.input),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not create the news article');
+        setCreated({ kind: 'news', id: data.article.id, title: data.article.title });
       }
       setToolCall(null);
     } catch (err) {
@@ -94,7 +104,7 @@ export function AiHelpCard() {
   return (
     <DashboardCard title="AI Help">
       <p className="mb-3 text-sm text-muted-foreground">
-        Ask anything about using Connected, or ask it to draft a new form or training program.
+        Ask anything about using Connected, or ask it to draft a new form, training program, or news article.
       </p>
       <div className="flex gap-2">
         <div className="relative flex-1">
@@ -133,8 +143,11 @@ export function AiHelpCard() {
       {toolCall && (
         <div className="mt-3 rounded-lg border border-primary/40 bg-primary/5 p-3">
           <div className="flex items-center gap-2 text-sm font-extrabold text-foreground">
-            {toolCall.name === 'create_form' ? <FileText className="h-4 w-4" /> : <GraduationCap className="h-4 w-4" />}
-            Proposed: {toolCall.name === 'create_form' ? 'New Form' : 'New Training Program'}
+            {toolCall.name === 'create_form' && <FileText className="h-4 w-4" />}
+            {toolCall.name === 'create_training_program' && <GraduationCap className="h-4 w-4" />}
+            {toolCall.name === 'create_news_article' && <Newspaper className="h-4 w-4" />}
+            Proposed:{' '}
+            {toolCall.name === 'create_form' ? 'New Form' : toolCall.name === 'create_training_program' ? 'New Training Program' : 'New News Article'}
           </div>
           <p className="mt-1 text-sm font-semibold text-foreground">{toolCall.input.title}</p>
 
@@ -155,6 +168,12 @@ export function AiHelpCard() {
                   <li key={i}>• {m.title}</li>
                 ))}
               </ul>
+            </>
+          )}
+          {toolCall.name === 'create_news_article' && (
+            <>
+              <p className="mt-1 text-xs text-muted-foreground">{toolCall.input.snippet}</p>
+              {toolCall.input.body && <p className="mt-2 line-clamp-3 text-xs text-muted-foreground/80">{toolCall.input.body}</p>}
             </>
           )}
 
@@ -178,15 +197,21 @@ export function AiHelpCard() {
       {created && (
         <div className="mt-3 rounded-lg border border-border bg-muted/30 p-3 text-sm">
           <p className="font-semibold text-foreground">
-            {created.kind === 'form' ? 'Form created.' : 'Training program created.'}
+            {created.kind === 'form' ? 'Form created.' : created.kind === 'training' ? 'Training program created.' : 'News article created.'}
           </p>
-          {created.kind === 'form' ? (
+          {created.kind === 'form' && (
             <Link href={`/people/forms/${created.slug}`} className="text-accent hover:underline">
               View "{created.title}"
             </Link>
-          ) : (
+          )}
+          {created.kind === 'training' && (
             <Link href="/learn/programs" className="text-accent hover:underline">
               View in Learn → Programs
+            </Link>
+          )}
+          {created.kind === 'news' && (
+            <Link href={`/news/${created.id}`} className="text-accent hover:underline">
+              View "{created.title}"
             </Link>
           )}
           <button type="button" onClick={reset} className="mt-2 block text-xs font-bold text-accent hover:underline">
