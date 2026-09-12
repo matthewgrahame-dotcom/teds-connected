@@ -4,6 +4,9 @@ import { Clock, MapPin, Plus, X } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { Calendar } from '@/components/ui/calendar';
 import { useAuth } from '@/lib/auth';
+import { authHeaders } from '@/lib/sessionAuth';
+
+type Rsvp = { staffName: string; response: 'yes' | 'no' | 'maybe' };
 
 type CalendarEvent = {
   id: number;
@@ -11,6 +14,8 @@ type CalendarEvent = {
   title: string;
   time?: string | null;
   location?: string | null;
+  requiresRsvp: boolean;
+  rsvps: Rsvp[];
 };
 
 /** 'yyyy-MM-dd' from LOCAL date parts, not Date#toISOString(). toISOString
@@ -31,13 +36,15 @@ export function TedsCalendarCard() {
   const [events, setEvents] = useState<CalendarEvent[] | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showAddForm, setShowAddForm] = useState(false);
-  const [draft, setDraft] = useState({ title: '', time: '', location: '' });
+  const [draft, setDraft] = useState({ title: '', time: '', location: '', requiresRsvp: false });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rsvpSaving, setRsvpSaving] = useState<number | null>(null);
 
   const loadEvents = async () => {
     try {
-      const resp = await fetch('/api/calendar/events');
+      const resp = await fetch('/api/calendar/events', { headers: authHeaders(session) });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
       setEvents(data);
     } catch {
@@ -68,26 +75,40 @@ export function TedsCalendarCard() {
     try {
       const resp = await fetch('/api/calendar/events', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
         body: JSON.stringify({
           title: draft.title.trim(),
           date: toDateKey(selectedDate),
           time: draft.time.trim() || undefined,
           location: draft.location.trim() || undefined,
-          createdBy: session.name,
+          requiresRsvp: draft.requiresRsvp,
         }),
       });
       if (!resp.ok) {
         const data = await resp.json();
         throw new Error(data.error || 'Failed to add event');
       }
-      setDraft({ title: '', time: '', location: '' });
+      setDraft({ title: '', time: '', location: '', requiresRsvp: false });
       setShowAddForm(false);
       await loadEvents();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add event');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const rsvp = async (eventId: number, response: 'yes' | 'no' | 'maybe') => {
+    setRsvpSaving(eventId);
+    try {
+      await fetch(`/api/calendar/events/${eventId}/rsvp`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+        body: JSON.stringify({ response }),
+      });
+      await loadEvents();
+    } finally {
+      setRsvpSaving(null);
     }
   };
 
@@ -151,6 +172,10 @@ export function TedsCalendarCard() {
                 className="w-1/2 rounded-md border border-border px-2.5 py-1.5 text-sm outline-none focus:border-primary"
               />
             </div>
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <input type="checkbox" checked={draft.requiresRsvp} onChange={(e) => setDraft((d) => ({ ...d, requiresRsvp: e.target.checked }))} />
+              Needs an RSVP (shows up on people's Tasks/Bell until they respond)
+            </label>
             {error && <p className="text-xs text-destructive">{error}</p>}
             <button
               type="button"
@@ -172,25 +197,45 @@ export function TedsCalendarCard() {
           </p>
         ) : (
           <div className="mt-2 divide-y divide-border">
-            {selectedEvents.map((event) => (
-              <div key={event.id} data-testid={`event-${event.id}`} className="py-3 first:pt-2">
-                <p className="font-extrabold text-foreground">{event.title}</p>
-                {(event.time || event.location) && (
-                  <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                    {event.time && (
-                      <span className="flex items-center gap-1.5">
-                        <Clock className="h-3.5 w-3.5" /> {event.time}
-                      </span>
-                    )}
-                    {event.location && (
-                      <span className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5" /> {event.location}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+            {selectedEvents.map((event) => {
+              const myRsvp = event.rsvps.find((r) => r.staffName === session?.name);
+              return (
+                <div key={event.id} data-testid={`event-${event.id}`} className="py-3 first:pt-2">
+                  <p className="font-extrabold text-foreground">{event.title}</p>
+                  {(event.time || event.location) && (
+                    <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                      {event.time && (
+                        <span className="flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5" /> {event.time}
+                        </span>
+                      )}
+                      {event.location && (
+                        <span className="flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5" /> {event.location}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {event.requiresRsvp && (
+                    <div className="mt-2 flex items-center gap-2">
+                      {(['yes', 'maybe', 'no'] as const).map((r) => (
+                        <button
+                          key={r}
+                          type="button"
+                          disabled={rsvpSaving === event.id}
+                          onClick={() => rsvp(event.id, r)}
+                          className={`rounded-full px-3 py-1 text-xs font-bold capitalize transition ${
+                            myRsvp?.response === r ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                          }`}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

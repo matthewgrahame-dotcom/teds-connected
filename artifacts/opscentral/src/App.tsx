@@ -44,6 +44,7 @@ import DirectoryPage from '@/pages/DirectoryPage';
 import MyProfilePage from '@/pages/MyProfilePage';
 import ChangelogPage from '@/pages/ChangelogPage';
 import SearchResultsPage from '@/pages/SearchResultsPage';
+import TasksPage from '@/pages/TasksPage';
 
 const queryClient = new QueryClient();
 
@@ -235,7 +236,7 @@ function WorkItemDetail() {
 }
 
 function Router() {
-  return <RoutedErrorBoundary><Switch><Route path="/" component={Dashboard} /><Route path="/news/:id" component={NewsArticlePage} /><Route path="/news" component={NewsPage} /><Route path="/work/:slug" component={WorkCategoryPage} /><Route path="/work" component={WorkHubPage} /><Route path="/learn/programs" component={ProgramsPage} /><Route path="/people/forms/:slug" component={FormPage} /><Route path="/people/forms" component={FormsListPage} /><Route path="/admin/users" component={UserManagementPage} /><Route path="/admin/portal-settings" component={PortalSettingsPage} /><Route path="/people/directory" component={DirectoryPage} /><Route path="/profile" component={MyProfilePage} /><Route path="/updates" component={ChangelogPage} /><Route path="/search" component={SearchResultsPage} /><Route path="/work-items/new" component={NewWorkItemPage} /><Route path="/work-items/:id" component={WorkItemDetail} /><Route path="/work-items" component={WorkItemsPage} /><Route component={NotFound} /></Switch></RoutedErrorBoundary>;
+  return <RoutedErrorBoundary><Switch><Route path="/" component={Dashboard} /><Route path="/news/:id" component={NewsArticlePage} /><Route path="/news" component={NewsPage} /><Route path="/work/:slug" component={WorkCategoryPage} /><Route path="/work" component={WorkHubPage} /><Route path="/learn/programs" component={ProgramsPage} /><Route path="/people/forms/:slug" component={FormPage} /><Route path="/people/forms" component={FormsListPage} /><Route path="/admin/users" component={UserManagementPage} /><Route path="/admin/portal-settings" component={PortalSettingsPage} /><Route path="/people/directory" component={DirectoryPage} /><Route path="/profile" component={MyProfilePage} /><Route path="/updates" component={ChangelogPage} /><Route path="/search" component={SearchResultsPage} /><Route path="/tasks" component={TasksPage} /><Route path="/work-items/new" component={NewWorkItemPage} /><Route path="/work-items/:id" component={WorkItemDetail} /><Route path="/work-items" component={WorkItemsPage} /><Route component={NotFound} /></Switch></RoutedErrorBoundary>;
 }
 
 function RoutedErrorBoundary({ children }: { children: ReactNode }) {

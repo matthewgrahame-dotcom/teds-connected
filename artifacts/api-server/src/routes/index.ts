@@ -11,6 +11,7 @@ import portalUsersRouter from "./portal-users";
 import dashboardConfigRouter from "./dashboard-config";
 import changelogRouter from "./changelog";
 import searchRouter from "./search";
+import tasksRouter from "./tasks";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(portalUsersRouter);
 router.use(dashboardConfigRouter);
 router.use(changelogRouter);
 router.use(searchRouter);
+router.use(tasksRouter);
 
 export default router;
