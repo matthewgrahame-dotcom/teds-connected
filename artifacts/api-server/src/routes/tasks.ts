@@ -28,7 +28,7 @@ router.get("/tasks", requireSession, async (req, res) => {
   const staffName = req.sessionPayload!.name;
 
   const [programs, modules, progress, events, myRsvps] = await Promise.all([
-    db.select().from(trainingProgramsTable).where(eq(trainingProgramsTable.archived, false)),
+    db.select().from(trainingProgramsTable).where(eq(trainingProgramsTable.status, "live")),
     db.select().from(trainingModulesTable).orderBy(asc(trainingModulesTable.sortOrder)),
     db.select().from(moduleProgressTable).where(eq(moduleProgressTable.staffName, staffName)),
     db

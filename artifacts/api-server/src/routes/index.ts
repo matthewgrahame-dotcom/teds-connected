@@ -14,6 +14,7 @@ import searchRouter from "./search";
 import tasksRouter from "./tasks";
 import dashboardLayoutRouter from "./dashboard-layout";
 import aiHelpRouter from "./ai-help";
+import userGroupsRouter from "./user-groups";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use(searchRouter);
 router.use(tasksRouter);
 router.use(dashboardLayoutRouter);
 router.use(aiHelpRouter);
+router.use(userGroupsRouter);
 
 export default router;
