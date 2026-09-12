@@ -1,2 +1,2 @@
 # teds-connected
-Ted's Connected - Replit project import
+Ted's Connected - Intranet Built for Ted's by Matthew Grahame
