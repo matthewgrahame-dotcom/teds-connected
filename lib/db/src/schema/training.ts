@@ -44,6 +44,8 @@ export const trainingModulesTable = pgTable("training_modules", {
   id: serial("id").primaryKey(),
   programId: integer("program_id").notNull(),
   title: text("title").notNull(),
+  moduleType: text("module_type").notNull().default("lesson"), // lesson | quiz -- quiz content is stored as plain reference text for now (see `content`), not an interactive scored quiz engine
+  content: text("content"), // full lesson text or quiz questions, plain text -- optional so a module can still be just a title+link pointing elsewhere
   externalUrl: text("external_url"), // optional link out to the actual video/content (e.g. on Myagi)
   sortOrder: integer("sort_order").notNull().default(0),
 });

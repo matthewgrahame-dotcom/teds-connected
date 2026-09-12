@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Circle, CircleDot, CheckCircle2, ExternalLink } from 'lucide-react';
+import { Circle, CircleDot, CheckCircle2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 
@@ -8,6 +8,8 @@ type ModuleStatus = 'not_started' | 'in_progress' | 'completed';
 type Module = {
   id: number;
   title: string;
+  moduleType: 'lesson' | 'quiz';
+  content: string | null;
   externalUrl: string | null;
   status: ModuleStatus;
 };
@@ -36,6 +38,16 @@ const nextStatus: Record<ModuleStatus, ModuleStatus> = {
 export default function ProgramsPage() {
   const { session } = useAuth();
   const [programs, setPrograms] = useState<Program[] | null>(null);
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+
+  const toggleExpanded = (id: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const load = async () => {
     const params = session?.name ? `?staffName=${encodeURIComponent(session.name)}` : '';
@@ -89,25 +101,40 @@ export default function ProgramsPage() {
             <div className="divide-y divide-border">
               {program.modules.map((module) => {
                 const { label, icon: Icon, className } = statusConfig[module.status];
+                const isExpanded = expanded.has(module.id);
                 return (
-                  <div key={module.id} data-testid={`module-${module.id}`} className="flex items-center justify-between gap-4 px-5 py-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <p className="truncate text-sm text-foreground">{module.title}</p>
-                      {module.externalUrl && (
-                        <a href={module.externalUrl} target="_blank" rel="noreferrer" aria-label="Open module content">
-                          <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground hover:text-foreground" />
-                        </a>
-                      )}
+                  <div key={module.id} data-testid={`module-${module.id}`}>
+                    <div className="flex items-center justify-between gap-4 px-5 py-3">
+                      <button
+                        type="button"
+                        onClick={() => module.content && toggleExpanded(module.id)}
+                        disabled={!module.content}
+                        className="flex min-w-0 items-center gap-2 text-left disabled:cursor-default"
+                      >
+                        {module.content && (isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />)}
+                        <span className="truncate text-sm text-foreground">
+                          {module.title}
+                          {module.moduleType === 'quiz' && <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">Quiz</span>}
+                        </span>
+                        {module.externalUrl && (
+                          <a href={module.externalUrl} target="_blank" rel="noreferrer" aria-label="Open module content" onClick={(e) => e.stopPropagation()}>
+                            <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground hover:text-foreground" />
+                          </a>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        data-testid={`button-status-${module.id}`}
+                        onClick={() => cycleStatus(module)}
+                        className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition hover:brightness-95 ${className}`}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        {label}
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      data-testid={`button-status-${module.id}`}
-                      onClick={() => cycleStatus(module)}
-                      className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition hover:brightness-95 ${className}`}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      {label}
-                    </button>
+                    {isExpanded && module.content && (
+                      <div className="whitespace-pre-wrap px-5 pb-4 text-sm leading-6 text-foreground/90">{module.content}</div>
+                    )}
                   </div>
                 );
               })}

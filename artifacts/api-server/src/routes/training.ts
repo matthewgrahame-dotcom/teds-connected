@@ -167,8 +167,15 @@ router.post("/training/programs", requireFullLevel, async (req, res) => {
     res.status(400).json({ error: "title is required" });
     return;
   }
-  const moduleTitles: { title: string; externalUrl?: string }[] = Array.isArray(modules)
-    ? modules.filter((m) => typeof m?.title === "string" && m.title.trim()).map((m) => ({ title: m.title.trim(), externalUrl: typeof m.externalUrl === "string" ? m.externalUrl.trim() || undefined : undefined }))
+  const moduleTitles: { title: string; externalUrl?: string; content?: string; moduleType?: string }[] = Array.isArray(modules)
+    ? modules
+        .filter((m) => typeof m?.title === "string" && m.title.trim())
+        .map((m) => ({
+          title: m.title.trim(),
+          externalUrl: typeof m.externalUrl === "string" ? m.externalUrl.trim() || undefined : undefined,
+          content: typeof m.content === "string" ? m.content.trim() || undefined : undefined,
+          moduleType: m.moduleType === "quiz" ? "quiz" : "lesson",
+        }))
     : [];
 
   const result = await db.transaction(async (tx) => {
@@ -187,7 +194,7 @@ router.post("/training/programs", requireFullLevel, async (req, res) => {
     const insertedModules = moduleTitles.length
       ? await tx
           .insert(trainingModulesTable)
-          .values(moduleTitles.map((m, i) => ({ programId: program.id, title: m.title, externalUrl: m.externalUrl ?? null, sortOrder: i })))
+          .values(moduleTitles.map((m, i) => ({ programId: program.id, title: m.title, externalUrl: m.externalUrl ?? null, content: m.content ?? null, moduleType: m.moduleType ?? "lesson", sortOrder: i })))
           .returning()
       : [];
 
@@ -274,7 +281,7 @@ router.post("/training/programs/:id/modules", requireFullLevel, async (req, res)
     res.status(400).json({ error: "Invalid program id" });
     return;
   }
-  const { title, externalUrl } = req.body ?? {};
+  const { title, externalUrl, content, moduleType } = req.body ?? {};
   if (typeof title !== "string" || !title.trim()) {
     res.status(400).json({ error: "title is required" });
     return;
@@ -288,7 +295,14 @@ router.post("/training/programs/:id/modules", requireFullLevel, async (req, res)
 
   const [module_] = await db
     .insert(trainingModulesTable)
-    .values({ programId, title: title.trim(), externalUrl: externalUrl?.trim() || null, sortOrder: maxOrder + 1 })
+    .values({
+      programId,
+      title: title.trim(),
+      externalUrl: externalUrl?.trim() || null,
+      content: content?.trim() || null,
+      moduleType: moduleType === "quiz" ? "quiz" : "lesson",
+      sortOrder: maxOrder + 1,
+    })
     .returning();
   res.json({ ok: true, module: module_ });
 });
@@ -299,10 +313,12 @@ router.patch("/training/modules/:id", requireFullLevel, async (req, res) => {
     res.status(400).json({ error: "Invalid module id" });
     return;
   }
-  const { title, externalUrl, sortOrder } = req.body ?? {};
+  const { title, externalUrl, content, moduleType, sortOrder } = req.body ?? {};
   const updates: Partial<typeof trainingModulesTable.$inferInsert> = {};
   if (typeof title === "string") updates.title = title.trim();
   if (externalUrl !== undefined) updates.externalUrl = externalUrl?.trim() || null;
+  if (content !== undefined) updates.content = content?.trim() || null;
+  if (moduleType === "quiz" || moduleType === "lesson") updates.moduleType = moduleType;
   if (typeof sortOrder === "number") updates.sortOrder = sortOrder;
 
   const [module_] = await db.update(trainingModulesTable).set(updates).where(eq(trainingModulesTable.id, id)).returning();

@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 type Level = 'optional' | 'mandatory';
 type PortalUserOption = { id: number; firstName: string; lastName: string; role: string };
 type UserGroup = { id: number; name: string; members: { userId: number; name: string }[] };
-type ProgramModule = { id: number; title: string; externalUrl: string | null; sortOrder: number };
+type ProgramModule = { id: number; title: string; moduleType: 'lesson' | 'quiz'; content: string | null; externalUrl: string | null; sortOrder: number };
 type ProgramSummary = { id: number; title: string };
 
 type ProgramDetail = {
@@ -170,7 +170,7 @@ export default function ProgramEditorPage() {
     }
   };
 
-  const updateModule = async (moduleId: number, patch: Partial<{ title: string; externalUrl: string }>) => {
+  const updateModule = async (moduleId: number, patch: Partial<{ title: string; externalUrl: string; content: string; moduleType: string }>) => {
     await fetch(`/api/training/modules/${moduleId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
@@ -300,13 +300,27 @@ export default function ProgramEditorPage() {
         ) : (
           <Section title="Modules">
             {program!.modules.map((m) => (
-              <div key={m.id} className="flex items-center gap-2 rounded-lg border border-border p-2">
-                <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/50" />
-                <input defaultValue={m.title} key={`t-${m.id}`} onBlur={(e) => e.target.value.trim() && e.target.value !== m.title && updateModule(m.id, { title: e.target.value.trim() })} className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm outline-none" />
-                <input defaultValue={m.externalUrl ?? ''} key={`u-${m.id}`} onBlur={(e) => e.target.value !== (m.externalUrl ?? '') && updateModule(m.id, { externalUrl: e.target.value })} placeholder="Link (optional)" className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm outline-none" />
-                <button type="button" onClick={() => removeModule(m.id)} className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
-                  <Trash2 className="h-4 w-4" />
-                </button>
+              <div key={m.id} className="space-y-2 rounded-lg border border-border p-2">
+                <div className="flex items-center gap-2">
+                  <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                  <input defaultValue={m.title} key={`t-${m.id}`} onBlur={(e) => e.target.value.trim() && e.target.value !== m.title && updateModule(m.id, { title: e.target.value.trim() })} className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm outline-none" />
+                  <select defaultValue={m.moduleType} key={`mt-${m.id}`} onChange={(e) => updateModule(m.id, { moduleType: e.target.value })} className="h-9 rounded-md border border-input bg-background px-2 text-xs outline-none">
+                    <option value="lesson">Lesson</option>
+                    <option value="quiz">Quiz</option>
+                  </select>
+                  <input defaultValue={m.externalUrl ?? ''} key={`u-${m.id}`} onBlur={(e) => e.target.value !== (m.externalUrl ?? '') && updateModule(m.id, { externalUrl: e.target.value })} placeholder="Link (optional)" className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm outline-none" />
+                  <button type="button" onClick={() => removeModule(m.id)} className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <textarea
+                  defaultValue={m.content ?? ''}
+                  key={`c-${m.id}`}
+                  onBlur={(e) => e.target.value !== (m.content ?? '') && updateModule(m.id, { content: e.target.value })}
+                  placeholder="Lesson content / quiz questions (optional -- shown to staff as expandable text)"
+                  rows={3}
+                  className="w-full resize-y rounded-md border border-input bg-background px-2 py-1.5 text-xs outline-none"
+                />
               </div>
             ))}
             <div className="flex items-center gap-2">
