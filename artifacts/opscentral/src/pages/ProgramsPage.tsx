@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Circle, CircleDot, CheckCircle2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
+import { RichContent } from '@/components/RichContent';
 
 type ModuleStatus = 'not_started' | 'in_progress' | 'completed';
 
@@ -133,7 +134,9 @@ export default function ProgramsPage() {
                       </button>
                     </div>
                     {isExpanded && module.content && (
-                      <div className="whitespace-pre-wrap px-5 pb-4 text-sm leading-6 text-foreground/90">{module.content}</div>
+                      <div className="px-5 pb-4">
+                        <RichContent text={module.content} />
+                      </div>
                     )}
                   </div>
                 );

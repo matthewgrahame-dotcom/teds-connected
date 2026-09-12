@@ -317,7 +317,7 @@ export default function ProgramEditorPage() {
                   defaultValue={m.content ?? ''}
                   key={`c-${m.id}`}
                   onBlur={(e) => e.target.value !== (m.content ?? '') && updateModule(m.id, { content: e.target.value })}
-                  placeholder="Lesson content / quiz questions (optional -- shown to staff as expandable text)"
+                  placeholder="Lesson content / quiz questions (optional). Use ## Heading for section headers, - item for bullets, 1. item for numbered lists, **bold**/*italic*/__underline__ inline."
                   rows={3}
                   className="w-full resize-y rounded-md border border-input bg-background px-2 py-1.5 text-xs outline-none"
                 />
