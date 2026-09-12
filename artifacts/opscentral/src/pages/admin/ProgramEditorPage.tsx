@@ -18,6 +18,7 @@ type ProgramModule = {
   content: string | null;
   externalUrl: string | null;
   passThresholdPercent: number;
+  requiresFullViewing: boolean;
   sortOrder: number;
   quizQuestions: QuizQuestionDraft[];
 };
@@ -184,7 +185,7 @@ export default function ProgramEditorPage() {
     }
   };
 
-  const updateModule = async (moduleId: number, patch: Partial<{ title: string; externalUrl: string; content: string; moduleType: string; passThresholdPercent: number }>) => {
+  const updateModule = async (moduleId: number, patch: Partial<{ title: string; externalUrl: string; content: string; moduleType: string; passThresholdPercent: number; requiresFullViewing: boolean }>) => {
     await fetch(`/api/training/modules/${moduleId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
@@ -361,7 +362,7 @@ export default function ProgramEditorPage() {
                   rows={3}
                   className="w-full resize-y rounded-md border border-input bg-background px-2 py-1.5 text-xs outline-none"
                 />
-                <div className="flex items-center justify-between gap-2 pl-6">
+                <div className="flex flex-wrap items-center justify-between gap-2 pl-6">
                   <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     Pass mark:
                     <input
@@ -374,6 +375,10 @@ export default function ProgramEditorPage() {
                       className="h-7 w-16 rounded-md border border-input bg-background px-1.5 text-xs outline-none"
                     />
                     %
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <input type="checkbox" checked={m.requiresFullViewing} onChange={(e) => updateModule(m.id, { requiresFullViewing: e.target.checked })} />
+                    Requires full viewing (progress not saved, skipping disabled)
                   </label>
                   <button
                     type="button"

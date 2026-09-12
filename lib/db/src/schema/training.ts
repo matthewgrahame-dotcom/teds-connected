@@ -48,6 +48,7 @@ export const trainingModulesTable = pgTable("training_modules", {
   content: text("content"), // full lesson text (Module Overview etc), plain text -- optional so a module can still be just a title+link pointing elsewhere
   externalUrl: text("external_url"), // optional link out to the actual video/content (e.g. on Myagi)
   passThresholdPercent: integer("pass_threshold_percent").notNull().default(100), // matches source exports ("A score of 100% is required to pass") -- only relevant if the module has quiz questions
+  requiresFullViewing: boolean("requires_full_viewing").notNull().default(false), // matches source export text ("videos may be paused, however progress is not saved and skipping is disabled") -- shown as a notice on the intro screen; a real technical seek-block isn't achievable with a standard YouTube embed (no such embed option exists), so this is honest UI copy, not an enforced restriction
   sortOrder: integer("sort_order").notNull().default(0),
 });
 

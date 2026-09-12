@@ -84,8 +84,7 @@ router.get("/training/programs", requireSession, async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("[GET /training/programs] error:", err);
-    const cause = err instanceof Error && err.cause instanceof Error ? err.cause.message : undefined;
-    res.status(500).json({ error: err instanceof Error ? err.message : "Unknown error", cause, stack: err instanceof Error ? err.stack : undefined });
+    res.status(500).json({ error: "Something went wrong loading programs." });
   }
 });
 
@@ -402,13 +401,14 @@ router.patch("/training/modules/:id", requireFullLevel, async (req, res) => {
     res.status(400).json({ error: "Invalid module id" });
     return;
   }
-  const { title, externalUrl, content, moduleType, passThresholdPercent, sortOrder } = req.body ?? {};
+  const { title, externalUrl, content, moduleType, passThresholdPercent, requiresFullViewing, sortOrder } = req.body ?? {};
   const updates: Partial<typeof trainingModulesTable.$inferInsert> = {};
   if (typeof title === "string") updates.title = title.trim();
   if (externalUrl !== undefined) updates.externalUrl = externalUrl?.trim() || null;
   if (content !== undefined) updates.content = content?.trim() || null;
   if (moduleType === "quiz" || moduleType === "lesson") updates.moduleType = moduleType;
   if (Number.isInteger(passThresholdPercent)) updates.passThresholdPercent = Math.min(100, Math.max(0, passThresholdPercent));
+  if (typeof requiresFullViewing === "boolean") updates.requiresFullViewing = requiresFullViewing;
   if (typeof sortOrder === "number") updates.sortOrder = sortOrder;
 
   const [module_] = await db.update(trainingModulesTable).set(updates).where(eq(trainingModulesTable.id, id)).returning();

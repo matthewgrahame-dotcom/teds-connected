@@ -16,6 +16,7 @@ type Module = {
   externalUrl: string | null;
   status: ModuleStatus;
   hasQuiz: boolean;
+  requiresFullViewing: boolean;
 };
 
 type Program = {

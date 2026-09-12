@@ -11,6 +11,7 @@ type WizardModule = {
   content: string | null;
   externalUrl: string | null;
   hasQuiz: boolean;
+  requiresFullViewing: boolean;
 };
 
 // Real two-screen flow matching the reference screenshots: an Intro screen
@@ -32,6 +33,12 @@ export function ModuleWizard({ module, onClose, onQuizDone }: { module: WizardMo
 
         {step === 'intro' && (
           <div className="space-y-4">
+            {module.requiresFullViewing && (
+              <div className="flex items-start gap-2 rounded-md border border-yellow-300/60 bg-yellow-50 px-3 py-2.5 text-sm text-foreground">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600" />
+                Please note: videos may be paused, however progress is not saved and skipping is disabled. Watch it in full in a single session.
+              </div>
+            )}
             {embedId && (
               <div className="aspect-video w-full overflow-hidden rounded-lg border border-border">
                 <iframe
