@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'wouter';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Image as ImageIcon } from 'lucide-react';
 
 type NewsArticle = {
   id: number;
@@ -40,7 +40,7 @@ export default function NewsArticlePage() {
 
         {article && (
           <article className="overflow-hidden rounded-xl border border-card-border bg-card shell-shadow">
-            {article.imageUrl && (
+            {article.imageUrl ? (
               article.linkUrl ? (
                 <a href={article.linkUrl} target="_blank" rel="noopener noreferrer">
                   <img src={article.imageUrl} alt="" className="aspect-[16/9] w-full object-cover transition hover:opacity-90" />
@@ -48,6 +48,10 @@ export default function NewsArticlePage() {
               ) : (
                 <img src={article.imageUrl} alt="" className="aspect-[16/9] w-full object-cover" />
               )
+            ) : (
+              <div className="grid aspect-[16/9] w-full place-items-center bg-gradient-to-br from-foreground/80 via-foreground/60 to-muted">
+                <ImageIcon className="h-10 w-10 text-primary-foreground/30" />
+              </div>
             )}
             <div className="p-6">
               <div className="flex gap-4">
