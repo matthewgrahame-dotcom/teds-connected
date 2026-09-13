@@ -1,0 +1,5 @@
+form_title,form_slug,field_key,field_label,field_type,required,options,help_text,section
+"*WEB ONLY Partial Refund Request","","magentoOrderNumber","Magento Order Number","text",TRUE,"","",""
+"*WEB ONLY Partial Refund Request","","refundReason","Reason for Refund","radio",TRUE,"Damaged item;Wrong item sent;Customer changed mind;Other","",""
+"*WEB ONLY Partial Refund Request","","refundAmount","Refund Amount","currency",TRUE,"","Enter the partial amount only, not the full order value",""
+"*WEB ONLY Partial Refund Request","","notes","Additional Notes","textarea",FALSE,"","",""

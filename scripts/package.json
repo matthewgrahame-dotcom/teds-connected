@@ -6,6 +6,7 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "seed-portal-users": "tsx ./src/seed-portal-users.ts",
+    "seed-forms": "tsx ./src/seed-forms.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
