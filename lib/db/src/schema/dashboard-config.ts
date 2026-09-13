@@ -37,13 +37,13 @@ export const quickLinksTable = pgTable("quick_links", {
 // picker of existing users (a Name column + a delete action, nothing
 // else editable there) -- name, job title, and location all come live
 // from that person's actual record, so they can't drift out of sync the
-// way the old hardcoded/freeform version could. photoUrl stays a field
-// here since neither portal_users nor portal_user_profiles has a photo
-// anywhere else in the system. phone/email are optional overrides for
-// when the public-facing contact detail should differ from what's on
-// their internal profile (e.g. a reception line instead of a personal
-// mobile) -- null means "fall back to their profile's phone / their
-// account email" at read time.
+// way the old hardcoded/freeform version could. photoUrl/phone/email are
+// optional overrides for when the public-facing contact detail should
+// differ from what's on their internal profile (e.g. a reception line
+// instead of a personal mobile, or a different photo for this public-
+// facing list) -- null means "fall back to their profile's photo / phone /
+// account email" at read time. Most contacts won't need any override at
+// all now that portal_users has its own real photoUrl.
 export const keyContactsTable = pgTable("key_contacts", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().unique().references(() => portalUsersTable.id, { onDelete: "cascade" }),

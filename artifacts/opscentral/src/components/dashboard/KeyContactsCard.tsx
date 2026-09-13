@@ -207,10 +207,11 @@ export function KeyContactsCard() {
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-2 pl-9 sm:grid-cols-4">
+                <p className="mt-2 pl-9 text-[11px] text-muted-foreground">Uses their User Management photo by default. Only set these if this contact needs a different photo/phone/email just for this list:</p>
+                <div className="mt-1 grid grid-cols-2 gap-2 pl-9 sm:grid-cols-4">
                   <label className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-input text-xs font-semibold text-muted-foreground transition hover:bg-muted">
                     <Upload className="h-3.5 w-3.5" />
-                    Upload
+                    Override photo
                     <input
                       type="file"
                       accept="image/*"

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Archive, ArchiveRestore, IdCard, Pencil, Plus, Search, UserCog, X } from 'lucide-react';
+import { Archive, ArchiveRestore, IdCard, Pencil, Plus, Search, UserCog, Upload, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
 import { authHeaders } from '@/lib/sessionAuth';
+import { fileToSquareDataUri } from '@/lib/imageUpload';
 
 type PortalUser = {
   id: number;
@@ -21,6 +22,7 @@ type PortalUser = {
   archived: boolean;
   brand: string;
   createdAt: string;
+  photoUrl: string | null;
 };
 
 type PortalUserProfile = {
@@ -55,6 +57,7 @@ type UserFormState = {
   role: string;
   brand: string;
   activated: boolean;
+  photoUrl: string;
 };
 
 const emptyForm: UserFormState = {
@@ -66,6 +69,7 @@ const emptyForm: UserFormState = {
   role: '',
   brand: "Ted's Cameras",
   activated: false,
+  photoUrl: '',
 };
 
 function toFormState(user: PortalUser): UserFormState {
@@ -78,6 +82,7 @@ function toFormState(user: PortalUser): UserFormState {
     role: user.role,
     brand: user.brand,
     activated: user.activated,
+    photoUrl: user.photoUrl ?? '',
   };
 }
 
@@ -136,7 +141,7 @@ export default function UserManagementPage() {
     event.preventDefault();
     if (!form.firstName.trim() || !form.lastName.trim() || !form.username.trim() || !form.email.trim() || !form.role.trim()) return;
     setSaving(true);
-    const payload = {
+    const payload: Record<string, unknown> = {
       firstName: form.firstName.trim(),
       lastName: form.lastName.trim(),
       username: form.username.trim(),
@@ -146,6 +151,7 @@ export default function UserManagementPage() {
       brand: form.brand.trim() || "Ted's Cameras",
       activated: form.activated,
     };
+    if (editingUser) payload.photoUrl = form.photoUrl; // upload only available once the user exists -- see dialog form
     try {
       const res = await fetch(editingUser ? `/api/users/${editingUser.id}` : '/api/users', {
         method: editingUser ? 'PATCH' : 'POST',
@@ -375,6 +381,34 @@ export default function UserManagementPage() {
             <DialogTitle>{editingUser ? 'Edit User' : 'Create New User'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {editingUser && (
+              <div className="flex items-center gap-3">
+                <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-muted text-muted-foreground">
+                  {form.photoUrl ? <img src={form.photoUrl} alt="" className="h-full w-full object-cover" /> : <UserCog className="h-6 w-6" />}
+                </span>
+                <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-dashed border-input px-3 text-xs font-semibold text-muted-foreground transition hover:bg-muted">
+                  <Upload className="h-3.5 w-3.5" />
+                  Upload photo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = '';
+                      if (!file) return;
+                      try {
+                        const dataUri = await fileToSquareDataUri(file);
+                        setForm((f) => ({ ...f, photoUrl: dataUri }));
+                      } catch (err) {
+                        toast({ title: 'Could not upload that image', description: err instanceof Error ? err.message : undefined, variant: 'destructive' });
+                      }
+                    }}
+                  />
+                </label>
+                <p className="text-[11px] text-muted-foreground">Also used as their Key Contacts photo, if they're added there.</p>
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField label="First Name" required>
                 <input

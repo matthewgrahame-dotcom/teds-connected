@@ -16,6 +16,7 @@ export const portalUsersTable = pgTable("portal_users", {
   email: text("email").notNull(),
   locations: text("locations").array().notNull().default([]), // multiple store locations per user, as seen in the source tool
   role: text("role").notNull(), // free text -- source data has messy/inconsistent role names, kept faithful rather than forced into an enum
+  photoUrl: text("photo_url"), // general profile photo, reusable anywhere a person's photo is shown (Key Contacts falls back to this when it has no override set -- see keyContactsTable's comment)
   activated: boolean("activated").notNull().default(false), // has the user completed account activation (distinct from archived below)
   archived: boolean("archived").notNull().default(false), // soft-delete / "Archived" tab in the source tool, as opposed to "Active"
   brand: text("brand").notNull().default("Ted's Cameras"),

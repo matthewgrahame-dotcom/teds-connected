@@ -111,6 +111,7 @@ router.get("/key-contacts", requireSession, async (_req, res) => {
       role: portalUsersTable.role,
       locations: portalUsersTable.locations,
       email: portalUsersTable.email,
+      userPhotoUrl: portalUsersTable.photoUrl,
       jobTitle: portalUserProfilesTable.jobTitle,
       phoneNumber: portalUserProfilesTable.phoneNumber,
     })
@@ -124,7 +125,7 @@ router.get("/key-contacts", requireSession, async (_req, res) => {
     userId: r.userId,
     name: `${r.firstName} ${r.lastName}`,
     title: r.jobTitle ? `${r.jobTitle}${r.locations[0] ? ` at ${r.locations[0]}` : ""}` : r.role,
-    photoUrl: r.photoUrl,
+    photoUrl: r.photoUrl ?? r.userPhotoUrl ?? null,
     phone: r.phoneOverride ?? r.phoneNumber ?? null,
     email: r.emailOverride ?? r.email,
     sortOrder: r.sortOrder,

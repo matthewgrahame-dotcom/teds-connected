@@ -78,7 +78,7 @@ router.patch("/users/:id", requireFullLevel, async (req, res) => {
     res.status(400).json({ error: "Invalid user id" });
     return;
   }
-  const { firstName, lastName, username, email, locations, role, activated, archived, brand } = req.body ?? {};
+  const { firstName, lastName, username, email, locations, role, activated, archived, brand, photoUrl } = req.body ?? {};
   const updates: Partial<typeof portalUsersTable.$inferInsert> = { updatedAt: new Date() };
   if (typeof firstName === "string") updates.firstName = firstName.trim();
   if (typeof lastName === "string") updates.lastName = lastName.trim();
@@ -89,6 +89,7 @@ router.patch("/users/:id", requireFullLevel, async (req, res) => {
   if (typeof activated === "boolean") updates.activated = activated;
   if (typeof archived === "boolean") updates.archived = archived;
   if (typeof brand === "string") updates.brand = brand.trim();
+  if (typeof photoUrl === "string") updates.photoUrl = photoUrl.trim() || null;
 
   try {
     const [user] = await db
