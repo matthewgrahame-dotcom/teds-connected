@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '@/lib/auth';
 import connectedLogo from '@/assets/connected-logo.png';
+import loginBackground from '@/assets/login-background.jpg';
 
 export function LoginPage() {
   const { login, loginError, loggingIn } = useAuth();
@@ -14,7 +15,10 @@ export function LoginPage() {
   };
 
   return (
-    <div className="grid min-h-[100dvh] place-items-center bg-background px-4">
+    <div
+      className="grid min-h-[100dvh] place-items-center bg-cover bg-center px-4"
+      style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url(${loginBackground})` }}
+    >
       <div className="w-full max-w-sm rounded-xl border border-card-border bg-card p-8 shell-shadow">
         <div className="flex flex-col items-center gap-3 pb-6">
           <img src={connectedLogo} alt="Connected" className="h-16 w-auto" />

@@ -4,8 +4,8 @@
   "description": "Ted's Connected — the staff portal for Connected operations.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F5C518",
-  "theme_color": "#F5C518",
+  "background_color": "#fcd900",
+  "theme_color": "#fcd900",
   "orientation": "portrait-primary",
   "icons": [
     {
