@@ -137,7 +137,7 @@ export function KeyContactsCard() {
             <div
               key={contact.id}
               data-testid={`contact-${contact.name.toLowerCase().replace(/\s+/g, '-')}`}
-              className="flex h-56 w-40 shrink-0 flex-col items-center gap-2 rounded-lg border border-border p-3 text-center"
+              className="flex h-64 w-40 shrink-0 flex-col items-center gap-2 rounded-lg border border-border p-3 text-center"
             >
               <span className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full bg-muted text-muted-foreground">
                 {contact.photoUrl ? (
@@ -158,8 +158,8 @@ export function KeyContactsCard() {
                     </a>
                   )}
                   {contact.email && (
-                    <a href={`mailto:${contact.email}`} className="flex items-center gap-1 truncate hover:text-accent" title={contact.email}>
-                      <Mail className="h-3 w-3 shrink-0" /> <span className="truncate">{contact.email}</span>
+                    <a href={`mailto:${contact.email}`} className="flex items-start gap-1 hover:text-accent" title={contact.email}>
+                      <Mail className="mt-0.5 h-3 w-3 shrink-0" /> <span className="line-clamp-2 break-words">{contact.email}</span>
                     </a>
                   )}
                 </div>
