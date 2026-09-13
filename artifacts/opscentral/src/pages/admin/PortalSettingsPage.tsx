@@ -1,10 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Settings, Plus, Trash2, ListChecks } from 'lucide-react';
+import { Settings, Plus, Trash2, ListChecks, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
 import { authHeaders } from '@/lib/sessionAuth';
 
 type AppSetting = { key: string; value: string };
+type PortalUser = { id: number; role: string };
+
+// Mirrors CONNECTED_TIERS in lib/connectedTiers.ts -- keep in sync if a
+// tier is ever added/removed there.
+const CONNECTED_TIER_OPTIONS: { key: string; label: string }[] = [
+  { key: 'basic', label: 'Basic' },
+  { key: 'manager', label: 'Manager' },
+  { key: 'admin', label: 'Admin' },
+];
+const ROLE_TIER_MAP_KEY = 'connected_role_tier_map';
 
 // Mirrors TASK_TYPES in routes/tasks.ts -- keep in sync if a type is ever
 // added/removed there. Labels are the learner-facing copy from the
@@ -25,6 +35,8 @@ export default function PortalSettingsPage() {
   const [newValue, setNewValue] = useState('');
   const [saving, setSaving] = useState<string | 'new' | null>(null);
   const [savingTaskTypes, setSavingTaskTypes] = useState(false);
+  const [distinctRoles, setDistinctRoles] = useState<string[] | null>(null);
+  const [savingRole, setSavingRole] = useState<string | null>(null);
 
   const canEdit = session?.level === 'full';
 
@@ -33,6 +45,16 @@ export default function PortalSettingsPage() {
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then(setSettings)
       .catch(() => setSettings([]));
+    // Pulled LIVE from portal_users rather than hardcoded, so a role that's
+    // new (or renamed, or a typo someone's already fixed) shows up here
+    // automatically -- an unmapped role already defaults to "basic" server-
+    // side (see getConnectedTier), but surfacing it here means that default
+    // is a visible, deliberate choice rather than something only discovered
+    // by reading the backend code.
+    fetch('/api/users', { headers: authHeaders(session) })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((users: PortalUser[]) => setDistinctRoles([...new Set(users.map((u) => u.role.trim()).filter(Boolean))].sort()))
+      .catch(() => setDistinctRoles([]));
   };
 
   useEffect(load, []);
@@ -100,6 +122,33 @@ export default function PortalSettingsPage() {
     setSavingTaskTypes(false);
   };
 
+  // Same generic app_settings storage as Outstanding Tasks above -- one
+  // JSON object this time ({ [role]: tier }) rather than an array, since
+  // this is a mapping rather than a set of on/off toggles. Unmapped roles
+  // simply aren't a key in this object at all (rather than e.g. an explicit
+  // "unset" value) -- getConnectedTier already treats "not in the map" the
+  // same as "maps to basic", so there's nothing to distinguish here.
+  const roleTierMapRaw = settings?.find((s) => s.key === ROLE_TIER_MAP_KEY)?.value;
+  let roleTierMap: Record<string, string>;
+  try {
+    const parsed = roleTierMapRaw ? JSON.parse(roleTierMapRaw) : null;
+    roleTierMap = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    roleTierMap = {};
+  }
+
+  const setRoleTier = async (role: string, tier: string) => {
+    const next = { ...roleTierMap, [role]: tier };
+    setSavingRole(role);
+    await fetch(`/api/app-settings/${ROLE_TIER_MAP_KEY}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+      body: JSON.stringify({ value: JSON.stringify(next) }),
+    });
+    load();
+    setSavingRole(null);
+  };
+
   return (
     <div className="px-5 py-8 lg:px-10 lg:py-10">
       <div className="mx-auto max-w-2xl space-y-6">
@@ -134,6 +183,46 @@ export default function PortalSettingsPage() {
                   />
                   {opt.label}
                 </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-card-border bg-card p-5 shell-shadow">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+            <h2 className="font-extrabold text-foreground">Roles &amp; Access</h2>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Maps each role from User Management to what it can do inside Connected specifically -- separate from Phocal's own
+            full/basic access, which stays exactly as-is. A role with nothing picked yet defaults to Basic; that's a deliberate
+            safe default, not a bug, so a new or misspelled role never quietly ends up with more access than intended.
+          </p>
+
+          {!canEdit ? (
+            <p className="mt-3 text-xs text-muted-foreground">Only full-level staff can change these.</p>
+          ) : distinctRoles === null ? (
+            <p className="mt-4 text-sm text-muted-foreground">Loading roles…</p>
+          ) : distinctRoles.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">No roles found yet -- add people in User Management first.</p>
+          ) : (
+            <div className="mt-4 space-y-2 border-t border-border pt-4">
+              {distinctRoles.map((role) => (
+                <div key={role} className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-foreground">{role}</span>
+                  <select
+                    value={roleTierMap[role] ?? 'basic'}
+                    disabled={savingRole === role}
+                    onChange={(e) => setRoleTier(role, e.target.value)}
+                    className="h-8 rounded-md border border-input bg-background px-2 text-xs outline-none disabled:opacity-60"
+                  >
+                    {CONNECTED_TIER_OPTIONS.map((t) => (
+                      <option key={t.key} value={t.key}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               ))}
             </div>
           )}
