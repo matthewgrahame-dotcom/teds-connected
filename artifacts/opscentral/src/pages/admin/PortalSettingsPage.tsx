@@ -1,10 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Settings, Plus, Trash2 } from 'lucide-react';
+import { Settings, Plus, Trash2, ListChecks } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
 import { authHeaders } from '@/lib/sessionAuth';
 
 type AppSetting = { key: string; value: string };
+
+// Mirrors TASK_TYPES in routes/tasks.ts -- keep in sync if a type is ever
+// added/removed there. Labels are the learner-facing copy from the
+// Outstanding Tasks card / My Tasks page, not the internal type key.
+const TASK_TYPE_OPTIONS: { key: string; label: string }[] = [
+  { key: 'training', label: 'Complete Training modules' },
+  { key: 'rsvp', label: 'RSVP to events' },
+  { key: 'work_documents', label: 'Acknowledge work documents' },
+];
+const ENABLED_TASK_TYPES_KEY = 'enabled_task_types';
 
 export default function PortalSettingsPage() {
   const { session } = useAuth();
@@ -14,6 +24,7 @@ export default function PortalSettingsPage() {
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
   const [saving, setSaving] = useState<string | 'new' | null>(null);
+  const [savingTaskTypes, setSavingTaskTypes] = useState(false);
 
   const canEdit = session?.level === 'full';
 
@@ -61,12 +72,71 @@ export default function PortalSettingsPage() {
     setSaving(null);
   };
 
+  // Stored as one JSON-array value under the generic app_settings key/value
+  // store above (same table, same PUT endpoint), rather than a dedicated
+  // table -- this is exactly the "future one-off configurable setting" case
+  // that table's own schema comment says it's for. Missing/unparseable
+  // value in `settings` means "never touched" -> defaults to everything on,
+  // matching routes/tasks.ts's own fallback so this page's checkboxes and
+  // what actually shows up in Tasks can't disagree about the default.
+  const enabledTaskTypesRaw = settings?.find((s) => s.key === ENABLED_TASK_TYPES_KEY)?.value;
+  let enabledTaskTypes: string[];
+  try {
+    const parsed = enabledTaskTypesRaw ? JSON.parse(enabledTaskTypesRaw) : null;
+    enabledTaskTypes = Array.isArray(parsed) ? parsed : TASK_TYPE_OPTIONS.map((t) => t.key);
+  } catch {
+    enabledTaskTypes = TASK_TYPE_OPTIONS.map((t) => t.key);
+  }
+
+  const toggleTaskType = async (typeKey: string, checked: boolean) => {
+    const next = checked ? [...enabledTaskTypes, typeKey] : enabledTaskTypes.filter((k) => k !== typeKey);
+    setSavingTaskTypes(true);
+    await fetch(`/api/app-settings/${ENABLED_TASK_TYPES_KEY}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+      body: JSON.stringify({ value: JSON.stringify(next) }),
+    });
+    load();
+    setSavingTaskTypes(false);
+  };
+
   return (
     <div className="px-5 py-8 lg:px-10 lg:py-10">
       <div className="mx-auto max-w-2xl space-y-6">
         <div className="flex items-center gap-3">
           <Settings className="h-6 w-6 text-muted-foreground" />
           <h1 className="text-2xl font-extrabold text-foreground">Portal Settings</h1>
+        </div>
+
+        <div className="rounded-xl border border-card-border bg-card p-5 shell-shadow">
+          <div className="flex items-center gap-2">
+            <ListChecks className="h-4 w-4 text-muted-foreground" />
+            <h2 className="font-extrabold text-foreground">Outstanding Tasks</h2>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Choose which task types show up on the Outstanding Tasks dashboard card and the My Tasks page. Unticking a type here
+            doesn't delete anything -- it just stops surfacing it as a task (e.g. events still take RSVPs, this only controls
+            whether "needs your RSVP" nags people about it).
+          </p>
+
+          {!canEdit ? (
+            <p className="mt-3 text-xs text-muted-foreground">Only full-level staff can change these.</p>
+          ) : (
+            <div className="mt-4 space-y-2 border-t border-border pt-4">
+              {TASK_TYPE_OPTIONS.map((opt) => (
+                <label key={opt.key} className="flex items-center gap-2 text-sm text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={enabledTaskTypes.includes(opt.key)}
+                    disabled={savingTaskTypes || settings === null}
+                    onChange={(e) => toggleTaskType(opt.key, e.target.checked)}
+                    className="h-4 w-4 rounded border-input"
+                  />
+                  {opt.label}
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="rounded-xl border border-card-border bg-card p-5 shell-shadow">
@@ -85,8 +155,10 @@ export default function PortalSettingsPage() {
 
           <div className="mt-5 space-y-2 border-t border-border pt-5">
             {settings === null && <p className="text-sm text-muted-foreground">Loading…</p>}
-            {settings !== null && settings.length === 0 && <p className="text-sm text-muted-foreground">No settings yet.</p>}
-            {settings?.map((s) => (
+            {settings !== null && settings.filter((s) => s.key !== ENABLED_TASK_TYPES_KEY).length === 0 && <p className="text-sm text-muted-foreground">No settings yet.</p>}
+            {settings
+              ?.filter((s) => s.key !== ENABLED_TASK_TYPES_KEY)
+              .map((s) => (
               <div key={s.key} className="flex items-center gap-2">
                 <span className="w-48 shrink-0 truncate text-xs font-bold uppercase tracking-wide text-muted-foreground">{s.key}</span>
                 <input

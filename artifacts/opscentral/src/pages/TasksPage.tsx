@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { ListChecks, GraduationCap, CalendarCheck } from 'lucide-react';
+import { ListChecks, GraduationCap, CalendarCheck, FileCheck } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 
 type TrainingTask = { type: 'training'; moduleId: number; title: string; programTitle: string };
 type RsvpTask = { type: 'rsvp'; eventId: number; title: string; date: string; time: string | null };
+type WorkDocumentTask = { type: 'work_document'; documentId: number; title: string; categorySlug: string };
 
 export default function TasksPage() {
   const { session } = useAuth();
   const [trainingTasks, setTrainingTasks] = useState<TrainingTask[] | null>(null);
   const [rsvpTasks, setRsvpTasks] = useState<RsvpTask[] | null>(null);
+  const [workDocumentTasks, setWorkDocumentTasks] = useState<WorkDocumentTask[] | null>(null);
   const [rsvpSaving, setRsvpSaving] = useState<number | null>(null);
+  const [ackSaving, setAckSaving] = useState<number | null>(null);
 
   const load = () => {
     fetch('/api/tasks', { headers: authHeaders(session) })
@@ -19,10 +22,12 @@ export default function TasksPage() {
       .then((data) => {
         setTrainingTasks(data.trainingTasks);
         setRsvpTasks(data.rsvpTasks);
+        setWorkDocumentTasks(data.workDocumentTasks);
       })
       .catch(() => {
         setTrainingTasks([]);
         setRsvpTasks([]);
+        setWorkDocumentTasks([]);
       });
   };
 
@@ -42,8 +47,21 @@ export default function TasksPage() {
     }
   };
 
-  const loading = trainingTasks === null || rsvpTasks === null;
-  const total = (trainingTasks?.length ?? 0) + (rsvpTasks?.length ?? 0);
+  const acknowledge = async (documentId: number) => {
+    setAckSaving(documentId);
+    try {
+      await fetch(`/api/work/documents/${documentId}/acknowledge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+      });
+      load();
+    } finally {
+      setAckSaving(null);
+    }
+  };
+
+  const loading = trainingTasks === null || rsvpTasks === null || workDocumentTasks === null;
+  const total = (trainingTasks?.length ?? 0) + (rsvpTasks?.length ?? 0) + (workDocumentTasks?.length ?? 0);
 
   return (
     <div className="px-5 py-8 lg:px-10 lg:py-10">
@@ -81,6 +99,34 @@ export default function TasksPage() {
                       </button>
                     ))}
                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!!workDocumentTasks?.length && (
+          <div>
+            <h2 className="mb-2 flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
+              <FileCheck className="h-3.5 w-3.5" /> Documents to acknowledge
+            </h2>
+            <div className="space-y-2">
+              {workDocumentTasks.map((t) => (
+                <div key={t.documentId} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4">
+                  <div>
+                    <p className="font-semibold text-foreground">{t.title}</p>
+                    <Link href={`/work/${t.categorySlug}`} className="text-sm text-muted-foreground hover:underline">
+                      View document
+                    </Link>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={ackSaving === t.documentId}
+                    onClick={() => acknowledge(t.documentId)}
+                    className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground transition hover:brightness-95 disabled:opacity-50"
+                  >
+                    {ackSaving === t.documentId ? 'Saving…' : 'Acknowledge'}
+                  </button>
                 </div>
               ))}
             </div>
