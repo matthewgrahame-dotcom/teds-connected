@@ -1,3 +1,4 @@
+```typescript
 // Batch version of the manual CSV-filling process seed-forms.ts expects --
 // points Claude at a whole folder of PDFs (the ~60 Op Central exports) and
 // has it read each one's fields, instead of a human doing it by hand for
@@ -64,11 +65,12 @@ I've attached one form as a PDF. Extract:
 Rules for fields:
 - Ignore headers, footers, page numbers, logos, and any internal reference/version codes.
 - Give each field a camelCase "key" derived from its label (e.g. "Magento Order Number" -> "magentoOrderNumber").
-- Pick "type" from EXACTLY: text, textarea, number, currency, radio, select, file.
+- Pick "type" from EXACTLY: text, textarea, number, currency, radio, select, file, signature.
   - "currency" for any dollar amount field.
   - "radio" for a small fixed set of mutually-exclusive choices actually printed on the form (checkboxes where only one applies).
   - "select" for a longer dropdown-style list of choices.
-  - "file" for a signature or attachment/upload field.
+  - "signature" for a field where the person needs to physically or digitally sign their name.
+  - "file" for a non-signature attachment/upload field (e.g. "attach a photo").
   - "textarea" for anything inviting more than one line of free text (notes, descriptions).
   - "text" as the default for a single-line answer, or if you're genuinely unsure.
   - "number" only for a plain numeric field that ISN'T a dollar amount (e.g. a quantity).
@@ -122,7 +124,7 @@ async function main() {
     try {
       const pdfBuffer = fs.readFileSync(path.join(pdfDir, file));
       const { object } = await generateObject({
-        model: anthropic("claude-sonnet-5"),
+        model: anthropic("claude-sonnet-4-5-20250929"),
         schema: z.object({ title: z.string(), fields: z.array(formFieldSchema) }),
         messages: [
           {
@@ -194,3 +196,4 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+```
