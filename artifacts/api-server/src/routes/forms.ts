@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
-import { db, formsTable, formSubmissionsTable, type FormField } from "@workspace/db";
+import { asc, eq } from "drizzle-orm";
+import { db, formsTable, formSubmissionsTable, formCategoriesTable, type FormField } from "@workspace/db";
 import { requireFullLevel } from "../lib/sessionAuth";
 
 const router: IRouter = Router();
@@ -13,9 +13,18 @@ function slugify(input: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
+router.get("/forms/categories", async (_req, res) => {
+  const categories = await db.select().from(formCategoriesTable).orderBy(asc(formCategoriesTable.sortOrder));
+  res.json(categories);
+});
+
 router.get("/forms", async (_req, res) => {
-  const forms = await db.select().from(formsTable).where(eq(formsTable.archived, false));
-  res.json(forms);
+  const [forms, categories] = await Promise.all([
+    db.select().from(formsTable).where(eq(formsTable.archived, false)),
+    db.select().from(formCategoriesTable),
+  ]);
+  const categoryById = new Map(categories.map((c) => [c.id, c]));
+  res.json(forms.map((f) => ({ ...f, categoryName: f.categoryId ? (categoryById.get(f.categoryId)?.name ?? null) : null })));
 });
 
 router.get("/forms/:slug", async (req, res) => {
@@ -100,6 +109,30 @@ router.post("/forms", requireFullLevel, async (req, res) => {
   }
 
   const [form] = await db.insert(formsTable).values({ title: title.trim(), slug, fields: cleanFields }).returning();
+  res.json({ ok: true, form });
+});
+
+router.patch("/forms/:id", requireFullLevel, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid form id" });
+    return;
+  }
+  const { categoryId, title } = req.body ?? {};
+  const updates: Partial<typeof formsTable.$inferInsert> = {};
+  if (categoryId !== undefined) updates.categoryId = categoryId === null ? null : Number(categoryId);
+  if (typeof title === "string" && title.trim()) updates.title = title.trim();
+
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: "No valid fields to update" });
+    return;
+  }
+
+  const [form] = await db.update(formsTable).set(updates).where(eq(formsTable.id, id)).returning();
+  if (!form) {
+    res.status(404).json({ error: "Form not found" });
+    return;
+  }
   res.json({ ok: true, form });
 });
 
