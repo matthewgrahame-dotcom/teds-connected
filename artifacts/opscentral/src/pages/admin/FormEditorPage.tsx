@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useLocation, Link } from 'wouter';
-import { ChevronLeft, Save, Copy, Plus, Trash2, GripVertical, Check } from 'lucide-react';
+import { ChevronLeft, Save, Copy, Plus, Trash2, GripVertical, Check, Inbox } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -181,7 +181,14 @@ export default function FormEditorPage() {
         <Link href="/people/forms" className="inline-flex items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-foreground">
           <ChevronLeft className="h-4 w-4" /> Back to Forms
         </Link>
-        <h1 className="text-2xl font-extrabold text-foreground">{isNew ? 'New Form' : 'Edit Form'}</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-extrabold text-foreground">{isNew ? 'New Form' : 'Edit Form'}</h1>
+          {!isNew && (
+            <Link href={`/admin/forms/${formId}/submissions`} className="inline-flex items-center gap-1.5 text-xs font-bold text-accent hover:underline">
+              <Inbox className="h-3.5 w-3.5" /> View Submissions
+            </Link>
+          )}
+        </div>
 
         {/* Details */}
         <section className="rounded-xl border border-card-border bg-card p-5 shell-shadow">

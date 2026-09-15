@@ -92,6 +92,16 @@ router.get("/forms/admin/:id", requireFullLevel, async (req, res) => {
   res.json(withCategories);
 });
 
+router.get("/forms/admin/:id/submissions", requireFullLevel, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid form id" });
+    return;
+  }
+  const submissions = await db.select().from(formSubmissionsTable).where(eq(formSubmissionsTable.formId, id));
+  res.json(submissions);
+});
+
 router.get("/forms/:slug", async (req, res) => {
   const [form] = await db.select().from(formsTable).where(eq(formsTable.slug, String(req.params.slug)));
   if (!form) {
