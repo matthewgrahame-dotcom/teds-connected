@@ -6,15 +6,15 @@ import { authHeaders } from '@/lib/sessionAuth';
 
 type TrainingTask = { type: 'training'; moduleId: number; title: string; programTitle: string };
 type RsvpTask = { type: 'rsvp'; eventId: number; title: string; date: string; time: string | null };
-type AcknowledgmentTask = { type: 'acknowledgment'; documentId: number; title: string; categorySlug: string };
+type WorkDocumentTask = { type: 'work_document'; documentId: number; title: string; categorySlug: string };
 
 export default function TasksPage() {
   const { session } = useAuth();
   const [trainingTasks, setTrainingTasks] = useState<TrainingTask[] | null>(null);
   const [rsvpTasks, setRsvpTasks] = useState<RsvpTask[] | null>(null);
-  const [acknowledgmentTasks, setAcknowledgmentTasks] = useState<AcknowledgmentTask[] | null>(null);
+  const [workDocumentTasks, setWorkDocumentTasks] = useState<WorkDocumentTask[] | null>(null);
   const [rsvpSaving, setRsvpSaving] = useState<number | null>(null);
-  const [acking, setAcking] = useState<number | null>(null);
+  const [ackSaving, setAckSaving] = useState<number | null>(null);
 
   const load = () => {
     fetch('/api/tasks', { headers: authHeaders(session) })
@@ -22,12 +22,12 @@ export default function TasksPage() {
       .then((data) => {
         setTrainingTasks(data.trainingTasks);
         setRsvpTasks(data.rsvpTasks);
-        setAcknowledgmentTasks(data.acknowledgmentTasks ?? []);
+        setWorkDocumentTasks(data.workDocumentTasks);
       })
       .catch(() => {
         setTrainingTasks([]);
         setRsvpTasks([]);
-        setAcknowledgmentTasks([]);
+        setWorkDocumentTasks([]);
       });
   };
 
@@ -48,17 +48,20 @@ export default function TasksPage() {
   };
 
   const acknowledge = async (documentId: number) => {
-    setAcking(documentId);
+    setAckSaving(documentId);
     try {
-      await fetch(`/api/work/documents/${documentId}/acknowledge`, { method: 'POST', headers: authHeaders(session) });
+      await fetch(`/api/work/documents/${documentId}/acknowledge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+      });
       load();
     } finally {
-      setAcking(null);
+      setAckSaving(null);
     }
   };
 
-  const loading = trainingTasks === null || rsvpTasks === null || acknowledgmentTasks === null;
-  const total = (trainingTasks?.length ?? 0) + (rsvpTasks?.length ?? 0) + (acknowledgmentTasks?.length ?? 0);
+  const loading = trainingTasks === null || rsvpTasks === null || workDocumentTasks === null;
+  const total = (trainingTasks?.length ?? 0) + (rsvpTasks?.length ?? 0) + (workDocumentTasks?.length ?? 0);
 
   return (
     <div className="px-5 py-8 lg:px-10 lg:py-10">
@@ -102,6 +105,34 @@ export default function TasksPage() {
           </div>
         )}
 
+        {!!workDocumentTasks?.length && (
+          <div>
+            <h2 className="mb-2 flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
+              <FileCheck className="h-3.5 w-3.5" /> Documents to acknowledge
+            </h2>
+            <div className="space-y-2">
+              {workDocumentTasks.map((t) => (
+                <div key={t.documentId} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4">
+                  <div>
+                    <p className="font-semibold text-foreground">{t.title}</p>
+                    <Link href={`/work/${t.categorySlug}`} className="text-sm text-muted-foreground hover:underline">
+                      View document
+                    </Link>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={ackSaving === t.documentId}
+                    onClick={() => acknowledge(t.documentId)}
+                    className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground transition hover:brightness-95 disabled:opacity-50"
+                  >
+                    {ackSaving === t.documentId ? 'Saving…' : 'Acknowledge'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {!!trainingTasks?.length && (
           <div>
             <h2 className="mb-2 flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
@@ -113,31 +144,6 @@ export default function TasksPage() {
                   <p className="font-semibold text-foreground">{t.title}</p>
                   <p className="text-sm text-muted-foreground">{t.programTitle}</p>
                 </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {!!acknowledgmentTasks?.length && (
-          <div>
-            <h2 className="mb-2 flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
-              <FileCheck className="h-3.5 w-3.5" /> Needs your acknowledgment
-            </h2>
-            <div className="space-y-2">
-              {acknowledgmentTasks.map((t) => (
-                <div key={t.documentId} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4">
-                  <Link href={`/work/${t.categorySlug}`} className="font-semibold text-foreground hover:underline">
-                    {t.title}
-                  </Link>
-                  <button
-                    type="button"
-                    disabled={acking === t.documentId}
-                    onClick={() => acknowledge(t.documentId)}
-                    className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground transition hover:brightness-95"
-                  >
-                    Mark as read
-                  </button>
-                </div>
               ))}
             </div>
           </div>

@@ -6,11 +6,17 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "seed-portal-users": "tsx ./src/seed-portal-users.ts",
+    "seed-forms": "tsx ./src/seed-forms.ts",
+    "extract-forms": "tsx ./src/extract-forms-from-pdfs.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@workspace/db": "workspace:*",
-    "drizzle-orm": "catalog:"
+    "drizzle-orm": "catalog:",
+    "zod": "catalog:",
+    "ai": "^7.0.99",
+    "@ai-sdk/anthropic": "^4.0.53",
+    "dotenv": "^17.4.2"
   },
   "devDependencies": {
     "@types/node": "catalog:",
