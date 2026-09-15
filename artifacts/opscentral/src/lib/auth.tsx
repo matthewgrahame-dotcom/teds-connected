@@ -9,6 +9,7 @@ export type StaffSession = {
 };
 
 const STORAGE_KEY = 'connected_staff_session';
+const PREVIEW_KEY = 'connected_preview_as_basic';
 
 function readStoredSession(): StaffSession | null {
   try {
@@ -28,6 +29,14 @@ function writeStoredSession(session: StaffSession | null) {
   }
 }
 
+function readStoredPreview(): boolean {
+  try {
+    return localStorage.getItem(PREVIEW_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
 type AuthContextValue = {
   session: StaffSession | null;
   ready: boolean;
@@ -35,15 +44,29 @@ type AuthContextValue = {
   loggingIn: boolean;
   login: (code: string, initials: string) => Promise<void>;
   logout: () => void;
+  // "Preview as Basic User" -- lets a real full-level admin see what the
+  // app looks like for a basic-level person, without actually being one.
+  // Only overrides `session.level` as exposed to the REST of the app (every
+  // existing `session?.level === 'full'` check across the codebase respects
+  // it automatically, with no changes needed anywhere else) -- the real
+  // session/crossAppToken underneath is untouched, so this is a UI preview
+  // only, not a real permission change. Any admin action attempted while
+  // previewing would still actually succeed server-side, since the real
+  // token is what's sent -- this shows what a basic user WOULD see, it
+  // doesn't sandbox what you can actually do while looking at it.
+  isPreviewingBasic: boolean;
+  canPreview: boolean; // true only when the REAL underlying session is full-level
+  setPreviewAsBasic: (value: boolean) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<StaffSession | null>(null);
+  const [realSession, setSession] = useState<StaffSession | null>(null);
   const [ready, setReady] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
+  const [isPreviewingBasic, setIsPreviewingBasic] = useState(readStoredPreview);
 
   // On mount: an incoming ?ssoToken= from a Phocal click-through takes
   // priority over whatever's already stored, since it represents the most
@@ -101,9 +124,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     setSession(null);
     writeStoredSession(null);
+    setIsPreviewingBasic(false);
+    try {
+      localStorage.removeItem(PREVIEW_KEY);
+    } catch {
+      // ignore
+    }
   }, []);
 
-  const value = useMemo(() => ({ session, ready, loginError, loggingIn, login, logout }), [session, ready, loginError, loggingIn, login, logout]);
+  const setPreviewAsBasic = useCallback((value: boolean) => {
+    setIsPreviewingBasic(value);
+    try {
+      if (value) localStorage.setItem(PREVIEW_KEY, 'true');
+      else localStorage.removeItem(PREVIEW_KEY);
+    } catch {
+      // ignore -- preview toggle just won't persist across reloads
+    }
+  }, []);
+
+  const canPreview = realSession?.level === 'full';
+  // Only actually override level while genuinely eligible (a real
+  // full-level session) -- if the real session were ever basic already,
+  // or logged out, previewing "as basic" would be meaningless/could mask a
+  // real permissions bug, so it only applies on top of real full access.
+  const session: StaffSession | null = useMemo(() => {
+    if (!realSession) return null;
+    if (isPreviewingBasic && canPreview) return { ...realSession, level: 'basic' };
+    return realSession;
+  }, [realSession, isPreviewingBasic, canPreview]);
+
+  const value = useMemo(
+    () => ({ session, ready, loginError, loggingIn, login, logout, isPreviewingBasic, canPreview, setPreviewAsBasic }),
+    [session, ready, loginError, loggingIn, login, logout, isPreviewingBasic, canPreview, setPreviewAsBasic],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

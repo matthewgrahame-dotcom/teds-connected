@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, CalendarCheck, CircleUserRound, GraduationCap, HelpCircle, LayoutGrid, ListChecks, LogOut, MousePointer2, Rocket, Search, Settings, User, Users } from 'lucide-react';
+import { Bell, CalendarCheck, CircleUserRound, Eye, GraduationCap, HelpCircle, LayoutGrid, ListChecks, LogOut, MousePointer2, Rocket, Search, Settings, User, Users } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
@@ -41,7 +41,7 @@ export function AppHeader({ userName }: { userName: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
-  const { session, logout } = useAuth();
+  const { session, logout, canPreview, isPreviewingBasic, setPreviewAsBasic } = useAuth();
   const [location, navigate] = useLocation();
   const menuRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLDivElement>(null);
@@ -194,6 +194,19 @@ export function AppHeader({ userName }: { userName: string }) {
                   >
                     <LayoutGrid className="h-4 w-4 text-muted-foreground" />
                     Edit Dashboard Layout
+                  </button>
+                )}
+                {canPreview && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setPreviewAsBasic(!isPreviewingBasic);
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-foreground transition hover:bg-muted"
+                  >
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                    {isPreviewingBasic ? 'Exit Basic User Preview' : 'Preview as Basic User'}
                   </button>
                 )}
                 <div className="my-1 border-t border-border" />

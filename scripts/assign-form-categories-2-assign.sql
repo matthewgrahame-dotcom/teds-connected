@@ -1,0 +1,41 @@
+UPDATE forms AS f
+SET category_id = c.id
+FROM (VALUES
+  ('Counselling Form', 'People & HR'),
+  ('Agreement of Breaks Between Shifts Form', 'People & HR'),
+  ('Agreement of Increased Part Time Hours Form', 'People & HR'),
+  ('Offboarding Form (resignation Letters)', 'People & HR'),
+  ('Cash Register Till Variance Form', 'Store Operations'),
+  ('Weekly Store Report', 'Store Operations'),
+  ('Team Member Recognition Form', 'Store Operations'),
+  ('Consumables Order Form', 'Store Operations'),
+  ('Barcode Update Form', 'Store Operations'),
+  ('Focus Sales Training - Module 1: First Impressions', 'Sales & Training'),
+  ('Focus Sales Training - Module 2: Open-conversations', 'Sales & Training'),
+  ('Focus Sales Training - Module 3: Customised Solutions', 'Sales & Training'),
+  ('Focus Sales Training - Module 4: Upsell with Value', 'Sales & Training'),
+  ('Focus Sales Training - Module 5: Secure Satisfaction', 'Sales & Training'),
+  ('Fundamentals of Video Training - Module 1: Understanding Video Resolutions', 'Sales & Training'),
+  ('Fundamentals of Video Training - Module 2: Frame Rates', 'Sales & Training'),
+  ('Fundamentals of Video Training - Module 3: Video Bit Depth', 'Sales & Training'),
+  ('Fundamentals of Video Training - Module 4: Understanding Log Gamma & Raw', 'Sales & Training'),
+  ('Fundamentals of Video Training - Module 5: Open Gate and Sensor Shutter Types', 'Sales & Training'),
+  ('Teds Events Submission Form for Humanitix', 'Marketing & Events'),
+  ('Ted''s Cameras Social Media Content Submission Form', 'Marketing & Events'),
+  ('Dcw Web Refund Request', 'Customer & Web'),
+  ('Ted''s Cameras Employee Banking Details Form', 'Onboarding Forms'),
+  ('New Product Suggestion Form', 'Products'),
+  ('Product Review Committee Voting Form', 'Products'),
+  ('Continuous Lighting Kit Voting Form', 'Products'),
+  ('Pgy Tech Harnesses Voting Form', 'Products'),
+  ('Viltrox 8k Hdmi Cable Voting Form', 'Products'),
+  ('Godox It32 & X5 Flash System Voting Form', 'Products'),
+  ('Viltrox V-mount Batteries Voting Form', 'Products'),
+  ('Nisi Filters and Product Expansion Voting Form', 'Products'),
+  ('Camera Cage Voting Form', 'Products'),
+  ('Staff Engagement & Training Survey', 'Surveys & Feedback'),
+  ('Staff Training Survey', 'Surveys & Feedback'),
+  ('Staff Selling Second Hand Cameras', 'Staff Benefits & Services')
+) AS mapping(form_title, category_name)
+JOIN form_categories c ON c.name = mapping.category_name
+WHERE f.title = mapping.form_title;

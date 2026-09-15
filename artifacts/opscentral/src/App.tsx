@@ -1,6 +1,6 @@
 import { type ReactNode, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, ArrowRight, ChevronRight, ClipboardList, Filter, Menu, Plus, Search, Trash2, X, type LucideIcon } from 'lucide-react';
+import { AlertCircle, ArrowRight, ChevronRight, ClipboardList, Eye, Filter, Menu, Plus, Search, Trash2, X, type LucideIcon } from 'lucide-react';
 import {
   getGetDashboardSummaryQueryKey,
   getGetWorkItemQueryKey,
@@ -91,13 +91,26 @@ function PriorityBadge({ priority }: { priority: WorkItem['priority'] }) {
 
 function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { session, ready } = useAuth();
+  const { session, ready, isPreviewingBasic, setPreviewAsBasic } = useAuth();
 
   if (!ready) return null;
   if (!session) return <LoginPage />;
 
   return (
     <div className="min-h-[100dvh] bg-background">
+      {isPreviewingBasic && (
+        <div className="flex items-center justify-center gap-3 bg-accent px-4 py-2 text-center text-xs font-bold text-accent-foreground">
+          <Eye className="h-3.5 w-3.5 shrink-0" />
+          Previewing as a Basic User — admin-only controls are hidden. Nothing you click here is actually restricted server-side.
+          <button
+            type="button"
+            onClick={() => setPreviewAsBasic(false)}
+            className="ml-2 shrink-0 rounded-full bg-accent-foreground/15 px-3 py-1 hover:bg-accent-foreground/25"
+          >
+            Exit Preview
+          </button>
+        </div>
+      )}
       <AppHeader userName={session.name} />
       <div className="flex">
         <AppSidebar mobileOpen={mobileOpen} onNavigate={() => setMobileOpen(false)} />
