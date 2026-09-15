@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Send, Search, User, ExternalLink, X } from 'lucide-react';
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { useAuth } from '@/lib/auth';
+import { authHeaders } from '@/lib/sessionAuth';
 import { usePublishAccess } from '@/lib/publishAccess';
 import { RichContent } from '@/components/RichContent';
 import { FormattingToolbar } from '@/components/FormattingToolbar';
@@ -15,6 +16,7 @@ type PhocalMessage = {
   id: string;
   fromLocation: string;
   toLocation: string | null;
+  toUserName?: string | null;
   messageText: string;
   isAnnouncement: boolean;
   postedAt: string;
@@ -25,6 +27,8 @@ export function SocialTimelineCard() {
   const { requirePublishAccess } = usePublishAccess();
   const [draft, setDraft] = useState('');
   const [location, setLocation] = useState(session?.store ?? '');
+  const [toUserName, setToUserName] = useState('');
+  const [users, setUsers] = useState<{ id: number; firstName: string; lastName: string }[] | null>(null);
   const [messages, setMessages] = useState<PhocalMessage[] | null>(null);
   const [posting, setPosting] = useState(false);
   const [search, setSearch] = useState('');
@@ -50,6 +54,10 @@ export function SocialTimelineCard() {
 
   useEffect(() => {
     loadMessages();
+    fetch('/api/users', { headers: authHeaders(session) })
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setUsers)
+      .catch(() => setUsers([]));
   }, []);
 
   const visibleMessages = useMemo(() => {
@@ -58,7 +66,7 @@ export function SocialTimelineCard() {
     return messages.filter((m) => {
       if (announcementsOnly && !m.isAnnouncement) return false;
       if (!q) return true;
-      return `${m.fromLocation} ${m.messageText}`.toLowerCase().includes(q);
+      return `${m.fromLocation} ${m.toUserName ?? ''} ${m.messageText}`.toLowerCase().includes(q);
     });
   }, [messages, search, announcementsOnly]);
 
@@ -69,9 +77,10 @@ export function SocialTimelineCard() {
       await fetch('/api/social-timeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fromLocation: location.trim(), toLocation: null, messageText: draft.trim(), isAnnouncement: false }),
+        body: JSON.stringify({ fromLocation: location.trim(), toLocation: null, toUserName: toUserName || null, messageText: draft.trim(), isAnnouncement: false }),
       });
       setDraft('');
+      setToUserName('');
       await loadMessages();
     } finally {
       setPosting(false);
@@ -153,8 +162,23 @@ export function SocialTimelineCard() {
             onChange={(event) => setDraft(event.target.value)}
             placeholder="Write something here…"
             rows={2}
-            className="w-full resize-none rounded-b-lg px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground/70"
+            className="w-full resize-none px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground/70"
           />
+          <div className="flex items-center gap-1.5 border-t border-border px-2 py-1.5">
+            <span className="text-xs text-muted-foreground">To:</span>
+            <select
+              value={toUserName}
+              onChange={(e) => setToUserName(e.target.value)}
+              className="h-7 rounded-md border border-input bg-background px-1.5 text-xs outline-none"
+            >
+              <option value="">Everyone</option>
+              {users?.map((u) => (
+                <option key={u.id} value={`${u.firstName} ${u.lastName}`}>
+                  {u.firstName} {u.lastName}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="flex shrink-0 flex-col gap-2">
           <button
@@ -186,6 +210,7 @@ export function SocialTimelineCard() {
                   <p className="text-sm font-extrabold text-foreground">
                     {post.fromLocation}
                     {post.isAnnouncement ? ' 📣' : ''}
+                    {post.toUserName && <span className="ml-2 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase text-accent">To: {post.toUserName}</span>}
                   </p>
                   <p className="text-xs text-muted-foreground">{new Date(post.postedAt).toLocaleString('en-AU')}</p>
                 </div>

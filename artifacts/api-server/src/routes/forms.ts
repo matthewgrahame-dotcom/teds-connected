@@ -4,6 +4,8 @@ import { db, formsTable, formSubmissionsTable, formCategoriesTable, formCategory
 import { requireFullLevel } from "../lib/sessionAuth";
 import { verifyCrossAppToken } from "../lib/crossAppToken";
 
+const PHOCAL_BASE_URL = process.env.PHOCAL_BASE_URL || "https://seo-optimiser.vercel.app";
+
 const router: IRouter = Router();
 
 function slugify(input: string): string {
@@ -112,6 +114,34 @@ router.get("/forms/:slug", async (req, res) => {
   res.json(form);
 });
 
+// Posts a Ted's Talks message addressed to a specific person when a form
+// they're set to be notified about gets a new submission -- reuses the
+// exact same shared feed/storage as SocialTimelineCard (Phocal's
+// staff_chat_messages KV), just with a toUserName set, which nothing else
+// currently sets. Best-effort: a failure here shouldn't fail the
+// submission itself, since the submission is already safely recorded by
+// the time this runs.
+async function notifyFormSubmission(form: { title: string; slug: string; notifyUserName: string | null }, submittedBy: string) {
+  if (!form.notifyUserName) return;
+  try {
+    await fetch(`${PHOCAL_BASE_URL}/api/chat-messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "save_chat_message",
+        data: {
+          fromLocation: "Connected",
+          toUserName: form.notifyUserName,
+          messageText: `New submission: **${form.title}** was just submitted by ${submittedBy}. [View it in People > Forms > ${form.title} > View Submissions]`,
+          isAnnouncement: false,
+        },
+      }),
+    });
+  } catch {
+    // best-effort -- the submission itself already succeeded regardless
+  }
+}
+
 router.post("/forms/:slug/submit", async (req, res) => {
   const [form] = await db.select().from(formsTable).where(eq(formsTable.slug, String(req.params.slug)));
   if (!form) {
@@ -136,6 +166,8 @@ router.post("/forms/:slug/submit", async (req, res) => {
     .insert(formSubmissionsTable)
     .values({ formId: form.id, submittedBy: submittedBy.trim(), submitterLocation: submitterLocation ?? null, data })
     .returning();
+
+  await notifyFormSubmission(form, submittedBy.trim());
 
   res.json({ ok: true, submission, thankYouMessage: form.showThankYouMessage ? form.thankYouMessage : null });
 });
@@ -170,7 +202,7 @@ function parseFields(fields: unknown): FormField[] {
 }
 
 router.post("/forms", requireFullLevel, async (req, res) => {
-  const { title, fields, instructions, status, isPublic, groupedFields, showThankYouMessage, thankYouMessage, autoArchive, categoryIds } = req.body ?? {};
+  const { title, fields, instructions, status, isPublic, groupedFields, showThankYouMessage, thankYouMessage, autoArchive, notifyUserName, categoryIds } = req.body ?? {};
   if (typeof title !== "string" || !title.trim()) {
     res.status(400).json({ error: "title is required" });
     return;
@@ -203,6 +235,7 @@ router.post("/forms", requireFullLevel, async (req, res) => {
       showThankYouMessage: Boolean(showThankYouMessage),
       thankYouMessage: typeof thankYouMessage === "string" ? thankYouMessage : null,
       autoArchive: Boolean(autoArchive),
+      notifyUserName: typeof notifyUserName === "string" && notifyUserName.trim() ? notifyUserName.trim() : null,
     })
     .returning();
 
@@ -222,7 +255,7 @@ router.patch("/forms/:id", requireFullLevel, async (req, res) => {
     res.status(400).json({ error: "Invalid form id" });
     return;
   }
-  const { title, fields, instructions, status, isPublic, groupedFields, showThankYouMessage, thankYouMessage, autoArchive, categoryIds, archived } = req.body ?? {};
+  const { title, fields, instructions, status, isPublic, groupedFields, showThankYouMessage, thankYouMessage, autoArchive, notifyUserName, categoryIds, archived } = req.body ?? {};
   const updates: Partial<typeof formsTable.$inferInsert> = {};
   if (typeof title === "string" && title.trim()) updates.title = title.trim();
   if (fields !== undefined) {
@@ -236,6 +269,7 @@ router.patch("/forms/:id", requireFullLevel, async (req, res) => {
   if (typeof showThankYouMessage === "boolean") updates.showThankYouMessage = showThankYouMessage;
   if (thankYouMessage !== undefined) updates.thankYouMessage = typeof thankYouMessage === "string" ? thankYouMessage : null;
   if (typeof autoArchive === "boolean") updates.autoArchive = autoArchive;
+  if (notifyUserName !== undefined) updates.notifyUserName = typeof notifyUserName === "string" && notifyUserName.trim() ? notifyUserName.trim() : null;
   if (typeof archived === "boolean") updates.archived = archived;
 
   // categoryIds isn't a column on formsTable -- handle it separately via

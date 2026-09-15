@@ -53,6 +53,8 @@ export default function FormEditorPage() {
   const [showThankYouMessage, setShowThankYouMessage] = useState(false);
   const [thankYouMessage, setThankYouMessage] = useState('');
   const [autoArchive, setAutoArchive] = useState(false);
+  const [notifyUserName, setNotifyUserName] = useState('');
+  const [users, setUsers] = useState<{ id: number; firstName: string; lastName: string }[] | null>(null);
   const [fields, setFields] = useState<FieldDraft[]>([emptyField()]);
   const [copied, setCopied] = useState(false);
 
@@ -64,6 +66,10 @@ export default function FormEditorPage() {
       .then((r) => (r.ok ? r.json() : []))
       .then(setCategories)
       .catch(() => setCategories([]));
+    fetch('/api/users', { headers: authHeaders(session) })
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setUsers)
+      .catch(() => setUsers([]));
   }, []);
 
   useEffect(() => {
@@ -81,6 +87,7 @@ export default function FormEditorPage() {
         setShowThankYouMessage(data.showThankYouMessage);
         setThankYouMessage(data.thankYouMessage ?? '');
         setAutoArchive(data.autoArchive);
+        setNotifyUserName(data.notifyUserName ?? '');
         setFields(
           data.fields.length
             ? data.fields.map((f: any) => ({
@@ -118,6 +125,7 @@ export default function FormEditorPage() {
     showThankYouMessage,
     thankYouMessage: thankYouMessage.trim() || null,
     autoArchive,
+    notifyUserName: notifyUserName || null,
     categoryIds: selectedCategoryIds,
     fields: fields
       .filter((f) => f.label.trim())
@@ -329,6 +337,22 @@ export default function FormEditorPage() {
               )}
             </div>
             <SettingToggle label="Auto Archive" hint="Stored for now -- no schedule/trigger is defined yet for what should cause this to fire." checked={autoArchive} onChange={setAutoArchive} />
+            <div>
+              <p className="font-bold text-foreground">Notify on Submission</p>
+              <p className="mb-1.5 text-xs text-muted-foreground">Posts a Ted's Talks message to this person whenever someone submits this form.</p>
+              <select
+                value={notifyUserName}
+                onChange={(e) => setNotifyUserName(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm outline-none"
+              >
+                <option value="">No one (don't notify)</option>
+                {users?.map((u) => (
+                  <option key={u.id} value={`${u.firstName} ${u.lastName}`}>
+                    {u.firstName} {u.lastName}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </section>
 

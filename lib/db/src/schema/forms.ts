@@ -27,6 +27,7 @@ export const formsTable = pgTable("forms", {
   showThankYouMessage: boolean("show_thank_you_message").notNull().default(false),
   thankYouMessage: text("thank_you_message"), // shown after a successful submission when showThankYouMessage is true, instead of the generic confirmation
   autoArchive: boolean("auto_archive").notNull().default(false), // captured/editable per the source export; no defined trigger/schedule exists yet for what "auto" means, so this doesn't do anything behaviorally yet -- see PATCH /forms/:id's comment
+  notifyUserName: text("notify_user_name"), // full name of a specific staff member -- when set, a new submission posts a Ted's Talks message addressed to them (see POST /forms/:slug/submit)
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
