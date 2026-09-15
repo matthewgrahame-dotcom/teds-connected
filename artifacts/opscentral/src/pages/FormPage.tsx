@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'wouter';
 import { CheckCircle2 } from 'lucide-react';
+import DOMPurify from 'dompurify';
 import { useAuth } from '@/lib/auth';
+import { authHeaders } from '@/lib/sessionAuth';
 
 type FormField = {
   key: string;
@@ -13,7 +15,7 @@ type FormField = {
   section?: string;
 };
 
-type FormDef = { id: number; title: string; slug: string; fields: FormField[] };
+type FormDef = { id: number; title: string; slug: string; instructions: string | null; groupedFields: boolean; fields: FormField[] };
 
 export default function FormPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -22,10 +24,11 @@ export default function FormPage() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [thankYouMessage, setThankYouMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/forms/${slug}`)
+    fetch(`/api/forms/${slug}`, { headers: authHeaders(session) })
       .then((r) => r.json())
       .then(setForm);
   }, [slug]);
@@ -39,11 +42,12 @@ export default function FormPage() {
     try {
       const resp = await fetch(`/api/forms/${slug}/submit`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
         body: JSON.stringify({ submittedBy: session?.name, submitterLocation: session?.store, data: values }),
       });
       const responseData = await resp.json();
       if (!resp.ok) throw new Error(responseData.error || 'Submission failed');
+      setThankYouMessage(responseData.thankYouMessage ?? null);
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Submission failed');
@@ -60,7 +64,7 @@ export default function FormPage() {
         <div className="mx-auto max-w-xl rounded-xl border border-card-border bg-card p-8 text-center shell-shadow">
           <CheckCircle2 className="mx-auto h-10 w-10 text-primary" />
           <p className="mt-3 font-extrabold text-foreground">Submitted</p>
-          <p className="mt-1 text-sm text-muted-foreground">Your {form.title} has been recorded.</p>
+          <p className="mt-1 text-sm text-muted-foreground">{thankYouMessage || `Your ${form.title} has been recorded.`}</p>
           <Link href="/people/forms" className="mt-4 inline-block text-sm font-semibold text-primary underline">
             Back to Forms
           </Link>
@@ -75,9 +79,15 @@ export default function FormPage() {
     <div className="px-5 py-8 lg:px-10 lg:py-10">
       <div className="mx-auto max-w-xl space-y-6">
         <h1 className="text-2xl font-extrabold text-foreground">{form.title}</h1>
+        {form.instructions && (
+          <div
+            className="prose prose-sm max-w-none rounded-xl border border-card-border bg-card p-5 shell-shadow [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:p-1.5 [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:p-1.5"
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(form.instructions) }}
+          />
+        )}
         <div className="space-y-5 rounded-xl border border-card-border bg-card p-6 shell-shadow">
           {form.fields.map((field) => {
-            const showSectionHeading = field.section && field.section !== lastSection;
+            const showSectionHeading = form.groupedFields && field.section && field.section !== lastSection;
             lastSection = field.section;
             return (
               <div key={field.key}>

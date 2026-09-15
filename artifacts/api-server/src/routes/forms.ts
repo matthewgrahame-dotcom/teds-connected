@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
-import { asc, eq } from "drizzle-orm";
-import { db, formsTable, formSubmissionsTable, formCategoriesTable, type FormField } from "@workspace/db";
+import { asc, eq, inArray } from "drizzle-orm";
+import { db, formsTable, formSubmissionsTable, formCategoriesTable, formCategoryLinksTable, type FormField } from "@workspace/db";
 import { requireFullLevel } from "../lib/sessionAuth";
+import { verifyCrossAppToken } from "../lib/crossAppToken";
 
 const router: IRouter = Router();
 
@@ -13,35 +14,101 @@ function slugify(input: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
+// Forms default to requiring a Connected login (isPublic=false) same as
+// every other form has always worked -- only forms explicitly marked
+// public skip this. Applied manually inside each handler (rather than as
+// router-level middleware) since the requirement depends on the specific
+// form being requested, not the route itself.
+function requireSessionUnlessPublic(req: import("express").Request, res: import("express").Response, isPublic: boolean): boolean {
+  if (isPublic) return true;
+  const payload = verifyCrossAppToken(req.header("x-session-token"));
+  if (!payload) {
+    res.status(401).json({ error: "Missing or expired session. Please log in again." });
+    return false;
+  }
+  return true;
+}
+
+async function attachCategories<T extends { id: number }>(forms: T[]): Promise<(T & { categoryIds: number[]; categoryNames: string[] })[]> {
+  if (forms.length === 0) return [];
+  const links = await db
+    .select({ formId: formCategoryLinksTable.formId, categoryId: formCategoryLinksTable.categoryId, categoryName: formCategoriesTable.name })
+    .from(formCategoryLinksTable)
+    .innerJoin(formCategoriesTable, eq(formCategoryLinksTable.categoryId, formCategoriesTable.id))
+    .where(
+      inArray(
+        formCategoryLinksTable.formId,
+        forms.map((f) => f.id),
+      ),
+    );
+  const byForm = new Map<number, { ids: number[]; names: string[] }>();
+  for (const link of links) {
+    const entry = byForm.get(link.formId) ?? { ids: [], names: [] };
+    entry.ids.push(link.categoryId);
+    entry.names.push(link.categoryName);
+    byForm.set(link.formId, entry);
+  }
+  return forms.map((f) => ({ ...f, categoryIds: byForm.get(f.id)?.ids ?? [], categoryNames: byForm.get(f.id)?.names ?? [] }));
+}
+
+async function setCategoryLinks(formId: number, categoryIds: number[]) {
+  await db.delete(formCategoryLinksTable).where(eq(formCategoryLinksTable.formId, formId));
+  if (categoryIds.length > 0) {
+    await db.insert(formCategoryLinksTable).values(categoryIds.map((categoryId) => ({ formId, categoryId })));
+  }
+}
+
 router.get("/forms/categories", async (_req, res) => {
   const categories = await db.select().from(formCategoriesTable).orderBy(asc(formCategoriesTable.sortOrder));
   res.json(categories);
 });
 
+// Staff-facing list: live, non-archived forms only.
 router.get("/forms", async (_req, res) => {
-  const [forms, categories] = await Promise.all([
-    db.select().from(formsTable).where(eq(formsTable.archived, false)),
-    db.select().from(formCategoriesTable),
-  ]);
-  const categoryById = new Map(categories.map((c) => [c.id, c]));
-  res.json(forms.map((f) => ({ ...f, categoryName: f.categoryId ? (categoryById.get(f.categoryId)?.name ?? null) : null })));
+  const forms = await db.select().from(formsTable).where(eq(formsTable.archived, false));
+  const live = forms.filter((f) => f.status === "live");
+  res.json(await attachCategories(live));
 });
 
-router.get("/forms/:slug", async (req, res) => {
-  const [form] = await db.select().from(formsTable).where(eq(formsTable.slug, req.params.slug));
+// Admin list for the editor's own "existing forms" list -- includes drafts,
+// which the staff-facing list above deliberately excludes.
+router.get("/forms/admin", requireFullLevel, async (_req, res) => {
+  const forms = await db.select().from(formsTable).where(eq(formsTable.archived, false));
+  res.json(await attachCategories(forms));
+});
+
+router.get("/forms/admin/:id", requireFullLevel, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid form id" });
+    return;
+  }
+  const [form] = await db.select().from(formsTable).where(eq(formsTable.id, id));
   if (!form) {
     res.status(404).json({ error: "Form not found" });
     return;
   }
+  const [withCategories] = await attachCategories([form]);
+  res.json(withCategories);
+});
+
+router.get("/forms/:slug", async (req, res) => {
+  const [form] = await db.select().from(formsTable).where(eq(formsTable.slug, String(req.params.slug)));
+  if (!form) {
+    res.status(404).json({ error: "Form not found" });
+    return;
+  }
+  if (!requireSessionUnlessPublic(req, res, form.isPublic)) return;
   res.json(form);
 });
 
 router.post("/forms/:slug/submit", async (req, res) => {
-  const [form] = await db.select().from(formsTable).where(eq(formsTable.slug, req.params.slug));
+  const [form] = await db.select().from(formsTable).where(eq(formsTable.slug, String(req.params.slug)));
   if (!form) {
     res.status(404).json({ error: "Form not found" });
     return;
   }
+  if (!requireSessionUnlessPublic(req, res, form.isPublic)) return;
 
   const { submittedBy, submitterLocation, data } = req.body ?? {};
   if (typeof submittedBy !== "string" || !submittedBy.trim() || typeof data !== "object" || data === null) {
@@ -60,11 +127,13 @@ router.post("/forms/:slug/submit", async (req, res) => {
     .values({ formId: form.id, submittedBy: submittedBy.trim(), submitterLocation: submitterLocation ?? null, data })
     .returning();
 
-  res.json({ ok: true, submission });
+  res.json({ ok: true, submission, thankYouMessage: form.showThankYouMessage ? form.thankYouMessage : null });
 });
 
-router.get("/forms/:slug/submissions", async (req, res) => {
-  const [form] = await db.select().from(formsTable).where(eq(formsTable.slug, req.params.slug));
+// Admin-only: who's actually submitted a form and what they said, not
+// something every logged-in person should be able to pull for any form.
+router.get("/forms/:slug/submissions", requireFullLevel, async (req, res) => {
+  const [form] = await db.select().from(formsTable).where(eq(formsTable.slug, String(req.params.slug)));
   if (!form) {
     res.status(404).json({ error: "Form not found" });
     return;
@@ -73,19 +142,10 @@ router.get("/forms/:slug/submissions", async (req, res) => {
   res.json(submissions);
 });
 
-router.post("/forms", requireFullLevel, async (req, res) => {
-  const { title, fields } = req.body ?? {};
-  if (typeof title !== "string" || !title.trim()) {
-    res.status(400).json({ error: "title is required" });
-    return;
-  }
-  if (!Array.isArray(fields) || fields.length === 0) {
-    res.status(400).json({ error: "At least one field is required" });
-    return;
-  }
-
+function parseFields(fields: unknown): FormField[] {
   const validTypes = new Set(["text", "textarea", "number", "currency", "radio", "select", "file"]);
-  const cleanFields: FormField[] = fields.map((f: Partial<FormField> & { label?: string }, i: number) => {
+  if (!Array.isArray(fields)) return [];
+  return fields.map((f: Partial<FormField> & { label?: string }, i: number) => {
     const label = typeof f?.label === "string" && f.label.trim() ? f.label.trim() : `Field ${i + 1}`;
     return {
       key: typeof f?.key === "string" && f.key.trim() ? f.key.trim() : slugify(label).replace(/-/g, "_"),
@@ -97,18 +157,52 @@ router.post("/forms", requireFullLevel, async (req, res) => {
       section: typeof f?.section === "string" ? f.section : undefined,
     };
   });
+}
+
+router.post("/forms", requireFullLevel, async (req, res) => {
+  const { title, fields, instructions, status, isPublic, groupedFields, showThankYouMessage, thankYouMessage, autoArchive, categoryIds } = req.body ?? {};
+  if (typeof title !== "string" || !title.trim()) {
+    res.status(400).json({ error: "title is required" });
+    return;
+  }
+
+  const cleanFields = parseFields(fields);
+  if (cleanFields.length === 0) {
+    res.status(400).json({ error: "At least one field is required" });
+    return;
+  }
 
   const baseSlug = slugify(title);
   let slug = baseSlug;
   let attempt = 1;
-  // Small table, plain loop is fine -- avoids a fancier "insert and catch
-  // the unique violation" dance for what's a rare collision case.
   while ((await db.select({ id: formsTable.id }).from(formsTable).where(eq(formsTable.slug, slug))).length > 0) {
     attempt += 1;
     slug = `${baseSlug}-${attempt}`;
   }
 
-  const [form] = await db.insert(formsTable).values({ title: title.trim(), slug, fields: cleanFields }).returning();
+  const [form] = await db
+    .insert(formsTable)
+    .values({
+      title: title.trim(),
+      slug,
+      fields: cleanFields,
+      instructions: typeof instructions === "string" ? instructions : null,
+      status: status === "live" ? "live" : "draft",
+      isPublic: Boolean(isPublic),
+      groupedFields: Boolean(groupedFields),
+      showThankYouMessage: Boolean(showThankYouMessage),
+      thankYouMessage: typeof thankYouMessage === "string" ? thankYouMessage : null,
+      autoArchive: Boolean(autoArchive),
+    })
+    .returning();
+
+  if (Array.isArray(categoryIds) && categoryIds.length > 0) {
+    await setCategoryLinks(
+      form.id,
+      categoryIds.map(Number).filter(Number.isInteger),
+    );
+  }
+
   res.json({ ok: true, form });
 });
 
@@ -118,22 +212,49 @@ router.patch("/forms/:id", requireFullLevel, async (req, res) => {
     res.status(400).json({ error: "Invalid form id" });
     return;
   }
-  const { categoryId, title } = req.body ?? {};
+  const { title, fields, instructions, status, isPublic, groupedFields, showThankYouMessage, thankYouMessage, autoArchive, categoryIds, archived } = req.body ?? {};
   const updates: Partial<typeof formsTable.$inferInsert> = {};
-  if (categoryId !== undefined) updates.categoryId = categoryId === null ? null : Number(categoryId);
   if (typeof title === "string" && title.trim()) updates.title = title.trim();
+  if (fields !== undefined) {
+    const cleanFields = parseFields(fields);
+    if (cleanFields.length > 0) updates.fields = cleanFields;
+  }
+  if (instructions !== undefined) updates.instructions = typeof instructions === "string" ? instructions : null;
+  if (status === "live" || status === "draft") updates.status = status;
+  if (typeof isPublic === "boolean") updates.isPublic = isPublic;
+  if (typeof groupedFields === "boolean") updates.groupedFields = groupedFields;
+  if (typeof showThankYouMessage === "boolean") updates.showThankYouMessage = showThankYouMessage;
+  if (thankYouMessage !== undefined) updates.thankYouMessage = typeof thankYouMessage === "string" ? thankYouMessage : null;
+  if (typeof autoArchive === "boolean") updates.autoArchive = autoArchive;
+  if (typeof archived === "boolean") updates.archived = archived;
 
-  if (Object.keys(updates).length === 0) {
+  // categoryIds isn't a column on formsTable -- handle it separately via
+  // the join table below, even when it's the only thing being changed.
+  if (Object.keys(updates).length === 0 && categoryIds === undefined) {
     res.status(400).json({ error: "No valid fields to update" });
     return;
   }
 
-  const [form] = await db.update(formsTable).set(updates).where(eq(formsTable.id, id)).returning();
+  let form;
+  if (Object.keys(updates).length > 0) {
+    [form] = await db.update(formsTable).set(updates).where(eq(formsTable.id, id)).returning();
+  } else {
+    [form] = await db.select().from(formsTable).where(eq(formsTable.id, id));
+  }
   if (!form) {
     res.status(404).json({ error: "Form not found" });
     return;
   }
-  res.json({ ok: true, form });
+
+  if (Array.isArray(categoryIds)) {
+    await setCategoryLinks(
+      id,
+      categoryIds.map(Number).filter(Number.isInteger),
+    );
+  }
+
+  const [withCategories] = await attachCategories([form]);
+  res.json({ ok: true, form: withCategories });
 });
 
 export default router;
