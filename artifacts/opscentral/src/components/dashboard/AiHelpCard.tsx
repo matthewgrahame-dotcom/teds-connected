@@ -6,10 +6,37 @@ import { AiHelpTemplatesDialog } from './AiHelpTemplatesDialog';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 
-type FormFieldInput = { label: string; type: string; required?: boolean; options?: string[] };
+type FormFieldInput = { label: string; type: string; required?: boolean; options?: string[]; section?: string };
 type ModuleInput = { title: string; externalUrl?: string };
 
-type CreateFormCall = { name: 'create_form'; input: { title: string; fields: FormFieldInput[] } };
+type CreateFormCall = {
+  name: 'create_form';
+  input: {
+    title: string;
+    instructions?: string;
+    categoryNames?: string[];
+    fields: FormFieldInput[];
+    isPublic?: boolean;
+    groupedFields?: boolean;
+    showThankYouMessage?: boolean;
+    thankYouMessage?: string;
+  };
+};
+type UpdateFormCall = {
+  name: 'update_form';
+  input: {
+    formId: number;
+    title: string;
+    newTitle?: string;
+    newInstructions?: string;
+    newCategoryNames?: string[];
+    newIsPublic?: boolean;
+    newGroupedFields?: boolean;
+    newShowThankYouMessage?: boolean;
+    newThankYouMessage?: string;
+    newStatus?: 'draft' | 'live';
+  };
+};
 type CreateTrainingCall = {
   name: 'create_training_program';
   input: { title: string; description?: string; startDate?: string; endDate?: string; modules: ModuleInput[] };
@@ -31,10 +58,11 @@ type CreateCalendarEventCall = {
   name: 'create_calendar_event';
   input: { title: string; date: string; time?: string; location?: string; requiresRsvp?: boolean };
 };
-type ToolCall = CreateFormCall | CreateTrainingCall | CreateNewsCall | UpdateNewsCall | CreateCalendarEventCall;
+type ToolCall = CreateFormCall | UpdateFormCall | CreateTrainingCall | CreateNewsCall | UpdateNewsCall | CreateCalendarEventCall;
 
 type CreatedResult =
-  | { kind: 'form'; slug: string; title: string }
+  | { kind: 'form'; id: number; slug: string; title: string }
+  | { kind: 'form-updated'; id: number; title: string }
   | { kind: 'training'; title: string }
   | { kind: 'news'; id: number; title: string }
   | { kind: 'news-updated'; id: number; title: string }
@@ -42,6 +70,33 @@ type CreatedResult =
 
 type ChatTurn = { role: 'user' | 'assistant'; content: string };
 type Template = { id: number; label: string; prompt: string };
+
+// Turns the plain prose the model was told to write (never HTML/markdown --
+// see the tool description) into simple paragraph HTML matching what the
+// rich text editor itself produces, so instructions written by AI Help
+// display identically to ones written by hand in the Forms editor.
+function wrapAsHtml(plainText: string): string {
+  return plainText
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p>${p}</p>`)
+    .join('');
+}
+
+// The model names categories by their existing name (it's told not to
+// invent new ones), but the actual API works in ids -- resolves the names
+// it proposed against the real category list right before the request
+// that needs them, rather than trusting a stale list from earlier in the
+// conversation.
+async function resolveCategoryIds(names: string[] | undefined, session: ReturnType<typeof useAuth>['session']): Promise<number[]> {
+  if (!names || names.length === 0) return [];
+  const res = await fetch('/api/forms/categories', { headers: authHeaders(session) });
+  if (!res.ok) return [];
+  const categories: { id: number; name: string }[] = await res.json();
+  const byName = new Map(categories.map((c) => [c.name.toLowerCase(), c.id]));
+  return names.map((n) => byName.get(n.toLowerCase())).filter((id): id is number => typeof id === 'number');
+}
 
 export function AiHelpCard() {
   const { session } = useAuth();
@@ -100,14 +155,44 @@ export function AiHelpCard() {
     setError(null);
     try {
       if (toolCall.name === 'create_form') {
+        const categoryIds = await resolveCategoryIds(toolCall.input.categoryNames, session);
         const res = await fetch('/api/forms', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
-          body: JSON.stringify(toolCall.input),
+          body: JSON.stringify({
+            title: toolCall.input.title,
+            instructions: toolCall.input.instructions ? wrapAsHtml(toolCall.input.instructions) : undefined,
+            categoryIds,
+            fields: toolCall.input.fields,
+            status: 'draft',
+            isPublic: toolCall.input.isPublic ?? false,
+            groupedFields: toolCall.input.groupedFields ?? false,
+            showThankYouMessage: toolCall.input.showThankYouMessage ?? false,
+            thankYouMessage: toolCall.input.thankYouMessage,
+          }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Could not create the form');
-        setCreated({ kind: 'form', slug: data.form.slug, title: data.form.title });
+        setCreated({ kind: 'form', id: data.form.id, slug: data.form.slug, title: data.form.title });
+      } else if (toolCall.name === 'update_form') {
+        const patch: Record<string, unknown> = {};
+        if (toolCall.input.newTitle) patch.title = toolCall.input.newTitle;
+        if (toolCall.input.newInstructions !== undefined) patch.instructions = wrapAsHtml(toolCall.input.newInstructions);
+        if (toolCall.input.newCategoryNames) patch.categoryIds = await resolveCategoryIds(toolCall.input.newCategoryNames, session);
+        if (toolCall.input.newIsPublic !== undefined) patch.isPublic = toolCall.input.newIsPublic;
+        if (toolCall.input.newGroupedFields !== undefined) patch.groupedFields = toolCall.input.newGroupedFields;
+        if (toolCall.input.newShowThankYouMessage !== undefined) patch.showThankYouMessage = toolCall.input.newShowThankYouMessage;
+        if (toolCall.input.newThankYouMessage !== undefined) patch.thankYouMessage = toolCall.input.newThankYouMessage;
+        if (toolCall.input.newStatus) patch.status = toolCall.input.newStatus;
+
+        const res = await fetch(`/api/forms/${toolCall.input.formId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+          body: JSON.stringify(patch),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not update the form');
+        setCreated({ kind: 'form-updated', id: data.form.id, title: data.form.title });
       } else if (toolCall.name === 'create_training_program') {
         const res = await fetch('/api/training/programs', {
           method: 'POST',
@@ -280,30 +365,48 @@ export function AiHelpCard() {
       {toolCall && (
         <div className="mt-3 rounded-lg border border-primary/40 bg-primary/5 p-3">
           <div className="flex items-center gap-2 text-sm font-extrabold text-foreground">
-            {toolCall.name === 'create_form' && <FileText className="h-4 w-4" />}
+            {(toolCall.name === 'create_form' || toolCall.name === 'update_form') && <FileText className="h-4 w-4" />}
             {toolCall.name === 'create_training_program' && <GraduationCap className="h-4 w-4" />}
             {(toolCall.name === 'create_news_article' || toolCall.name === 'update_news_article') && <Newspaper className="h-4 w-4" />}
             {toolCall.name === 'create_calendar_event' && <CalendarPlus className="h-4 w-4" />}
             Proposed:{' '}
             {toolCall.name === 'create_form'
               ? 'New Form'
-              : toolCall.name === 'create_training_program'
-                ? 'New Training Program'
-                : toolCall.name === 'create_news_article'
-                  ? 'New News Article'
-                  : toolCall.name === 'create_calendar_event'
-                    ? 'New Calendar Event'
-                    : 'Update to News Article'}
+              : toolCall.name === 'update_form'
+                ? 'Update to Form'
+                : toolCall.name === 'create_training_program'
+                  ? 'New Training Program'
+                  : toolCall.name === 'create_news_article'
+                    ? 'New News Article'
+                    : toolCall.name === 'create_calendar_event'
+                      ? 'New Calendar Event'
+                      : 'Update to News Article'}
           </div>
-          <p className="mt-1 text-sm font-semibold text-foreground">{toolCall.name === 'update_news_article' ? toolCall.input.newTitle || toolCall.input.title : toolCall.input.title}</p>
+          <p className="mt-1 text-sm font-semibold text-foreground">
+            {toolCall.name === 'update_news_article' || toolCall.name === 'update_form' ? (toolCall.input as any).newTitle || toolCall.input.title : toolCall.input.title}
+          </p>
 
           {toolCall.name === 'create_form' && (
+            <>
+              {toolCall.input.categoryNames?.length && <p className="mt-1 text-xs text-muted-foreground">Category: {toolCall.input.categoryNames.join(', ')}</p>}
+              {toolCall.input.instructions && <p className="mt-2 line-clamp-3 text-xs text-muted-foreground/80">{toolCall.input.instructions}</p>}
+              <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                {toolCall.input.fields.map((f, i) => (
+                  <li key={i}>
+                    • {f.label} <span className="text-muted-foreground/70">({f.type}{f.required ? ', required' : ''})</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-[11px] text-muted-foreground/70">Saved as a draft — publish it from the Forms editor when it's ready.</p>
+            </>
+          )}
+          {toolCall.name === 'update_form' && (
             <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-              {toolCall.input.fields.map((f, i) => (
-                <li key={i}>
-                  • {f.label} <span className="text-muted-foreground/70">({f.type}{f.required ? ', required' : ''})</span>
-                </li>
-              ))}
+              {toolCall.input.newCategoryNames && <li>• New category: {toolCall.input.newCategoryNames.join(', ') || '(none)'}</li>}
+              {toolCall.input.newInstructions !== undefined && <li className="line-clamp-3">• New instructions: {toolCall.input.newInstructions}</li>}
+              {toolCall.input.newIsPublic !== undefined && <li>• {toolCall.input.newIsPublic ? 'Now public (no login required)' : 'Now requires login'}</li>}
+              {toolCall.input.newShowThankYouMessage !== undefined && <li>• {toolCall.input.newShowThankYouMessage ? `Custom thank-you message: ${toolCall.input.newThankYouMessage ?? ''}` : 'Thank-you message turned off'}</li>}
+              {toolCall.input.newStatus && <li>• Status: {toolCall.input.newStatus}</li>}
             </ul>
           )}
           {toolCall.name === 'create_training_program' && (
@@ -359,7 +462,7 @@ export function AiHelpCard() {
           )}
 
           <p className="mt-2 text-xs text-muted-foreground">
-            {toolCall.name === 'update_news_article' ? "Nothing's been changed yet" : "Nothing's been created yet"} — this is just a proposal.
+            {toolCall.name === 'update_news_article' || toolCall.name === 'update_form' ? "Nothing's been changed yet" : "Nothing's been created yet"} — this is just a proposal.
           </p>
           <div className="mt-2 flex gap-2">
             <button
@@ -369,7 +472,13 @@ export function AiHelpCard() {
               className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-extrabold text-primary-foreground transition hover:brightness-95 disabled:opacity-50"
             >
               <Check className="h-3.5 w-3.5" />{' '}
-              {confirming ? (toolCall.name === 'update_news_article' ? 'Updating…' : 'Creating…') : toolCall.name === 'update_news_article' ? 'Confirm & Update' : 'Confirm & Create'}
+              {confirming
+                ? toolCall.name === 'update_news_article' || toolCall.name === 'update_form'
+                  ? 'Updating…'
+                  : 'Creating…'
+                : toolCall.name === 'update_news_article' || toolCall.name === 'update_form'
+                  ? 'Confirm & Update'
+                  : 'Confirm & Create'}
             </button>
             <button type="button" onClick={reset} className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-bold text-muted-foreground transition hover:bg-muted">
               <X className="h-3.5 w-3.5" /> Discard
@@ -382,18 +491,25 @@ export function AiHelpCard() {
         <div className="mt-3 rounded-lg border border-border bg-muted/30 p-3 text-sm">
           <p className="font-semibold text-foreground">
             {created.kind === 'form'
-              ? 'Form created.'
-              : created.kind === 'training'
-                ? 'Training program created.'
-                : created.kind === 'news'
-                  ? 'News article created.'
-                  : created.kind === 'calendar-event'
-                    ? 'Calendar event created.'
-                    : 'News article updated.'}
+              ? 'Form created (as a draft).'
+              : created.kind === 'form-updated'
+                ? 'Form updated.'
+                : created.kind === 'training'
+                  ? 'Training program created.'
+                  : created.kind === 'news'
+                    ? 'News article created.'
+                    : created.kind === 'calendar-event'
+                      ? 'Calendar event created.'
+                      : 'News article updated.'}
           </p>
           {created.kind === 'form' && (
-            <Link href={`/people/forms/${created.slug}`} className="text-accent hover:underline">
-              View "{created.title}"
+            <Link href={`/admin/forms/${created.id}`} className="text-accent hover:underline">
+              View "{created.title}" in the Forms editor
+            </Link>
+          )}
+          {created.kind === 'form-updated' && (
+            <Link href={`/admin/forms/${created.id}`} className="text-accent hover:underline">
+              View "{created.title}" in the Forms editor
             </Link>
           )}
           {created.kind === 'training' && (

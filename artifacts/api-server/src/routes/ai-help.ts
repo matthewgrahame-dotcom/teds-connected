@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { desc } from "drizzle-orm";
-import { db, newsArticlesTable } from "@workspace/db";
+import { desc, eq } from "drizzle-orm";
+import { db, newsArticlesTable, formsTable, formCategoriesTable, formCategoryLinksTable } from "@workspace/db";
 import { requireSession } from "../lib/sessionAuth";
 
 const router: IRouter = Router();
@@ -32,11 +32,29 @@ router.post("/ai-help", requireSession, async (req, res) => {
     .orderBy(desc(newsArticlesTable.createdAt))
     .limit(15);
 
+  // Same reasoning as recentNewsArticles above, for update_form -- lets the
+  // model resolve "the WHS form" / "my equipment request form" to a real id
+  // instead of guessing.
+  const [allForms, allCategories, allLinks] = await Promise.all([
+    db.select({ id: formsTable.id, title: formsTable.title }).from(formsTable).where(eq(formsTable.archived, false)),
+    db.select({ id: formCategoriesTable.id, name: formCategoriesTable.name }).from(formCategoriesTable),
+    db.select().from(formCategoryLinksTable),
+  ]);
+  const categoryNameById = new Map(allCategories.map((c) => [c.id, c.name]));
+  const categoryNamesByForm = new Map<number, string[]>();
+  for (const link of allLinks) {
+    const list = categoryNamesByForm.get(link.formId) ?? [];
+    const name = categoryNameById.get(link.categoryId);
+    if (name) list.push(name);
+    categoryNamesByForm.set(link.formId, list);
+  }
+  const existingForms = allForms.map((f) => ({ id: f.id, title: f.title, categoryNames: categoryNamesByForm.get(f.id) ?? [] }));
+
   try {
     const resp = await fetch(`${PHOCAL_BASE_URL}/api/connected-ai-help`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, history, sessionToken, recentNewsArticles }),
+      body: JSON.stringify({ question, history, sessionToken, recentNewsArticles, existingForms, formCategories: allCategories }),
     });
     const data = await resp.json();
     if (!resp.ok) {
