@@ -7,6 +7,8 @@ import {
   moduleProgressTable,
   calendarEventsTable,
   eventRsvpsTable,
+  workDocumentsTable,
+  workDocumentAcknowledgmentsTable,
 } from "@workspace/db";
 import { requireSession } from "../lib/sessionAuth";
 
@@ -28,7 +30,7 @@ router.get("/tasks", requireSession, async (req, res) => {
   const staffName = req.sessionPayload!.name;
 
   try {
-    const [programs, modules, progress, events, myRsvps] = await Promise.all([
+    const [programs, modules, progress, events, myRsvps, requiredDocs, myAcks] = await Promise.all([
       db.select().from(trainingProgramsTable).where(eq(trainingProgramsTable.status, "live")),
       db.select().from(trainingModulesTable).orderBy(asc(trainingModulesTable.sortOrder)),
       db.select().from(moduleProgressTable).where(eq(moduleProgressTable.staffName, staffName)),
@@ -38,6 +40,8 @@ router.get("/tasks", requireSession, async (req, res) => {
         .where(and(eq(calendarEventsTable.requiresRsvp, true), gte(calendarEventsTable.date, todayKey())))
         .orderBy(asc(calendarEventsTable.date)),
       db.select().from(eventRsvpsTable).where(eq(eventRsvpsTable.staffName, staffName)),
+      db.select().from(workDocumentsTable).where(eq(workDocumentsTable.requiresAcknowledgment, true)),
+      db.select().from(workDocumentAcknowledgmentsTable).where(eq(workDocumentAcknowledgmentsTable.staffName, staffName)),
     ]);
 
     const programsById = new Map(programs.map((p) => [p.id, p]));
@@ -62,7 +66,17 @@ router.get("/tasks", requireSession, async (req, res) => {
         time: e.time,
       }));
 
-    res.json({ trainingTasks, rsvpTasks });
+    const ackedDocIds = new Set(myAcks.map((a) => a.documentId));
+    const acknowledgmentTasks = requiredDocs
+      .filter((d) => !ackedDocIds.has(d.id))
+      .map((d) => ({
+        type: "acknowledgment" as const,
+        documentId: d.id,
+        title: d.title,
+        categorySlug: d.categorySlug,
+      }));
+
+    res.json({ trainingTasks, rsvpTasks, acknowledgmentTasks });
   } catch (err) {
     console.error("[GET /tasks] error:", err);
     res.status(500).json({ error: "Something went wrong loading tasks." });
