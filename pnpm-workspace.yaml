@@ -34,6 +34,29 @@ minimumReleaseAgeExclude:
   - '@replit/*'
   - stripe-replit-sync
 
+
+# ============================================================================
+# WINDOWS COMPATIBILITY: ensure native-binary optional dependencies always
+# resolve for Windows too
+# ============================================================================
+#
+# Without this, whichever OS last regenerated pnpm-lock.yaml determines which
+# platform-specific optional packages get resolved -- e.g. Rollup, lightningcss,
+# and @tailwindcss/oxide each ship a separate native binary per platform, and
+# a lockfile generated on Linux/Mac marks the Windows ones as "not needed" (a
+# literal '-' in the lockfile), even though a Windows developer needs them.
+# That's exactly what caused a string of "Cannot find native binding" /
+# "Cannot find module '@rollup/rollup-win32-x64-msvc'" errors trying to run
+# this locally on Windows. This keeps Windows x64 resolved in the committed
+# lockfile regardless of which OS last touched it.
+supportedArchitectures:
+  os:
+    - current
+    - win32
+  cpu:
+    - current
+    - x64
+
 packages:
   - artifacts/*
   - lib/*
