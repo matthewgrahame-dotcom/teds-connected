@@ -37,9 +37,24 @@
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { db, formsTable, type FormField } from "@workspace/db";
+import { config } from "dotenv";
+import type { FormField } from "@workspace/db";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Load the repo-root .env explicitly. This script's cwd when run via
+// `pnpm --filter @workspace/scripts seed-forms` (or `pnpm seed-forms` from
+// inside scripts/) is NOT the repo root, so a bare `dotenv/config` import
+// (which only ever looks at cwd) won't find it. dotenv.config() never
+// overwrites a variable that's already set in the real environment, so
+// this stays harmless in CI or anywhere DATABASE_URL is supplied another way.
+config({ path: path.resolve(__dirname, "../../.env") });
+
+// @workspace/db throws at import time if DATABASE_URL isn't set, so it must
+// be imported dynamically -- after the config() call above has run -- rather
+// than as a normal static import, which Node/ESM would hoist above config().
+const { db, formsTable } = await import("@workspace/db");
+
 const VALID_TYPES = new Set(["text", "textarea", "number", "currency", "radio", "select", "file"]);
 
 // Minimal RFC4180-ish CSV parser -- handles quoted fields (with embedded

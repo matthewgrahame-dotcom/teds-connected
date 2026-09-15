@@ -29,14 +29,27 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import "dotenv/config";
+import { config } from "dotenv";
 import { generateObject } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod/v4";
-import { db, formsTable, formFieldSchema } from "@workspace/db";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const pdfDir = process.argv[2] || "./pdfs";
+
+// Load .env from the repo root explicitly -- when this script runs via
+// `pnpm --filter @workspace/scripts ...`, the working directory is the
+// scripts package, not the repo root, so the default dotenv/config
+// behaviour (look in cwd) misses the real .env entirely.
+config({ path: path.resolve(__dirname, "../../.env") });
+
+// @workspace/db must be imported dynamically, AFTER config() runs above --
+// static imports in ES modules are hoisted and execute before any other
+// code in the file, so a static import here would construct the db client
+// (and throw on missing DATABASE_URL) before config() ever got a chance to
+// load the .env file, regardless of where config() appears in the source.
+const { db, formsTable, formFieldSchema } = await import("@workspace/db");
+
+const pdfDir = process.argv.find((arg, i) => i >= 2 && arg !== "--") || "./pdfs";
 const outFile = path.join(__dirname, "data", "forms-seed-extracted.csv");
 
 // Same slugify as seed-forms.ts (kept in sync by hand, not imported --
@@ -51,6 +64,33 @@ function slugify(title: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+// Many of the source PDFs print their titles in ALL CAPS. Rather than rely
+// on the model to re-case titles consistently (unreliable, one more thing
+// it can get subtly wrong across 60 PDFs), we normalize deterministically
+// here in code. Small connector words stay lowercase unless they're the
+// first word, matching normal title-case conventions. Apostrophes are
+// preserved and correctly lowercased on the far side (e.g. "TED'S" -> "Ted's")
+// because slicing+lowercasing the rest of the word naturally handles that.
+const TITLE_CASE_MINOR_WORDS = new Set([
+  "a", "an", "and", "as", "at", "but", "by", "for", "from", "in", "into",
+  "nor", "of", "on", "or", "per", "the", "to", "with",
+]);
+function toTitleCase(title: string): string {
+  const words = title.trim().split(/\s+/);
+  return words
+    .map((word, i) => {
+      // Preserve deliberate prefixes/markers like "*WEB" as-is rather than
+      // re-casing them into something that changes their meaning.
+      if (/^\*/.test(word)) return word;
+      const lower = word.toLowerCase();
+      if (i !== 0 && i !== words.length - 1 && TITLE_CASE_MINOR_WORDS.has(lower)) {
+        return lower;
+      }
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(" ");
+}
+
 function csvField(value: string): string {
   return `"${String(value ?? "").replace(/"/g, '""')}"`;
 }
@@ -58,23 +98,30 @@ function csvField(value: string): string {
 const EXTRACTION_PROMPT = `You are helping migrate paper/PDF forms into a new digital forms system.
 
 I've attached one form as a PDF. Extract:
-1. The form's exact title, EXACTLY as printed on the form (including any prefix like "*WEB ONLY" -- don't clean it up or rephrase it).
+1. The form's exact title, as printed on the form (including any prefix like "*WEB ONLY" -- don't drop or rephrase meaningful prefixes). Don't worry about matching the printed capitalization exactly -- that gets normalized separately afterward.
 2. Every field a person filling out this form needs to provide.
 
-Rules for fields:
-- Ignore headers, footers, page numbers, logos, and any internal reference/version codes.
+SKIP these fields entirely -- do not include them in your output at all, even though they commonly appear on these forms:
+- "Submitted By", "Submitted On Date", "Submitter Location", "Address" (or close variants of these labels) -- these are auto-populated by the system from the logged-in user's session, never manually typed in, and including them would create redundant junk fields on every single form.
+
+Rules for the remaining fields:
+- Ignore headers, footers, page numbers, logos, and any internal reference/version codes, in addition to the auto-populated fields listed above.
 - Give each field a camelCase "key" derived from its label (e.g. "Magento Order Number" -> "magentoOrderNumber").
-- Pick "type" from EXACTLY: text, textarea, number, currency, radio, select, file, signature.
+- Pick "type" from EXACTLY: text, textarea, number, currency, radio, select, file, signature, date.
+  - CHECK FOR "signature" FIRST, before considering "text" or "file": if a field's purpose is for the person to sign their name to confirm, declare, or authorize something, it is ALWAYS "signature" -- regardless of how it's printed on the page (a blank line, a box, anything). This includes any field labelled "Sign", "Signature", "Signed", "Authorised By (Signature)", or similar. Do not default to "text" just because the printed field looks like a simple blank line -- check what the field is FOR, not just how it looks.
   - "currency" for any dollar amount field.
+  - "date" for any field asking for a calendar date (e.g. "Date Traded In", "Date of Birth") -- even if the printed form just has a blank line, if what's being asked for is a date, use "date" not "text".
   - "radio" for a small fixed set of mutually-exclusive choices actually printed on the form (checkboxes where only one applies).
   - "select" for a longer dropdown-style list of choices.
-  - "signature" for a field where the person needs to physically or digitally sign their name.
-  - "file" for a non-signature attachment/upload field (e.g. "attach a photo").
+  - "file" for a non-signature attachment/upload field (e.g. "attach a photo", "attach report").
   - "textarea" for anything inviting more than one line of free text (notes, descriptions).
   - "text" as the default for a single-line answer, or if you're genuinely unsure.
   - "number" only for a plain numeric field that ISN'T a dollar amount (e.g. a quantity).
-- Set "required" true only if the form itself marks the field as required (an asterisk, "required", etc.) -- don't guess.
-- Use "options" only for radio/select, listing the exact choices as printed.
+- Set "required" to true if EITHER of these is true:
+  (a) the form explicitly marks it required (an asterisk, the word "required", etc.), OR
+  (b) the field is clearly essential to the form's core purpose based on context -- for example, a dollar amount on a refund/expense form, a signature on a declaration, or a checklist item on a store compliance report are all normally required even without an explicit marker.
+  Only set "required" to false for fields that are genuinely optional in context (e.g. "Additional Notes", "Comments", anything explicitly marked optional).
+- Use "options" only for radio/select -- list EVERY choice exactly as printed, in the same order they appear on the form, separated by semicolons (e.g. "Yes;No;Maybe"). Do not summarise, merge, or drop any option, even if some seem redundant or overlapping with each other -- completeness matters more than tidiness here.
 - Use "section" to group fields that are visually grouped under one heading on the form (e.g. "Expense Claim 1") -- leave it out for fields with no clear section.
 - If a field's purpose is genuinely unclear, still include it with your best guess rather than omitting it -- it's easier for a human reviewing the CSV afterward to delete or fix a wrong guess than to notice a field that got silently dropped.`;
 
@@ -136,16 +183,19 @@ async function main() {
         ],
       });
 
+      const displayTitle = toTitleCase(object.title);
+
       // Authoritative check, now that we have the REAL extracted title
-      // rather than a filename guess.
+      // rather than a filename guess. Slugify is case-insensitive anyway,
+      // so title-casing the display title doesn't affect duplicate detection.
       const slug = slugify(object.title);
       if (existingSlugs.has(slug)) {
-        console.log(`  -> "${object.title}" already imported (slug "${slug}") -- skipped`);
+        console.log(`  -> "${displayTitle}" already imported (slug "${slug}") -- skipped`);
         skippedAfterExtraction++;
         continue;
       }
       if (!object.fields.length) {
-        console.log(`  -> No fields found for "${object.title}" -- flagged for manual review, not added to the CSV`);
+        console.log(`  -> No fields found for "${displayTitle}" -- flagged for manual review, not added to the CSV`);
         failed.push({ file, error: "No fields extracted" });
         continue;
       }
@@ -153,7 +203,7 @@ async function main() {
       for (const f of object.fields) {
         rows.push(
           [
-            csvField(object.title),
+            csvField(displayTitle),
             csvField(slug),
             csvField(f.key),
             csvField(f.label),
@@ -167,7 +217,7 @@ async function main() {
       }
       existingSlugs.add(slug); // guards against two PDFs in this run extracting to the same title
       extracted++;
-      console.log(`  -> "${object.title}" -- ${object.fields.length} field(s)`);
+      console.log(`  -> "${displayTitle}" -- ${object.fields.length} field(s)`);
     } catch (err: any) {
       console.error(`  -> Failed: ${err.message}`);
       failed.push({ file, error: err.message });

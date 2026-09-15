@@ -20,6 +20,7 @@
 export * from "./work-items";
 export * from "./training";
 export * from "./forms";
+export * from "./form-categories";
 export * from "./calendar";
 export * from "./news";
 export * from "./portal-users";
