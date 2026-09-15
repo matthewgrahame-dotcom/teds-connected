@@ -72,6 +72,18 @@ export default defineConfig({
     fs: {
       strict: true,
     },
+    // Only relevant to `vite dev` (ignored during `vite build`/production,
+    // where the built static files are served directly by the api-server
+    // instead) -- without this, running the frontend dev server on its own
+    // has nothing to forward /api/* requests to, and every fetch call 404s.
+    // Point API_PROXY_TARGET at wherever the api-server is actually
+    // running locally (see artifacts/api-server's own PORT env var).
+    proxy: {
+      '/api': {
+        target: process.env.API_PROXY_TARGET || 'http://localhost:3001',
+        changeOrigin: true,
+      },
+    },
   },
   preview: {
     port,
