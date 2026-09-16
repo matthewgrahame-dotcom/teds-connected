@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { desc, eq } from "drizzle-orm";
-import { db, newsArticlesTable, formsTable, formCategoriesTable, formCategoryLinksTable } from "@workspace/db";
+import { db, newsArticlesTable, formsTable, formCategoriesTable, formCategoryLinksTable, workDocumentsTable } from "@workspace/db";
 import { requireSession } from "../lib/sessionAuth";
 
 const router: IRouter = Router();
@@ -50,11 +50,18 @@ router.post("/ai-help", requireSession, async (req, res) => {
   }
   const existingForms = allForms.map((f) => ({ id: f.id, title: f.title, categoryNames: categoryNamesByForm.get(f.id) ?? [] }));
 
+  // Same reasoning as existingForms above, for create_onboarding_program --
+  // onboarding items can only reference a form or a policy/work document
+  // that already exists (there's no "invent new content" item type on
+  // PUT /onboarding/programs/:id/content), so the model needs real ids to
+  // pick from rather than guessing or inventing titles.
+  const existingWorkDocuments = await db.select({ id: workDocumentsTable.id, title: workDocumentsTable.title }).from(workDocumentsTable);
+
   try {
     const resp = await fetch(`${PHOCAL_BASE_URL}/api/connected-ai-help`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, history, sessionToken, recentNewsArticles, existingForms, formCategories: allCategories }),
+      body: JSON.stringify({ question, history, sessionToken, recentNewsArticles, existingForms, formCategories: allCategories, existingWorkDocuments }),
     });
     const data = await resp.json();
     if (!resp.ok) {
