@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { ListChecks, GraduationCap, CalendarCheck, FileCheck } from 'lucide-react';
+import { ListChecks, GraduationCap, CalendarCheck, FileCheck, ClipboardList } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 
 type TrainingTask = { type: 'training'; moduleId: number; title: string; programTitle: string };
 type RsvpTask = { type: 'rsvp'; eventId: number; title: string; date: string; time: string | null };
 type WorkDocumentTask = { type: 'work_document'; documentId: number; title: string; categorySlug: string };
+type FormTask = { type: 'form'; formId: number; title: string; slug: string };
 
 export default function TasksPage() {
   const { session } = useAuth();
   const [trainingTasks, setTrainingTasks] = useState<TrainingTask[] | null>(null);
   const [rsvpTasks, setRsvpTasks] = useState<RsvpTask[] | null>(null);
   const [workDocumentTasks, setWorkDocumentTasks] = useState<WorkDocumentTask[] | null>(null);
+  const [formTasks, setFormTasks] = useState<FormTask[] | null>(null);
   const [rsvpSaving, setRsvpSaving] = useState<number | null>(null);
   const [ackSaving, setAckSaving] = useState<number | null>(null);
 
@@ -23,11 +25,13 @@ export default function TasksPage() {
         setTrainingTasks(data.trainingTasks);
         setRsvpTasks(data.rsvpTasks);
         setWorkDocumentTasks(data.workDocumentTasks);
+        setFormTasks(data.formTasks ?? []);
       })
       .catch(() => {
         setTrainingTasks([]);
         setRsvpTasks([]);
         setWorkDocumentTasks([]);
+        setFormTasks([]);
       });
   };
 
@@ -60,8 +64,8 @@ export default function TasksPage() {
     }
   };
 
-  const loading = trainingTasks === null || rsvpTasks === null || workDocumentTasks === null;
-  const total = (trainingTasks?.length ?? 0) + (rsvpTasks?.length ?? 0) + (workDocumentTasks?.length ?? 0);
+  const loading = trainingTasks === null || rsvpTasks === null || workDocumentTasks === null || formTasks === null;
+  const total = (trainingTasks?.length ?? 0) + (rsvpTasks?.length ?? 0) + (workDocumentTasks?.length ?? 0) + (formTasks?.length ?? 0);
 
   return (
     <div className="px-5 py-8 lg:px-10 lg:py-10">
@@ -128,6 +132,21 @@ export default function TasksPage() {
                     {ackSaving === t.documentId ? 'Saving…' : 'Acknowledge'}
                   </button>
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!!formTasks?.length && (
+          <div>
+            <h2 className="mb-2 flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
+              <ClipboardList className="h-3.5 w-3.5" /> Forms to complete
+            </h2>
+            <div className="space-y-2">
+              {formTasks.map((t) => (
+                <Link key={t.formId} href={`/people/forms/${t.slug}`} className="block rounded-lg border border-border p-4 transition hover:bg-muted">
+                  <p className="font-semibold text-foreground">{t.title}</p>
+                </Link>
               ))}
             </div>
           </div>

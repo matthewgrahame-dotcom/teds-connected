@@ -10,6 +10,11 @@ import {
   workDocumentsTable,
   workDocumentAcknowledgmentsTable,
   appSettingsTable,
+  formsTable,
+  formSubmissionsTable,
+  formRoleAssignmentsTable,
+  formUserAssignmentsTable,
+  portalUsersTable,
 } from "@workspace/db";
 import { requireSession } from "../lib/sessionAuth";
 
@@ -22,7 +27,7 @@ function todayKey(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-export const TASK_TYPES = ["training", "rsvp", "work_documents"] as const;
+export const TASK_TYPES = ["training", "rsvp", "work_documents", "forms"] as const;
 export type TaskType = (typeof TASK_TYPES)[number];
 const ENABLED_TASK_TYPES_KEY = "enabled_task_types";
 
@@ -62,7 +67,7 @@ router.get("/tasks", requireSession, async (req, res) => {
   const staffName = req.sessionPayload!.name;
 
   try {
-    const [enabledTypes, programs, modules, progress, events, myRsvps, requiredDocs, myAcks] = await Promise.all([
+    const [enabledTypes, programs, modules, progress, events, myRsvps, requiredDocs, myAcks, liveForms, formRoleAssignments, formUserAssignments, mySubmissions, allPortalUsers] = await Promise.all([
       getEnabledTaskTypes(),
       db.select().from(trainingProgramsTable).where(eq(trainingProgramsTable.status, "live")),
       db.select().from(trainingModulesTable).orderBy(asc(trainingModulesTable.sortOrder)),
@@ -75,7 +80,13 @@ router.get("/tasks", requireSession, async (req, res) => {
       db.select().from(eventRsvpsTable).where(eq(eventRsvpsTable.staffName, staffName)),
       db.select().from(workDocumentsTable).where(eq(workDocumentsTable.requiresAcknowledgment, true)),
       db.select({ documentId: workDocumentAcknowledgmentsTable.documentId }).from(workDocumentAcknowledgmentsTable).where(eq(workDocumentAcknowledgmentsTable.staffName, staffName)),
+      db.select().from(formsTable).where(and(eq(formsTable.status, "live"), eq(formsTable.archived, false))),
+      db.select().from(formRoleAssignmentsTable),
+      db.select().from(formUserAssignmentsTable),
+      db.select({ formId: formSubmissionsTable.formId }).from(formSubmissionsTable).where(eq(formSubmissionsTable.submittedBy, staffName)),
+      db.select({ id: portalUsersTable.id, role: portalUsersTable.role, firstName: portalUsersTable.firstName, lastName: portalUsersTable.lastName }).from(portalUsersTable),
     ]);
+    const portalUser = allPortalUsers.find((u) => `${u.firstName} ${u.lastName}` === staffName) ?? null;
 
     const programsById = new Map(programs.map((p) => [p.id, p]));
     const completedModuleIds = new Set(progress.filter((p) => p.status === "completed").map((p) => p.moduleId));
@@ -115,7 +126,28 @@ router.get("/tasks", requireSession, async (req, res) => {
           }))
       : [];
 
-    res.json({ trainingTasks, rsvpTasks, workDocumentTasks });
+    // Only mandatory-level assignments surface as an actual outstanding
+    // task -- matches the "Required Task" framing from the source export;
+    // optional ones are available but not something to nag about.
+    const mandatoryFormIds = new Set<number>();
+    if (portalUser) {
+      for (const a of formRoleAssignments) if (a.level === "mandatory" && a.role === portalUser.role) mandatoryFormIds.add(a.formId);
+      for (const a of formUserAssignments) if (a.level === "mandatory" && a.userId === portalUser.id) mandatoryFormIds.add(a.formId);
+    }
+    const submittedFormIds = new Set(mySubmissions.map((s) => s.formId));
+    const formsById = new Map(liveForms.map((f) => [f.id, f]));
+    const formTasks = enabledTypes.has("forms")
+      ? Array.from(mandatoryFormIds)
+          .filter((formId) => formsById.has(formId) && !submittedFormIds.has(formId))
+          .map((formId) => ({
+            type: "form" as const,
+            formId,
+            title: formsById.get(formId)!.title,
+            slug: formsById.get(formId)!.slug,
+          }))
+      : [];
+
+    res.json({ trainingTasks, rsvpTasks, workDocumentTasks, formTasks });
   } catch (err) {
     console.error("[GET /tasks] error:", err);
     res.status(500).json({ error: "Something went wrong loading tasks." });

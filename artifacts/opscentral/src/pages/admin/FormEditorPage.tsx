@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useLocation, Link } from 'wouter';
 import { ChevronLeft, Save, Copy, Plus, Trash2, GripVertical, Check, Inbox } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
@@ -54,7 +54,13 @@ export default function FormEditorPage() {
   const [thankYouMessage, setThankYouMessage] = useState('');
   const [autoArchive, setAutoArchive] = useState(false);
   const [notifyUserName, setNotifyUserName] = useState('');
-  const [users, setUsers] = useState<{ id: number; firstName: string; lastName: string }[] | null>(null);
+  const [users, setUsers] = useState<{ id: number; firstName: string; lastName: string; role: string }[] | null>(null);
+  const [roleAssignments, setRoleAssignments] = useState<{ role: string; level: 'optional' | 'mandatory' }[]>([]);
+  const [userAssignments, setUserAssignments] = useState<{ userId: number; level: 'optional' | 'mandatory' }[]>([]);
+  const [viewRoles, setViewRoles] = useState<string[]>([]);
+  const [viewUserIds, setViewUserIds] = useState<number[]>([]);
+  const [userPickerOpen, setUserPickerOpen] = useState<'task' | 'view' | null>(null);
+  const roles = useMemo(() => Array.from(new Set((users ?? []).map((u) => u.role))).sort(), [users]);
   const [fields, setFields] = useState<FieldDraft[]>([emptyField()]);
   const [copied, setCopied] = useState(false);
 
@@ -68,7 +74,7 @@ export default function FormEditorPage() {
       .catch(() => setCategories([]));
     fetch('/api/users', { headers: authHeaders(session) })
       .then((r) => (r.ok ? r.json() : []))
-      .then(setUsers)
+      .then((rows) => setUsers(rows.map((u: any) => ({ id: u.id, firstName: u.firstName, lastName: u.lastName, role: u.role }))))
       .catch(() => setUsers([]));
   }, []);
 
@@ -88,6 +94,10 @@ export default function FormEditorPage() {
         setThankYouMessage(data.thankYouMessage ?? '');
         setAutoArchive(data.autoArchive);
         setNotifyUserName(data.notifyUserName ?? '');
+        setRoleAssignments(data.roleAssignments?.map((r: any) => ({ role: r.role, level: r.level })) ?? []);
+        setUserAssignments(data.userAssignments?.map((u: any) => ({ userId: u.userId, level: u.level })) ?? []);
+        setViewRoles(data.viewRoleAssignments?.map((r: any) => r.role) ?? []);
+        setViewUserIds(data.viewUserAssignments?.map((u: any) => u.userId) ?? []);
         setFields(
           data.fields.length
             ? data.fields.map((f: any) => ({
@@ -159,10 +169,25 @@ export default function FormEditorPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not save');
+
+      const savedFormId = data.form.id;
+      await Promise.all([
+        fetch(`/api/forms/${savedFormId}/assignments`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+          body: JSON.stringify({ roles: roleAssignments, users: userAssignments }),
+        }),
+        fetch(`/api/forms/${savedFormId}/view-permissions`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+          body: JSON.stringify({ roles: viewRoles, userIds: viewUserIds }),
+        }),
+      ]);
+
       toast({ title: status === 'live' ? 'Form published' : 'Saved as draft' });
-      navigate(`/admin/forms/${data.form.id}`);
+      navigate(`/admin/forms/${savedFormId}`);
       if (isNew) {
-        setFormId(data.form.id);
+        setFormId(savedFormId);
         setSlug(data.form.slug);
       }
     } catch (err) {
@@ -356,6 +381,129 @@ export default function FormEditorPage() {
           </div>
         </section>
 
+        {/* Permissions */}
+        <section className="rounded-xl border border-card-border bg-card p-5 shell-shadow">
+          <h2 className="mono-label mb-4 border-b border-border pb-3 text-muted-foreground">Permissions</h2>
+          <div className="space-y-5">
+            <div>
+              <p className="text-sm font-bold text-foreground">Required Task</p>
+              <p className="mb-2 text-xs text-muted-foreground">Assigned as "mandatory" here shows up on that person's My Tasks page until they submit this form once.</p>
+              <p className="mono-label mb-1.5 text-muted-foreground">By Role</p>
+              <div className="space-y-1">
+                {roles.map((role) => {
+                  const current = roleAssignments.find((r) => r.role === role)?.level ?? null;
+                  return (
+                    <div key={role} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-foreground">{role}</span>
+                      <LevelPicker
+                        value={current}
+                        onChange={(level) => {
+                          const rest = roleAssignments.filter((r) => r.role !== role);
+                          setRoleAssignments(level ? [...rest, { role, level }] : rest);
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+                {roles.length === 0 && <p className="text-xs text-muted-foreground">No roles found.</p>}
+              </div>
+
+              <p className="mono-label mb-1.5 mt-3 text-muted-foreground">By Person</p>
+              <div className="space-y-1">
+                {userAssignments.map((ua) => {
+                  const user = (users ?? []).find((u) => u.id === ua.userId);
+                  return (
+                    <div key={ua.userId} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-foreground">{user ? `${user.firstName} ${user.lastName}` : `User #${ua.userId}`}</span>
+                      <div className="flex items-center gap-2">
+                        <LevelPicker value={ua.level} onChange={(level) => setUserAssignments((prev) => prev.map((u) => (u.userId === ua.userId ? { ...u, level: level ?? 'optional' } : u)))} />
+                        <button type="button" onClick={() => setUserAssignments((prev) => prev.filter((u) => u.userId !== ua.userId))} className="text-muted-foreground hover:text-destructive">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <button type="button" onClick={() => setUserPickerOpen(userPickerOpen === 'task' ? null : 'task')} className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-accent hover:underline">
+                <Plus className="h-3.5 w-3.5" /> Add person
+              </button>
+              {userPickerOpen === 'task' && (
+                <div className="mt-2 max-h-40 space-y-0.5 overflow-y-auto rounded-md border border-border p-2">
+                  {(users ?? [])
+                    .filter((u) => !userAssignments.some((a) => a.userId === u.id))
+                    .map((u) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => {
+                          setUserAssignments((prev) => [...prev, { userId: u.id, level: 'optional' }]);
+                          setUserPickerOpen(null);
+                        }}
+                        className="block w-full rounded px-2 py-1 text-left text-sm text-foreground hover:bg-muted"
+                      >
+                        {u.firstName} {u.lastName}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-border pt-4">
+              <p className="text-sm font-bold text-foreground">Who Can View Submissions</p>
+              <p className="mb-2 text-xs text-muted-foreground">Leave empty for the default (any full-level admin can view). Add a role or person to restrict it to just them.</p>
+              <div className="flex flex-wrap gap-1.5">
+                {roles.map((role) => (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => setViewRoles((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]))}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${viewRoles.includes(role) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70'}`}
+                  >
+                    {role}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-2 space-y-1">
+                {viewUserIds.map((id) => {
+                  const user = (users ?? []).find((u) => u.id === id);
+                  return (
+                    <div key={id} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-foreground">{user ? `${user.firstName} ${user.lastName}` : `User #${id}`}</span>
+                      <button type="button" onClick={() => setViewUserIds((prev) => prev.filter((v) => v !== id))} className="text-muted-foreground hover:text-destructive">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              <button type="button" onClick={() => setUserPickerOpen(userPickerOpen === 'view' ? null : 'view')} className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-accent hover:underline">
+                <Plus className="h-3.5 w-3.5" /> Add person
+              </button>
+              {userPickerOpen === 'view' && (
+                <div className="mt-2 max-h-40 space-y-0.5 overflow-y-auto rounded-md border border-border p-2">
+                  {(users ?? [])
+                    .filter((u) => !viewUserIds.includes(u.id))
+                    .map((u) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => {
+                          setViewUserIds((prev) => [...prev, u.id]);
+                          setUserPickerOpen(null);
+                        }}
+                        className="block w-full rounded px-2 py-1 text-left text-sm text-foreground hover:bg-muted"
+                      >
+                        {u.firstName} {u.lastName}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
         <div className="flex justify-end gap-2">
           <button
             type="button"
@@ -375,6 +523,26 @@ export default function FormEditorPage() {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Same pattern as ProgramEditorPage's assignment matrix -- a two-state
+// toggle (optional/mandatory), click the active one again to clear it back
+// to "not assigned".
+function LevelPicker({ value, onChange }: { value: 'optional' | 'mandatory' | null; onChange: (v: 'optional' | 'mandatory' | null) => void }) {
+  return (
+    <div className="flex overflow-hidden rounded-md border border-border text-xs font-bold">
+      {(['optional', 'mandatory'] as const).map((level) => (
+        <button
+          key={level}
+          type="button"
+          onClick={() => onChange(value === level ? null : level)}
+          className={`px-2 py-1 capitalize transition ${value === level ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}
+        >
+          {level}
+        </button>
+      ))}
     </div>
   );
 }

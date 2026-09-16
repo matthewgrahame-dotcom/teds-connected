@@ -1,6 +1,19 @@
 import { Router, type IRouter } from "express";
 import { asc, eq, inArray } from "drizzle-orm";
-import { db, formsTable, formSubmissionsTable, formCategoriesTable, formCategoryLinksTable, type FormField } from "@workspace/db";
+import {
+  db,
+  formsTable,
+  formSubmissionsTable,
+  formCategoriesTable,
+  formCategoryLinksTable,
+  formRoleAssignmentsTable,
+  formUserAssignmentsTable,
+  formViewRoleAssignmentsTable,
+  formViewUserAssignmentsTable,
+  portalUsersTable,
+  trainingAssignmentLevelSchema,
+  type FormField,
+} from "@workspace/db";
 import { requireFullLevel } from "../lib/sessionAuth";
 import { verifyCrossAppToken } from "../lib/crossAppToken";
 
@@ -91,13 +104,45 @@ router.get("/forms/admin/:id", requireFullLevel, async (req, res) => {
     return;
   }
   const [withCategories] = await attachCategories([form]);
-  res.json(withCategories);
+  const [roleAssignments, userAssignments, viewRoleAssignments, viewUserAssignments] = await Promise.all([
+    db.select().from(formRoleAssignmentsTable).where(eq(formRoleAssignmentsTable.formId, id)),
+    db.select().from(formUserAssignmentsTable).where(eq(formUserAssignmentsTable.formId, id)),
+    db.select().from(formViewRoleAssignmentsTable).where(eq(formViewRoleAssignmentsTable.formId, id)),
+    db.select().from(formViewUserAssignmentsTable).where(eq(formViewUserAssignmentsTable.formId, id)),
+  ]);
+  res.json({ ...withCategories, roleAssignments, userAssignments, viewRoleAssignments, viewUserAssignments });
 });
+
+// An EMPTY assignment set for a form means unrestricted (any full-level
+// admin can view, the pre-existing default) -- as soon as a form has at
+// least one row in either table, viewing narrows to just those
+// roles/people. Matches staff to portal_users by full name, same
+// reconciliation gap as everywhere else in this app that needs it.
+async function canViewSubmissions(formId: number, staffName: string): Promise<boolean> {
+  const [viewRoles, viewUsers] = await Promise.all([
+    db.select().from(formViewRoleAssignmentsTable).where(eq(formViewRoleAssignmentsTable.formId, formId)),
+    db.select().from(formViewUserAssignmentsTable).where(eq(formViewUserAssignmentsTable.formId, formId)),
+  ]);
+  if (viewRoles.length === 0 && viewUsers.length === 0) return true; // unrestricted
+
+  const allUsers = await db.select({ id: portalUsersTable.id, role: portalUsersTable.role, firstName: portalUsersTable.firstName, lastName: portalUsersTable.lastName }).from(portalUsersTable);
+  const matchedUser = allUsers.find((u) => `${u.firstName} ${u.lastName}` === staffName);
+  if (!matchedUser) return false; // can't identify them against the roster -- fail closed
+
+  if (viewRoles.some((r) => r.role === matchedUser.role)) return true;
+  if (viewUsers.some((u) => u.userId === matchedUser.id)) return true;
+  return false;
+}
 
 router.get("/forms/admin/:id/submissions", requireFullLevel, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid form id" });
+    return;
+  }
+  const allowed = await canViewSubmissions(id, req.sessionPayload!.name);
+  if (!allowed) {
+    res.status(403).json({ error: "You don't have permission to view this form's submissions." });
     return;
   }
   const submissions = await db.select().from(formSubmissionsTable).where(eq(formSubmissionsTable.formId, id));
@@ -178,6 +223,11 @@ router.get("/forms/:slug/submissions", requireFullLevel, async (req, res) => {
   const [form] = await db.select().from(formsTable).where(eq(formsTable.slug, String(req.params.slug)));
   if (!form) {
     res.status(404).json({ error: "Form not found" });
+    return;
+  }
+  const allowed = await canViewSubmissions(form.id, req.sessionPayload!.name);
+  if (!allowed) {
+    res.status(403).json({ error: "You don't have permission to view this form's submissions." });
     return;
   }
   const submissions = await db.select().from(formSubmissionsTable).where(eq(formSubmissionsTable.formId, form.id));
@@ -299,6 +349,51 @@ router.patch("/forms/:id", requireFullLevel, async (req, res) => {
 
   const [withCategories] = await attachCategories([form]);
   res.json({ ok: true, form: withCategories });
+});
+
+// Required Task assignment matrix -- mirrors PUT
+// /training/programs/:id/assignments exactly (role/user, mandatory/optional
+// levels), minus groups to keep scope contained. Surfaced via GET /tasks.
+router.put("/forms/:id/assignments", requireFullLevel, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid form id" });
+    return;
+  }
+  const { roles, users } = req.body ?? {};
+  const cleanRoles = Array.isArray(roles) ? roles.filter((r) => typeof r?.role === "string" && r.role.trim() && trainingAssignmentLevelSchema.safeParse(r.level).success) : [];
+  const cleanUsers = Array.isArray(users) ? users.filter((u) => Number.isInteger(Number(u?.userId)) && trainingAssignmentLevelSchema.safeParse(u.level).success) : [];
+
+  await db.transaction(async (tx) => {
+    await tx.delete(formRoleAssignmentsTable).where(eq(formRoleAssignmentsTable.formId, id));
+    await tx.delete(formUserAssignmentsTable).where(eq(formUserAssignmentsTable.formId, id));
+    if (cleanRoles.length) await tx.insert(formRoleAssignmentsTable).values(cleanRoles.map((r) => ({ formId: id, role: r.role.trim(), level: r.level })));
+    if (cleanUsers.length) await tx.insert(formUserAssignmentsTable).values(cleanUsers.map((u) => ({ formId: id, userId: Number(u.userId), level: u.level })));
+  });
+
+  res.json({ ok: true });
+});
+
+// Who can view this form's submissions -- an empty set means unrestricted
+// (any full-level admin), see canViewSubmissions above.
+router.put("/forms/:id/view-permissions", requireFullLevel, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid form id" });
+    return;
+  }
+  const { roles, userIds } = req.body ?? {};
+  const cleanRoles: string[] = Array.isArray(roles) ? roles.filter((r) => typeof r === "string" && r.trim()) : [];
+  const cleanUserIds: number[] = Array.isArray(userIds) ? userIds.map(Number).filter(Number.isInteger) : [];
+
+  await db.transaction(async (tx) => {
+    await tx.delete(formViewRoleAssignmentsTable).where(eq(formViewRoleAssignmentsTable.formId, id));
+    await tx.delete(formViewUserAssignmentsTable).where(eq(formViewUserAssignmentsTable.formId, id));
+    if (cleanRoles.length) await tx.insert(formViewRoleAssignmentsTable).values(cleanRoles.map((role) => ({ formId: id, role })));
+    if (cleanUserIds.length) await tx.insert(formViewUserAssignmentsTable).values(cleanUserIds.map((userId) => ({ formId: id, userId })));
+  });
+
+  res.json({ ok: true });
 });
 
 export default router;

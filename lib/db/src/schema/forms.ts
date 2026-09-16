@@ -31,6 +31,64 @@ export const formsTable = pgTable("forms", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// Mirrors trainingRoleAssignmentsTable/trainingUserAssignmentsTable exactly
+// (same role/user/mandatory-optional pattern) -- makes a form a "Required
+// Task" for whoever it's assigned to, surfaced via GET /tasks alongside
+// training/RSVP/acknowledgment tasks. "Completed" is just "has this person
+// already submitted this form" (formSubmissionsTable.submittedBy), no
+// separate progress table needed the way training modules require one.
+export const formRoleAssignmentsTable = pgTable(
+  "form_role_assignments",
+  {
+    id: serial("id").primaryKey(),
+    formId: integer("form_id").notNull(),
+    role: text("role").notNull(),
+    level: text("level").notNull(), // optional | mandatory
+  },
+  (table) => [unique().on(table.formId, table.role)],
+);
+
+export const formUserAssignmentsTable = pgTable(
+  "form_user_assignments",
+  {
+    id: serial("id").primaryKey(),
+    formId: integer("form_id").notNull(),
+    userId: integer("user_id").notNull(), // -> portal_users.id
+    level: text("level").notNull(),
+  },
+  (table) => [unique().on(table.formId, table.userId)],
+);
+
+// Who's allowed to view a form's submissions, beyond the baseline "any
+// full-level admin" -- an EMPTY set for a given form means "unrestricted,
+// any full-level admin can view" (backward compatible default); as soon as
+// a form has at least one row here, viewing narrows to only those
+// roles/people. requireFullLevel is still always the hard floor either way
+// -- this only ever narrows access further, never widens it past
+// full-level. Two tables (not three) -- no group-based view restriction
+// for now, just role and individual, matching the specific concern this
+// was built for (e.g. the Counselling Form shouldn't be viewable by every
+// admin, just HR/relevant people).
+export const formViewRoleAssignmentsTable = pgTable(
+  "form_view_role_assignments",
+  {
+    id: serial("id").primaryKey(),
+    formId: integer("form_id").notNull(),
+    role: text("role").notNull(),
+  },
+  (table) => [unique().on(table.formId, table.role)],
+);
+
+export const formViewUserAssignmentsTable = pgTable(
+  "form_view_user_assignments",
+  {
+    id: serial("id").primaryKey(),
+    formId: integer("form_id").notNull(),
+    userId: integer("user_id").notNull(),
+  },
+  (table) => [unique().on(table.formId, table.userId)],
+);
+
 // Many-to-many: a form can belong to multiple categories (the source export's
 // "Form Category(s)" is explicitly plural) -- replaces the old single
 // categoryId FK that lived directly on formsTable.

@@ -1,6 +1,6 @@
 import { Link } from 'wouter';
 import { useEffect, useState } from 'react';
-import { ExternalLink, GraduationCap, CalendarCheck, FileCheck } from 'lucide-react';
+import { ExternalLink, GraduationCap, CalendarCheck, FileCheck, ClipboardList } from 'lucide-react';
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { EmptyState } from './EmptyState';
 import { useAuth } from '@/lib/auth';
@@ -15,23 +15,26 @@ import { authHeaders } from '@/lib/sessionAuth';
 type Task =
   | { type: 'training'; moduleId: number; title: string; programTitle: string }
   | { type: 'rsvp'; eventId: number; title: string; date: string; time: string | null }
-  | { type: 'work_document'; documentId: number; title: string; categorySlug: string };
+  | { type: 'work_document'; documentId: number; title: string; categorySlug: string }
+  | { type: 'form'; formId: number; title: string; slug: string };
 
 const MAX_PREVIEW = 3;
 
 function taskKey(t: Task): string | number {
-  return t.type === 'training' ? t.moduleId : t.type === 'rsvp' ? t.eventId : t.documentId;
+  return t.type === 'training' ? t.moduleId : t.type === 'rsvp' ? t.eventId : t.type === 'work_document' ? t.documentId : t.formId;
 }
 
 function taskIcon(t: Task) {
   if (t.type === 'training') return GraduationCap;
   if (t.type === 'rsvp') return CalendarCheck;
+  if (t.type === 'form') return ClipboardList;
   return FileCheck;
 }
 
 function taskSubtitle(t: Task) {
   if (t.type === 'training') return t.programTitle;
   if (t.type === 'rsvp') return `${t.date}${t.time ? ` · ${t.time}` : ''}`;
+  if (t.type === 'form') return 'Needs to be completed';
   return 'Needs acknowledgment';
 }
 
@@ -43,7 +46,7 @@ export function OutstandingTasksCard() {
     fetch('/api/tasks', { headers: authHeaders(session) })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((data) => {
-        const combined: Task[] = [...(data.trainingTasks ?? []), ...(data.rsvpTasks ?? []), ...(data.workDocumentTasks ?? [])];
+        const combined: Task[] = [...(data.trainingTasks ?? []), ...(data.rsvpTasks ?? []), ...(data.workDocumentTasks ?? []), ...(data.formTasks ?? [])];
         setTasks(combined);
       })
       .catch(() => setTasks([]));
