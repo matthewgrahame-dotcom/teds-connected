@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Sparkles, Send, RotateCcw, FileText, GraduationCap, Newspaper, CalendarPlus, Check, X, Settings } from 'lucide-react';
+import { Sparkles, Send, RotateCcw, FileText, GraduationCap, Newspaper, CalendarPlus, ListChecks, Check, X, Settings } from 'lucide-react';
 import { Link } from 'wouter';
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { AiHelpTemplatesDialog } from './AiHelpTemplatesDialog';
@@ -58,7 +58,18 @@ type CreateCalendarEventCall = {
   name: 'create_calendar_event';
   input: { title: string; date: string; time?: string; location?: string; requiresRsvp?: boolean };
 };
-type ToolCall = CreateFormCall | UpdateFormCall | CreateTrainingCall | CreateNewsCall | UpdateNewsCall | CreateCalendarEventCall;
+// Items carry a real id (formId/workDocumentId, resolved by the model
+// against the existingForms/existingWorkDocuments grounding data -- same
+// pattern as update_form's formId) plus a display-only title, since the
+// server-side content endpoint doesn't return titles and the preview card
+// needs something readable to show. The title is never sent on confirm --
+// only itemType + the relevant id, matching what PUT .../content accepts.
+type OnboardingItemInput = { itemType: 'form'; formId: number; title: string } | { itemType: 'policy_signoff'; workDocumentId: number; title: string };
+type CreateOnboardingProgramCall = {
+  name: 'create_onboarding_program';
+  input: { title: string; defaultRoles?: string[]; sections: { title: string; items: OnboardingItemInput[] }[] };
+};
+type ToolCall = CreateFormCall | UpdateFormCall | CreateTrainingCall | CreateNewsCall | UpdateNewsCall | CreateCalendarEventCall | CreateOnboardingProgramCall;
 
 type CreatedResult =
   | { kind: 'form'; id: number; slug: string; title: string }
@@ -66,7 +77,8 @@ type CreatedResult =
   | { kind: 'training'; title: string }
   | { kind: 'news'; id: number; title: string }
   | { kind: 'news-updated'; id: number; title: string }
-  | { kind: 'calendar-event'; title: string };
+  | { kind: 'calendar-event'; title: string }
+  | { kind: 'onboarding'; id: number; title: string };
 
 type ChatTurn = { role: 'user' | 'assistant'; content: string };
 type Template = { id: number; label: string; prompt: string };
@@ -211,6 +223,29 @@ export function AiHelpCard() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Could not create the event');
         setCreated({ kind: 'calendar-event', title: data.event.title });
+      } else if (toolCall.name === 'create_onboarding_program') {
+        // Two-step, mirroring how the Manage Onboarding page itself works:
+        // create the program shell first (title + roles), then push its
+        // section/item tree as a wholesale content replacement. If step one
+        // succeeds but step two fails, an empty draft program is left behind
+        // rather than nothing at all -- acceptable here since it's a draft,
+        // not published, and visible/removable from Manage Onboarding.
+        const programRes = await fetch('/api/onboarding/programs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+          body: JSON.stringify({ title: toolCall.input.title, defaultRoles: toolCall.input.defaultRoles ?? [] }),
+        });
+        const programData = await programRes.json();
+        if (!programRes.ok) throw new Error(programData.error || 'Could not create the onboarding program');
+
+        const contentRes = await fetch(`/api/onboarding/programs/${programData.program.id}/content`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+          body: JSON.stringify({ sections: toolCall.input.sections }),
+        });
+        const contentData = await contentRes.json();
+        if (!contentRes.ok) throw new Error(contentData.error || 'Program was created, but its content could not be saved. Edit it directly in Manage Onboarding.');
+        setCreated({ kind: 'onboarding', id: programData.program.id, title: programData.program.title });
       } else if (toolCall.name === 'create_news_article') {
         // If a photo came with the proposal, fire Unsplash's required
         // download-tracking ping now (the moment it's actually used, not
@@ -369,6 +404,7 @@ export function AiHelpCard() {
             {toolCall.name === 'create_training_program' && <GraduationCap className="h-4 w-4" />}
             {(toolCall.name === 'create_news_article' || toolCall.name === 'update_news_article') && <Newspaper className="h-4 w-4" />}
             {toolCall.name === 'create_calendar_event' && <CalendarPlus className="h-4 w-4" />}
+            {toolCall.name === 'create_onboarding_program' && <ListChecks className="h-4 w-4" />}
             Proposed:{' '}
             {toolCall.name === 'create_form'
               ? 'New Form'
@@ -380,7 +416,9 @@ export function AiHelpCard() {
                     ? 'New News Article'
                     : toolCall.name === 'create_calendar_event'
                       ? 'New Calendar Event'
-                      : 'Update to News Article'}
+                      : toolCall.name === 'create_onboarding_program'
+                        ? 'New Onboarding Program'
+                        : 'Update to News Article'}
           </div>
           <p className="mt-1 text-sm font-semibold text-foreground">
             {toolCall.name === 'update_news_article' || toolCall.name === 'update_form' ? (toolCall.input as any).newTitle || toolCall.input.title : toolCall.input.title}
@@ -426,6 +464,24 @@ export function AiHelpCard() {
               {toolCall.input.location ? ` · ${toolCall.input.location}` : ''}
               {toolCall.input.requiresRsvp ? ' · RSVP required' : ''}
             </p>
+          )}
+          {toolCall.name === 'create_onboarding_program' && (
+            <>
+              {!!toolCall.input.defaultRoles?.length && <p className="mt-1 text-xs text-muted-foreground">Roles: {toolCall.input.defaultRoles.join(', ')}</p>}
+              <div className="mt-2 space-y-2">
+                {toolCall.input.sections.map((s, si) => (
+                  <div key={si}>
+                    <p className="text-xs font-bold text-foreground">{s.title}</p>
+                    <ul className="mt-0.5 space-y-0.5 text-xs text-muted-foreground">
+                      {s.items.map((it, ii) => (
+                        <li key={ii}>• {it.title} <span className="text-muted-foreground/70">({it.itemType === 'form' ? 'form' : 'policy sign-off'})</span></li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] text-muted-foreground/70">Saved as a draft — publish it and set view permissions from Manage Onboarding when it's ready.</p>
+            </>
           )}
           {toolCall.name === 'create_news_article' && (
             <>
@@ -500,7 +556,9 @@ export function AiHelpCard() {
                     ? 'News article created.'
                     : created.kind === 'calendar-event'
                       ? 'Calendar event created.'
-                      : 'News article updated.'}
+                      : created.kind === 'onboarding'
+                        ? 'Onboarding program created (as a draft).'
+                        : 'News article updated.'}
           </p>
           {created.kind === 'form' && (
             <Link href={`/admin/forms/${created.id}`} className="text-accent hover:underline">
@@ -518,6 +576,11 @@ export function AiHelpCard() {
             </Link>
           )}
           {created.kind === 'calendar-event' && <span className="text-muted-foreground">"{created.title}" is on Teds Calendar.</span>}
+          {created.kind === 'onboarding' && (
+            <Link href="/admin/onboarding" className="text-accent hover:underline">
+              View "{created.title}" in Manage Onboarding
+            </Link>
+          )}
           {(created.kind === 'news' || created.kind === 'news-updated') && (
             <Link href={`/news/${created.id}`} className="text-accent hover:underline">
               View "{created.title}"
