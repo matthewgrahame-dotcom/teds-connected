@@ -1,6 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'wouter';
-import { GraduationCap, ChevronRight } from 'lucide-react';
+import { GraduationCap, ChevronRight, GripVertical, ListOrdered, Check, X } from 'lucide-react';
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core';
+import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 
@@ -22,85 +34,206 @@ type Program = {
   modules: Module[];
 };
 
+function ProgramCardInner({ program }: { program: Program }) {
+  const total = program.modules.length;
+  const completed = program.modules.filter((m) => m.status === 'completed').length;
+
+  return (
+    <>
+      <div className="aspect-video w-full shrink-0 overflow-hidden bg-muted">
+        {program.thumbnailUrl ? (
+          <img src={program.thumbnailUrl} alt="" className="h-full w-full object-cover transition group-hover:scale-[1.03]" />
+        ) : (
+          <div className="grid h-full w-full place-items-center text-muted-foreground">
+            <GraduationCap className="h-8 w-8" />
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        <div className="flex items-start justify-between gap-2">
+          <h2 className="font-extrabold leading-snug text-foreground">{program.title}</h2>
+          <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5" />
+        </div>
+
+        {program.description && <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{program.description}</p>}
+
+        <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
+          {program.category && (
+            <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+              {program.category}
+            </span>
+          )}
+          {total > 0 && (
+            <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-bold text-secondary-foreground">
+              {completed}/{total} modules complete
+            </span>
+          )}
+          {(program.startDate || program.endDate) && (
+            <span className="text-[11px] font-semibold text-muted-foreground">
+              {program.startDate}
+              {program.endDate ? `–${program.endDate}` : ''}
+            </span>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function SortableProgramCard({ program, editing }: { program: Program; editing: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: program.id, disabled: !editing });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
+
+  if (!editing) {
+    return (
+      <Link
+        href={`/learn/programs/${program.id}`}
+        data-testid={`link-program-${program.id}`}
+        className="group flex flex-col overflow-hidden rounded-xl border border-card-border bg-card shell-shadow transition hover:-translate-y-0.5 hover:shadow-md"
+      >
+        <ProgramCardInner program={program} />
+      </Link>
+    );
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      data-testid={`sortable-program-${program.id}`}
+      className="group relative flex flex-col overflow-hidden rounded-xl border border-card-border bg-card shell-shadow"
+    >
+      <button
+        type="button"
+        aria-label={`Drag to reorder ${program.title}`}
+        {...attributes}
+        {...listeners}
+        className="absolute right-2 top-2 z-10 grid h-8 w-8 cursor-grab place-items-center rounded-md border border-border bg-card/95 text-muted-foreground shadow-sm transition hover:text-foreground active:cursor-grabbing"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="pointer-events-none">
+        <ProgramCardInner program={program} />
+      </div>
+    </div>
+  );
+}
+
 export default function ProgramsPage() {
   const { session } = useAuth();
   const [programs, setPrograms] = useState<Program[] | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [activeId, setActiveId] = useState<number | null>(null);
 
-  useEffect(() => {
+  const canReorder = session?.level === 'full';
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  const load = () => {
     const params = session?.name ? `?staffName=${encodeURIComponent(session.name)}` : '';
     fetch(`/api/training/programs${params}`, { headers: authHeaders(session) })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then(setPrograms)
       .catch(() => setPrograms([]));
-  }, [session?.name]);
+  };
+
+  useEffect(load, [session?.name]);
+
+  const handleDragStart = (event: DragStartEvent) => setActiveId(Number(event.active.id));
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveId(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setPrograms((prev) => {
+      if (!prev) return prev;
+      const oldIndex = prev.findIndex((p) => p.id === active.id);
+      const newIndex = prev.findIndex((p) => p.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return arrayMove(prev, oldIndex, newIndex);
+    });
+  };
+
+  const saveOrder = async () => {
+    if (!programs) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/training/programs/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+        body: JSON.stringify({ programIds: programs.map((p) => p.id) }),
+      });
+      if (res.ok) setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancelEditing = () => {
+    setEditing(false);
+    load();
+  };
+
+  const activeProgram = useMemo(() => programs?.find((p) => p.id === activeId) ?? null, [programs, activeId]);
 
   return (
     <div className="px-5 py-8 lg:px-10 lg:py-10">
       <div className="mx-auto max-w-5xl space-y-6">
-        <h1 className="text-2xl font-extrabold text-foreground">Training and Programs</h1>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-2xl font-extrabold text-foreground">Training and Programs</h1>
+          {canReorder && !editing && programs && programs.length > 1 && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-bold text-muted-foreground transition hover:bg-muted"
+            >
+              <ListOrdered className="h-3.5 w-3.5" /> Reorder
+            </button>
+          )}
+          {editing && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={cancelEditing}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-bold text-muted-foreground transition hover:bg-muted"
+              >
+                <X className="h-3.5 w-3.5" /> Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveOrder}
+                disabled={saving}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-extrabold text-primary-foreground transition hover:brightness-95 disabled:opacity-50"
+              >
+                <Check className="h-3.5 w-3.5" /> {saving ? 'Saving…' : 'Save Order'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {editing && <p className="-mt-2 text-xs text-muted-foreground">Drag a card by its handle to reorder. This is the order everyone sees on Learn &gt; Programs.</p>}
 
         {programs === null && <p className="text-sm text-muted-foreground">Loading…</p>}
         {programs?.length === 0 && <p className="text-sm text-muted-foreground">No active programs right now.</p>}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {programs?.map((program) => {
-            const total = program.modules.length;
-            const completed = program.modules.filter((m) => m.status === 'completed').length;
-
-            return (
-              <Link
-                key={program.id}
-                href={`/learn/programs/${program.id}`}
-                data-testid={`link-program-${program.id}`}
-                className="group flex flex-col overflow-hidden rounded-xl border border-card-border bg-card shell-shadow transition hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <div className="aspect-video w-full shrink-0 overflow-hidden bg-muted">
-                  {program.thumbnailUrl ? (
-                    <img
-                      src={program.thumbnailUrl}
-                      alt=""
-                      className="h-full w-full object-cover transition group-hover:scale-[1.03]"
-                    />
-                  ) : (
-                    <div className="grid h-full w-full place-items-center text-muted-foreground">
-                      <GraduationCap className="h-8 w-8" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-1 flex-col gap-2 p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <h2 className="font-extrabold leading-snug text-foreground">{program.title}</h2>
-                    <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5" />
-                  </div>
-
-                  {program.description && (
-                    <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{program.description}</p>
-                  )}
-
-                  <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
-                    {program.category && (
-                      <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                        {program.category}
-                      </span>
-                    )}
-                    {total > 0 && (
-                      <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-bold text-secondary-foreground">
-                        {completed}/{total} modules complete
-                      </span>
-                    )}
-                    {(program.startDate || program.endDate) && (
-                      <span className="text-[11px] font-semibold text-muted-foreground">
-                        {program.startDate}
-                        {program.endDate ? `–${program.endDate}` : ''}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <SortableContext items={programs?.map((p) => p.id) ?? []} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {programs?.map((program) => (
+                <SortableProgramCard key={program.id} program={program} editing={editing} />
+              ))}
+            </div>
+          </SortableContext>
+          <DragOverlay>
+            {activeProgram ? (
+              <div className="flex flex-col overflow-hidden rounded-xl border-2 border-primary bg-card shadow-lg">
+                <ProgramCardInner program={activeProgram} />
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </div>
     </div>
   );

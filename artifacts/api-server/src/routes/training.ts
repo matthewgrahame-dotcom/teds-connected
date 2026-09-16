@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import {
   db,
   moduleProgressTable,
@@ -65,7 +65,11 @@ router.get("/training/programs", requireSession, async (req, res) => {
   const staffName = typeof req.query.staffName === "string" ? req.query.staffName : null;
 
   try {
-    const programs = await db.select().from(trainingProgramsTable).where(eq(trainingProgramsTable.status, "live"));
+    const programs = await db
+      .select()
+      .from(trainingProgramsTable)
+      .where(eq(trainingProgramsTable.status, "live"))
+      .orderBy(asc(trainingProgramsTable.sortOrder));
     const modules = await db.select().from(trainingModulesTable).orderBy(asc(trainingModulesTable.sortOrder));
     const progress = staffName
       ? await db.select().from(moduleProgressTable).where(eq(moduleProgressTable.staffName, staffName))
@@ -317,6 +321,30 @@ router.get("/training/admin/programs/:id", requireSession, async (req, res) => {
   res.json({ ...program, modules: modulesWithQuiz, roleAssignments, userAssignments, groupAssignments, enrolled });
 });
 
+// Wholesale replace, same pattern as PUT /dashboard-widgets -- a
+// drag-and-drop reorder on Learn > Programs produces the full new ordering
+// client-side in one go, so there's no meaningful "patch a single program's
+// position" operation here. Only live/draft/archived programs the caller
+// can see need to be included; anything omitted keeps its existing
+// sortOrder untouched rather than being pushed to the end, so a reorder
+// done from a status-filtered admin view can't silently scramble programs
+// outside that filter.
+router.put("/training/programs/reorder", requireFullLevel, async (req, res) => {
+  const { programIds } = req.body ?? {};
+  if (!Array.isArray(programIds) || programIds.some((id) => !Number.isInteger(id))) {
+    res.status(400).json({ error: "programIds must be an array of integers" });
+    return;
+  }
+
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < programIds.length; i++) {
+      await tx.update(trainingProgramsTable).set({ sortOrder: i }).where(eq(trainingProgramsTable.id, programIds[i]));
+    }
+  });
+
+  res.json({ ok: true });
+});
+
 // Creates a program and its modules together -- that's the natural unit
 // (a program with no modules isn't useful yet, and the AI Help "create a
 // training program" action always proposes both at once), so one endpoint
@@ -339,6 +367,14 @@ router.post("/training/programs", requireFullLevel, async (req, res) => {
     : [];
 
   const result = await db.transaction(async (tx) => {
+    // New programs land at the end of the display order, not the front --
+    // matches the intuitive "new things append" expectation, and avoids
+    // silently reshuffling whatever order an admin already drag-and-drop
+    // arranged on Learn > Programs (see PUT /training/programs/reorder).
+    const [{ maxSortOrder } = { maxSortOrder: null }] = await tx
+      .select({ maxSortOrder: sql<number | null>`max(${trainingProgramsTable.sortOrder})` })
+      .from(trainingProgramsTable);
+
     const [program] = await tx
       .insert(trainingProgramsTable)
       .values({
@@ -348,6 +384,7 @@ router.post("/training/programs", requireFullLevel, async (req, res) => {
         thumbnailUrl: typeof thumbnailUrl === "string" ? thumbnailUrl.trim() || null : null,
         startDate: typeof startDate === "string" ? startDate.trim() || null : null,
         endDate: typeof endDate === "string" ? endDate.trim() || null : null,
+        sortOrder: (maxSortOrder ?? -1) + 1,
       })
       .returning();
 

@@ -24,6 +24,7 @@ export const trainingProgramsTable = pgTable("training_programs", {
   category: text("category"), // free text, matches source data (one category per program, despite the "Category(s)" column header)
   thumbnailUrl: text("thumbnail_url"),
   status: text("status").notNull().default("draft"), // draft | live | archived
+  sortOrder: integer("sort_order").notNull().default(0), // admin-controlled display order on Learn > Programs, drag-and-drop reorderable (see PUT /training/programs/reorder), same wholesale-replace pattern as dashboardWidgetsTable
   startDate: text("start_date"), // free-text label like "Sep-Nov" is fine for display; not used for date math
   endDate: text("end_date"),
   prerequisitesEnabled: boolean("prerequisites_enabled").notNull().default(false),
