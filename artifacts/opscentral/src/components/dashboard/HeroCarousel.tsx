@@ -10,11 +10,13 @@ type NewsArticle = {
 };
 
 const MAX_SLIDES = 5;
+const AUTOPLAY_INTERVAL_MS = 6000;
 
 export function HeroCarousel() {
   const { session } = useAuth();
   const [articles, setArticles] = useState<NewsArticle[] | null>(null);
   const [index, setIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     fetch('/api/news', { headers: authHeaders(session) })
@@ -22,6 +24,19 @@ export function HeroCarousel() {
       .then((data: NewsArticle[]) => setArticles(data.slice(0, MAX_SLIDES)))
       .catch(() => setArticles([]));
   }, []);
+
+  // Autoplay: advance to the next slide automatically on a timer. Only runs
+  // once we have more than one slide, and pauses while the user is hovering
+  // so it doesn't yank the slide out from under someone mid-read.
+  useEffect(() => {
+    if (!articles || articles.length <= 1 || isPaused) return;
+
+    const timer = setInterval(() => {
+      setIndex((current) => (current + 1) % articles.length);
+    }, AUTOPLAY_INTERVAL_MS);
+
+    return () => clearInterval(timer);
+  }, [articles, isPaused]);
 
   const go = (delta: number) => setIndex((current) => (current + delta + (articles?.length || 1)) % (articles?.length || 1));
 
@@ -41,7 +56,11 @@ export function HeroCarousel() {
 
   return (
     <div className="overflow-hidden rounded-xl border border-card-border bg-card shell-shadow">
-      <div className="relative aspect-[16/7] w-full overflow-hidden bg-gradient-to-br from-foreground/80 via-foreground/60 to-muted">
+      <div
+        className="relative aspect-[16/7] w-full overflow-hidden bg-gradient-to-br from-foreground/80 via-foreground/60 to-muted"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
         {slide.imageUrl ? (
           <img src={slide.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
         ) : (
