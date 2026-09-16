@@ -24,6 +24,7 @@ const TASK_TYPE_OPTIONS: { key: string; label: string }[] = [
   { key: 'rsvp', label: 'RSVP to events' },
   { key: 'work_documents', label: 'Acknowledge work documents' },
   { key: 'forms', label: 'Complete required Forms' },
+  { key: 'onboarding', label: 'Complete Onboarding checklists' },
 ];
 const ENABLED_TASK_TYPES_KEY = 'enabled_task_types';
 

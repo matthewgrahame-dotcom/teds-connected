@@ -26,7 +26,7 @@ type NavItem = {
 const primaryNav: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutGrid },
   { label: 'News', href: '/news', icon: Newspaper },
-  { label: 'Admin', icon: IdCard, children: [{ label: 'Portal settings', href: '/admin/portal-settings' }, { label: 'User Management', href: '/admin/users' }, { label: 'Manage Programs', href: '/admin/programs' }] },
+  { label: 'Admin', icon: IdCard, children: [{ label: 'Portal settings', href: '/admin/portal-settings' }, { label: 'User Management', href: '/admin/users' }, { label: 'Manage Programs', href: '/admin/programs' }, { label: 'Manage Onboarding', href: '/admin/onboarding' }] },
   { label: 'Reporting', href: '/reporting', icon: FileText },
 ];
 
@@ -47,7 +47,7 @@ const secondaryNav: NavItem[] = [
       { label: 'Discussion Forums' },
       { label: 'Staff Surveys' },
       { label: 'Recruiting' },
-      { label: 'Onboarding' },
+      { label: 'Onboarding', href: '/people/onboarding' },
       { label: 'Contracts' },
       { label: 'Forms', href: '/people/forms' },
       { label: 'Custom Report Builder' },

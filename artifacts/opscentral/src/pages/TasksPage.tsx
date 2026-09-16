@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { ListChecks, GraduationCap, CalendarCheck, FileCheck, ClipboardList } from 'lucide-react';
+import { ListChecks, GraduationCap, CalendarCheck, FileCheck, ClipboardList, ClipboardCheck } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 
@@ -8,6 +8,7 @@ type TrainingTask = { type: 'training'; moduleId: number; title: string; program
 type RsvpTask = { type: 'rsvp'; eventId: number; title: string; date: string; time: string | null };
 type WorkDocumentTask = { type: 'work_document'; documentId: number; title: string; categorySlug: string };
 type FormTask = { type: 'form'; formId: number; title: string; slug: string };
+type OnboardingTask = { type: 'onboarding'; itemId: number; itemType: 'form' | 'policy_signoff'; title: string; programTitle: string; slug?: string | null; documentId?: number };
 
 export default function TasksPage() {
   const { session } = useAuth();
@@ -15,8 +16,10 @@ export default function TasksPage() {
   const [rsvpTasks, setRsvpTasks] = useState<RsvpTask[] | null>(null);
   const [workDocumentTasks, setWorkDocumentTasks] = useState<WorkDocumentTask[] | null>(null);
   const [formTasks, setFormTasks] = useState<FormTask[] | null>(null);
+  const [onboardingTasks, setOnboardingTasks] = useState<OnboardingTask[] | null>(null);
   const [rsvpSaving, setRsvpSaving] = useState<number | null>(null);
   const [ackSaving, setAckSaving] = useState<number | null>(null);
+  const [onboardingAckSaving, setOnboardingAckSaving] = useState<number | null>(null);
 
   const load = () => {
     fetch('/api/tasks', { headers: authHeaders(session) })
@@ -26,12 +29,14 @@ export default function TasksPage() {
         setRsvpTasks(data.rsvpTasks);
         setWorkDocumentTasks(data.workDocumentTasks);
         setFormTasks(data.formTasks ?? []);
+        setOnboardingTasks(data.onboardingTasks ?? []);
       })
       .catch(() => {
         setTrainingTasks([]);
         setRsvpTasks([]);
         setWorkDocumentTasks([]);
         setFormTasks([]);
+        setOnboardingTasks([]);
       });
   };
 
@@ -64,8 +69,21 @@ export default function TasksPage() {
     }
   };
 
-  const loading = trainingTasks === null || rsvpTasks === null || workDocumentTasks === null || formTasks === null;
-  const total = (trainingTasks?.length ?? 0) + (rsvpTasks?.length ?? 0) + (workDocumentTasks?.length ?? 0) + (formTasks?.length ?? 0);
+  const acknowledgeOnboarding = async (documentId: number) => {
+    setOnboardingAckSaving(documentId);
+    try {
+      await fetch(`/api/work/documents/${documentId}/acknowledge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+      });
+      load();
+    } finally {
+      setOnboardingAckSaving(null);
+    }
+  };
+
+  const loading = trainingTasks === null || rsvpTasks === null || workDocumentTasks === null || formTasks === null || onboardingTasks === null;
+  const total = (trainingTasks?.length ?? 0) + (rsvpTasks?.length ?? 0) + (workDocumentTasks?.length ?? 0) + (formTasks?.length ?? 0) + (onboardingTasks?.length ?? 0);
 
   return (
     <div className="px-5 py-8 lg:px-10 lg:py-10">
@@ -133,6 +151,39 @@ export default function TasksPage() {
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {!!onboardingTasks?.length && (
+          <div>
+            <h2 className="mb-2 flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
+              <ClipboardCheck className="h-3.5 w-3.5" /> Onboarding
+            </h2>
+            <div className="space-y-2">
+              {onboardingTasks.map((t) =>
+                t.itemType === 'form' ? (
+                  <Link key={t.itemId} href={`/people/forms/${t.slug}`} className="block rounded-lg border border-border p-4 transition hover:bg-muted">
+                    <p className="font-semibold text-foreground">{t.title}</p>
+                    <p className="text-sm text-muted-foreground">{t.programTitle}</p>
+                  </Link>
+                ) : (
+                  <div key={t.itemId} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4">
+                    <div>
+                      <p className="font-semibold text-foreground">{t.title}</p>
+                      <p className="text-sm text-muted-foreground">{t.programTitle}</p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={onboardingAckSaving === t.documentId}
+                      onClick={() => t.documentId && acknowledgeOnboarding(t.documentId)}
+                      className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground transition hover:brightness-95 disabled:opacity-50"
+                    >
+                      {onboardingAckSaving === t.documentId ? 'Saving…' : 'Acknowledge'}
+                    </button>
+                  </div>
+                ),
+              )}
             </div>
           </div>
         )}

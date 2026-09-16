@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, asc, eq, gte } from "drizzle-orm";
+import { and, asc, eq, gte, inArray } from "drizzle-orm";
 import {
   db,
   trainingProgramsTable,
@@ -15,6 +15,9 @@ import {
   formRoleAssignmentsTable,
   formUserAssignmentsTable,
   portalUsersTable,
+  onboardingProgramsTable,
+  onboardingSectionsTable,
+  onboardingItemsTable,
 } from "@workspace/db";
 import { requireSession } from "../lib/sessionAuth";
 
@@ -27,7 +30,7 @@ function todayKey(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-export const TASK_TYPES = ["training", "rsvp", "work_documents", "forms"] as const;
+export const TASK_TYPES = ["training", "rsvp", "work_documents", "forms", "onboarding"] as const;
 export type TaskType = (typeof TASK_TYPES)[number];
 const ENABLED_TASK_TYPES_KEY = "enabled_task_types";
 
@@ -67,7 +70,24 @@ router.get("/tasks", requireSession, async (req, res) => {
   const staffName = req.sessionPayload!.name;
 
   try {
-    const [enabledTypes, programs, modules, progress, events, myRsvps, requiredDocs, myAcks, liveForms, formRoleAssignments, formUserAssignments, mySubmissions, allPortalUsers] = await Promise.all([
+    const [
+      enabledTypes,
+      programs,
+      modules,
+      progress,
+      events,
+      myRsvps,
+      requiredDocs,
+      myAcks,
+      liveForms,
+      formRoleAssignments,
+      formUserAssignments,
+      mySubmissions,
+      allPortalUsers,
+      publishedOnboardingPrograms,
+      onboardingSections,
+      onboardingItems,
+    ] = await Promise.all([
       getEnabledTaskTypes(),
       db.select().from(trainingProgramsTable).where(eq(trainingProgramsTable.status, "live")),
       db.select().from(trainingModulesTable).orderBy(asc(trainingModulesTable.sortOrder)),
@@ -85,6 +105,9 @@ router.get("/tasks", requireSession, async (req, res) => {
       db.select().from(formUserAssignmentsTable),
       db.select({ formId: formSubmissionsTable.formId }).from(formSubmissionsTable).where(eq(formSubmissionsTable.submittedBy, staffName)),
       db.select({ id: portalUsersTable.id, role: portalUsersTable.role, firstName: portalUsersTable.firstName, lastName: portalUsersTable.lastName }).from(portalUsersTable),
+      db.select().from(onboardingProgramsTable).where(eq(onboardingProgramsTable.status, "published")),
+      db.select().from(onboardingSectionsTable),
+      db.select().from(onboardingItemsTable),
     ]);
     const portalUser = allPortalUsers.find((u) => `${u.firstName} ${u.lastName}` === staffName) ?? null;
 
@@ -147,7 +170,47 @@ router.get("/tasks", requireSession, async (req, res) => {
           }))
       : [];
 
-    res.json({ trainingTasks, rsvpTasks, workDocumentTasks, formTasks });
+    // Onboarding: a program applies when the caller's role is in its
+    // defaultRoles (see onboarding.ts schema comment) -- no separate
+    // enrollment/instance table, same self-resolving pattern as forms'
+    // Required Task above (an item just stops showing up once the
+    // underlying form submission / doc acknowledgment exists).
+    const myOnboardingProgramIds = new Set(portalUser ? publishedOnboardingPrograms.filter((p) => p.defaultRoles.includes(portalUser.role)).map((p) => p.id) : []);
+    const onboardingSectionsById = new Map(onboardingSections.map((s) => [s.id, s]));
+    const myOnboardingItems = onboardingItems.filter((i) => {
+      const section = onboardingSectionsById.get(i.sectionId);
+      return section && myOnboardingProgramIds.has(section.programId);
+    });
+    const ackedDocIdsForOnboarding = new Set(myAcks.map((a) => a.documentId));
+    const outstandingOnboardingItems = myOnboardingItems.filter((i) =>
+      i.itemType === "form" ? !(i.formId != null && submittedFormIds.has(i.formId)) : !(i.workDocumentId != null && ackedDocIdsForOnboarding.has(i.workDocumentId)),
+    );
+
+    let onboardingTasks: { type: "onboarding"; itemId: number; itemType: "form" | "policy_signoff"; title: string; programTitle: string; slug?: string | null; documentId?: number }[] = [];
+    if (enabledTypes.has("onboarding") && outstandingOnboardingItems.length > 0) {
+      const onboardingFormIds = outstandingOnboardingItems.filter((i) => i.formId != null).map((i) => i.formId!);
+      const onboardingDocIds = outstandingOnboardingItems.filter((i) => i.workDocumentId != null).map((i) => i.workDocumentId!);
+      const [onboardingForms, onboardingDocs] = await Promise.all([
+        onboardingFormIds.length ? db.select({ id: formsTable.id, title: formsTable.title, slug: formsTable.slug }).from(formsTable).where(inArray(formsTable.id, onboardingFormIds)) : [],
+        onboardingDocIds.length ? db.select({ id: workDocumentsTable.id, title: workDocumentsTable.title }).from(workDocumentsTable).where(inArray(workDocumentsTable.id, onboardingDocIds)) : [],
+      ]);
+      const onboardingFormById = new Map(onboardingForms.map((f) => [f.id, f]));
+      const onboardingDocById = new Map(onboardingDocs.map((d) => [d.id, d]));
+      const programTitleById = new Map(publishedOnboardingPrograms.map((p) => [p.id, p.title]));
+
+      onboardingTasks = outstandingOnboardingItems.map((i) => {
+        const section = onboardingSectionsById.get(i.sectionId)!;
+        const programTitle = programTitleById.get(section.programId) ?? "Onboarding";
+        if (i.itemType === "form") {
+          const form = i.formId != null ? onboardingFormById.get(i.formId) : null;
+          return { type: "onboarding" as const, itemId: i.id, itemType: "form" as const, title: form?.title ?? "(deleted form)", slug: form?.slug ?? null, programTitle };
+        }
+        const doc = i.workDocumentId != null ? onboardingDocById.get(i.workDocumentId) : null;
+        return { type: "onboarding" as const, itemId: i.id, itemType: "policy_signoff" as const, title: doc?.title ?? "(deleted document)", documentId: i.workDocumentId ?? undefined, programTitle };
+      });
+    }
+
+    res.json({ trainingTasks, rsvpTasks, workDocumentTasks, formTasks, onboardingTasks });
   } catch (err) {
     console.error("[GET /tasks] error:", err);
     res.status(500).json({ error: "Something went wrong loading tasks." });
