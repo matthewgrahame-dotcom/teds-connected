@@ -79,7 +79,18 @@ export default function Dashboard() {
     fetch('/api/dashboard-widgets', { headers: authHeaders(session) })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((rows: { widgetKey: string; column: DashboardColumn }[]) => {
-        if (rows.length > 0) setLayout(rows.map((r) => ({ widgetKey: r.widgetKey, column: r.column })));
+        if (rows.length === 0) return;
+        const saved = rows.map((r) => ({ widgetKey: r.widgetKey, column: r.column }));
+        // A saved layout is a point-in-time snapshot, not a diff -- it
+        // wholesale-replaces DEFAULT_DASHBOARD_LAYOUT (see PUT
+        // /dashboard-widgets), so any widget added to the registry AFTER
+        // someone last saved a custom layout would otherwise never appear
+        // for them, silently, forever. Append any such newcomers (in their
+        // default column) so new dashboard cards show up for everyone on
+        // next load without requiring a manual re-drag.
+        const savedKeys = new Set(saved.map((s) => s.widgetKey));
+        const missing = DEFAULT_DASHBOARD_LAYOUT.filter((d) => !savedKeys.has(d.widgetKey));
+        setLayout([...saved, ...missing]);
       })
       .catch(() => {});
   };
