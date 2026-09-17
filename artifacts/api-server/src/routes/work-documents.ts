@@ -27,6 +27,7 @@ function resolveForRole<T extends { documentId: number; role: string }>(rows: T[
 router.get("/work/documents", requireSession, async (req, res) => {
   const categorySlug = typeof req.query.categorySlug === "string" ? req.query.categorySlug : null;
   const staffName = req.sessionPayload!.name;
+  const isFullLevel = req.sessionPayload!.level === "full";
 
   const [docs, allUsers] = await Promise.all([
     db
@@ -51,7 +52,15 @@ router.get("/work/documents", requireSession, async (req, res) => {
   const ackedIds = new Set(myAcks.map((a) => a.documentId));
   const roleAccessByDoc = resolveForRole(roleAccessRows);
 
+  // A full-level (admin) session always sees everything, regardless of
+  // whether their portal_users row can be matched by exact name -- role
+  // restriction is a staff-visibility concept, not something that should
+  // ever be able to lock an admin out of their own content. This was a
+  // real bug: an admin whose logged-in session name didn't exactly match
+  // their portal_users firstName+lastName would silently lose access to
+  // every role-restricted document, with no error, just an empty category.
   const visible = docs.filter((d) => {
+    if (isFullLevel) return true;
     const rolesForDoc = roleAccessByDoc.get(d.id);
     if (!rolesForDoc) return true; // unrestricted
     if (!myRole) return false; // restricted doc, but we don't know the caller's role -- fail closed
