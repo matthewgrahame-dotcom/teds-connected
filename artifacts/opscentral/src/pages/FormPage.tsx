@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'wouter';
-import { CheckCircle2 } from 'lucide-react';
+import { useParams, useSearch, Link } from 'wouter';
+import { CheckCircle2, Printer } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
@@ -19,6 +19,8 @@ type FormDef = { id: number; title: string; slug: string; instructions: string |
 
 export default function FormPage() {
   const { slug } = useParams<{ slug: string }>();
+  const search = useSearch();
+  const wantsPrint = new URLSearchParams(search).get('print') === '1';
   const { session } = useAuth();
   const [form, setForm] = useState<FormDef | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -32,6 +34,18 @@ export default function FormPage() {
       .then((r) => r.json())
       .then(setForm);
   }, [slug]);
+
+  // Arriving via RecruitingPage's "Download / Print" link (?print=1)
+  // triggers the browser's print dialog automatically once the form has
+  // actually loaded -- saves a click for the specific "get me a paper copy"
+  // flow, while the manual Print button below covers everyone else.
+  useEffect(() => {
+    if (wantsPrint && form) {
+      const t = setTimeout(() => window.print(), 300);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [wantsPrint, form]);
 
   const setValue = (key: string, value: string) => setValues((v) => ({ ...v, [key]: value }));
 
@@ -78,7 +92,16 @@ export default function FormPage() {
   return (
     <div className="px-5 py-8 lg:px-10 lg:py-10">
       <div className="mx-auto max-w-xl space-y-6">
-        <h1 className="text-2xl font-extrabold text-foreground">{form.title}</h1>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-2xl font-extrabold text-foreground">{form.title}</h1>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="print:hidden inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-extrabold text-muted-foreground transition hover:bg-muted"
+          >
+            <Printer className="h-3.5 w-3.5" /> Print / Download
+          </button>
+        </div>
         {form.instructions && (
           <div
             className="prose prose-sm max-w-none rounded-xl border border-card-border bg-card p-5 shell-shadow [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:p-1.5 [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:p-1.5"
@@ -170,7 +193,7 @@ export default function FormPage() {
             data-testid="button-submit-form"
             onClick={handleSubmit}
             disabled={submitting}
-            className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-extrabold text-primary-foreground transition hover:brightness-95 disabled:opacity-60"
+            className="print:hidden w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-extrabold text-primary-foreground transition hover:brightness-95 disabled:opacity-60"
           >
             {submitting ? 'Submitting…' : 'Submit'}
           </button>

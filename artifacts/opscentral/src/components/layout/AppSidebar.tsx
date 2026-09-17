@@ -26,7 +26,7 @@ type NavItem = {
 const primaryNav: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutGrid },
   { label: 'News', href: '/news', icon: Newspaper },
-  { label: 'Admin', icon: IdCard, children: [{ label: 'Portal settings', href: '/admin/portal-settings' }, { label: 'User Management', href: '/admin/users' }, { label: 'Manage Programs', href: '/admin/programs' }, { label: 'Manage Onboarding', href: '/admin/onboarding' }] },
+  { label: 'Admin', icon: IdCard, children: [{ label: 'Portal settings', href: '/admin/portal-settings' }, { label: 'User Management', href: '/admin/users' }, { label: 'Manage Programs', href: '/admin/programs' }, { label: 'Manage Onboarding', href: '/admin/onboarding' }, { label: 'Manage Job Postings', href: '/admin/job-postings' }] },
   { label: 'Reporting', href: '/reporting', icon: FileText },
 ];
 
@@ -45,7 +45,7 @@ const secondaryNav: NavItem[] = [
     children: [
       { label: 'Performance Review' },
       { label: 'Staff Surveys', href: '/people/forms/category/Staff%20Surveys' },
-      { label: 'Recruiting', href: '/people/forms/category/Recruiting' },
+      { label: 'Recruiting', href: '/people/recruiting' },
       { label: 'Onboarding', href: '/people/onboarding' },
       { label: 'Contracts', href: '/people/forms/category/Contracts' },
       { label: 'All Forms', href: '/people/forms' },

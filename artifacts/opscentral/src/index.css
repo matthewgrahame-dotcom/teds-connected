@@ -165,3 +165,11 @@
   background-size: 200% 100%;
   animation: shimmer 1.3s linear infinite;
 }
+
+/* Printing any page hides the app's persistent chrome (sidebar, header) so
+   what actually prints is just the page content -- used by FormPage's
+   "Download / Print" action, but applies globally since there's no reason
+   any printed page should include navigation. */
+@media print {
+  aside, header { display: none !important; }
+}

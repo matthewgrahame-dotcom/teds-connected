@@ -31,3 +31,4 @@ export * from "./user-groups";
 export * from "./work-documents";
 export * from "./ai-help-templates";
 export * from "./onboarding";
+export * from "./job-postings";

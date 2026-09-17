@@ -18,6 +18,7 @@ import userGroupsRouter from "./user-groups";
 import workDocumentsRouter from "./work-documents";
 import aiHelpTemplatesRouter from "./ai-help-templates";
 import onboardingRouter from "./onboarding";
+import jobPostingsRouter from "./job-postings";
 
 const router: IRouter = Router();
 
@@ -40,5 +41,6 @@ router.use(userGroupsRouter);
 router.use(workDocumentsRouter);
 router.use(aiHelpTemplatesRouter);
 router.use(onboardingRouter);
+router.use(jobPostingsRouter);
 
 export default router;
