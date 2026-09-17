@@ -26,7 +26,7 @@ type NavItem = {
 const primaryNav: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutGrid },
   { label: 'News', href: '/news', icon: Newspaper },
-  { label: 'Admin', icon: IdCard, children: [{ label: 'Portal settings', href: '/admin/portal-settings' }, { label: 'User Management', href: '/admin/users' }, { label: 'Manage Programs', href: '/admin/programs' }, { label: 'Manage Onboarding', href: '/admin/onboarding' }, { label: 'Manage Job Postings', href: '/admin/job-postings' }] },
+  { label: 'Admin', icon: IdCard, children: [{ label: 'Portal settings', href: '/admin/portal-settings' }, { label: 'User Management', href: '/admin/users' }, { label: 'Manage Locations', href: '/admin/locations' }, { label: 'Manage Programs', href: '/admin/programs' }, { label: 'Manage Onboarding', href: '/admin/onboarding' }, { label: 'Manage Job Postings', href: '/admin/job-postings' }] },
   { label: 'Reporting', href: '/reporting', icon: FileText },
 ];
 

@@ -21,6 +21,7 @@ import workDocumentsRouter from "./work-documents";
 import aiHelpTemplatesRouter from "./ai-help-templates";
 import onboardingRouter from "./onboarding";
 import jobPostingsRouter from "./job-postings";
+import locationsRouter from "./locations";
 
 const router: IRouter = Router();
 
@@ -46,5 +47,6 @@ router.use(workDocumentsRouter);
 router.use(aiHelpTemplatesRouter);
 router.use(onboardingRouter);
 router.use(jobPostingsRouter);
+router.use(locationsRouter);
 
 export default router;
