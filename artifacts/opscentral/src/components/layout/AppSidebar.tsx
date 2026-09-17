@@ -45,7 +45,7 @@ const secondaryNav: NavItem[] = [
     children: [
       { label: 'Performance Review' },
       { label: 'Staff Surveys', href: '/people/forms/category/Staff%20Surveys' },
-      { label: 'Recruiting' },
+      { label: 'Recruiting', href: '/people/forms/category/Recruiting' },
       { label: 'Onboarding', href: '/people/onboarding' },
       { label: 'Contracts', href: '/people/forms/category/Contracts' },
       { label: 'All Forms', href: '/people/forms' },
