@@ -122,6 +122,7 @@ export function AiHelpCard() {
   const [created, setCreated] = useState<CreatedResult | null>(null);
   const [templates, setTemplates] = useState<Template[] | null>(null);
   const [templatesDialogOpen, setTemplatesDialogOpen] = useState(false);
+  const [showAllTemplates, setShowAllTemplates] = useState(false);
 
   const loadTemplates = () => {
     fetch('/api/ai-help/templates', { headers: authHeaders(session) })
@@ -338,7 +339,7 @@ export function AiHelpCard() {
 
       {!!templates?.length && !toolCall && !created && (
         <div className="mb-2 flex flex-wrap gap-1.5">
-          {templates.map((t) => (
+          {(showAllTemplates ? templates : templates.slice(0, 3)).map((t) => (
             <button
               key={t.id}
               type="button"
@@ -348,6 +349,15 @@ export function AiHelpCard() {
               {t.label}
             </button>
           ))}
+          {templates.length > 3 && (
+            <button
+              type="button"
+              onClick={() => setShowAllTemplates((v) => !v)}
+              className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs font-semibold text-accent transition hover:bg-muted"
+            >
+              {showAllTemplates ? 'Show fewer' : `+${templates.length - 3} more`}
+            </button>
+          )}
         </div>
       )}
 
