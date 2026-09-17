@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 export type StaffSession = {
   name: string;
@@ -42,6 +42,7 @@ type AuthContextValue = {
   ready: boolean;
   loginError: string | null;
   loggingIn: boolean;
+  sessionExpired: boolean;
   login: (code: string, initials: string) => Promise<void>;
   logout: () => void;
   // "Preview as Basic User" -- lets a real full-level admin see what the
@@ -67,6 +68,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
   const [isPreviewingBasic, setIsPreviewingBasic] = useState(readStoredPreview);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  // Read inside the fetch interceptor below, which is set up once on mount
+  // and would otherwise only ever see the session value from that first
+  // render -- a ref stays current without re-patching window.fetch on
+  // every session change.
+  const sessionRef = useRef<StaffSession | null>(null);
+  sessionRef.current = realSession;
+
+  // Global 401 detection: every page in this app calls fetch() directly
+  // (no shared API client to add this to individually), so this patches
+  // window.fetch itself, once, rather than touching every one of those
+  // call sites. Only fires when we currently believe we're logged in --
+  // a 401 during the login attempt itself (wrong staff code, no session
+  // yet) is a completely normal, expected response, not an expired
+  // session, and must not trigger this.
+  useEffect(() => {
+    if ((window.fetch as { __sessionExpiryPatched?: boolean }).__sessionExpiryPatched) return;
+    const original = window.fetch.bind(window);
+    const patched = async (...args: Parameters<typeof fetch>) => {
+      const response = await original(...args);
+      if (response.status === 401 && sessionRef.current) {
+        setSession(null);
+        writeStoredSession(null);
+        setSessionExpired(true);
+      }
+      return response;
+    };
+    (patched as { __sessionExpiryPatched?: boolean }).__sessionExpiryPatched = true;
+    window.fetch = patched;
+  }, []);
 
   // On mount: an incoming ?ssoToken= from a Phocal click-through takes
   // priority over whatever's already stored, since it represents the most
@@ -114,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const next: StaffSession = { name: data.name, level: data.level, store: data.store, allowedTools: data.allowedTools, crossAppToken: data.crossAppToken };
       setSession(next);
       writeStoredSession(next);
+      setSessionExpired(false);
     } catch (err) {
       setLoginError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -125,6 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     writeStoredSession(null);
     setIsPreviewingBasic(false);
+    setSessionExpired(false);
     try {
       localStorage.removeItem(PREVIEW_KEY);
     } catch {
@@ -154,8 +187,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [realSession, isPreviewingBasic, canPreview]);
 
   const value = useMemo(
-    () => ({ session, ready, loginError, loggingIn, login, logout, isPreviewingBasic, canPreview, setPreviewAsBasic }),
-    [session, ready, loginError, loggingIn, login, logout, isPreviewingBasic, canPreview, setPreviewAsBasic],
+    () => ({ session, ready, loginError, loggingIn, sessionExpired, login, logout, isPreviewingBasic, canPreview, setPreviewAsBasic }),
+    [session, ready, loginError, loggingIn, sessionExpired, login, logout, isPreviewingBasic, canPreview, setPreviewAsBasic],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

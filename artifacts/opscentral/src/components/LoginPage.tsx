@@ -4,7 +4,7 @@ import connectedLogo from '@/assets/connected-logo.png';
 import loginBackground from '@/assets/login-background.jpg';
 
 export function LoginPage() {
-  const { login, loginError, loggingIn } = useAuth();
+  const { login, loginError, loggingIn, sessionExpired } = useAuth();
   const [code, setCode] = useState('');
   const [initials, setInitials] = useState('');
 
@@ -23,6 +23,11 @@ export function LoginPage() {
         <div className="flex flex-col items-center gap-3 pb-6">
           <img src={connectedLogo} alt="Connected" className="h-16 w-auto" />
         </div>
+        {sessionExpired && (
+          <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+            Your session has expired — please sign in again.
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-1.5 block text-sm font-semibold text-foreground/80">Staff code</label>
