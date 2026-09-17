@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { asc, eq, inArray } from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 import {
   db,
   formsTable,
@@ -76,6 +76,35 @@ async function setCategoryLinks(formId: number, categoryIds: number[]) {
 router.get("/forms/categories", async (_req, res) => {
   const categories = await db.select().from(formCategoriesTable).orderBy(asc(formCategoriesTable.sortOrder));
   res.json(categories);
+});
+
+// There was previously no way to create a new form category at all --
+// FormEditorPage's category pills only ever toggled EXISTING categories
+// fetched from the GET route above, with no "add new" control anywhere in
+// the UI or a matching write endpoint here. This is that missing write
+// path. Idempotent on name (case-sensitive exact match): calling it again
+// with a name that already exists just returns that existing row rather
+// than erroring or creating a duplicate, since the editor UI calling this
+// can't easily know in advance whether a given name already exists.
+router.post("/forms/categories", requireFullLevel, async (req, res) => {
+  const { name } = req.body ?? {};
+  if (typeof name !== "string" || !name.trim()) {
+    res.status(400).json({ error: "name is required" });
+    return;
+  }
+  const trimmed = name.trim();
+
+  const existing = await db.select().from(formCategoriesTable).where(eq(formCategoriesTable.name, trimmed));
+  if (existing.length > 0) {
+    res.json({ ok: true, category: existing[0] });
+    return;
+  }
+
+  const [last] = await db.select({ sortOrder: formCategoriesTable.sortOrder }).from(formCategoriesTable).orderBy(desc(formCategoriesTable.sortOrder)).limit(1);
+  const nextSortOrder = (last?.sortOrder ?? -1) + 1;
+
+  const [category] = await db.insert(formCategoriesTable).values({ name: trimmed, sortOrder: nextSortOrder }).returning();
+  res.json({ ok: true, category });
 });
 
 // Staff-facing list: live, non-archived forms only.
