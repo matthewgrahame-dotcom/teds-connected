@@ -23,16 +23,6 @@ type NavItem = {
   children?: NavChild[];
 };
 
-// wouter's useLocation() doesn't reliably include the query string
-// depending on how navigation happened -- same ambiguity SearchResultsPage's
-// useQueryParam already works around. Used below so a child link with a
-// ?category= filter (Staff Surveys, Contracts) only shows as "active" when
-// its specific category is the one actually selected, not for every link
-// that shares the /people/forms path.
-function getCurrentFullPath(location: string): string {
-  return location.includes('?') ? location : `${location}${window.location.search}`;
-}
-
 const primaryNav: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutGrid },
   { label: 'News', href: '/news', icon: Newspaper },
@@ -55,10 +45,10 @@ const secondaryNav: NavItem[] = [
     children: [
       { label: 'Performance Review' },
       { label: 'Discussion Forums' },
-      { label: 'Staff Surveys', href: '/people/forms?category=Staff+Surveys' },
+      { label: 'Staff Surveys', href: '/people/forms/category/Staff%20Surveys' },
       { label: 'Recruiting' },
       { label: 'Onboarding', href: '/people/onboarding' },
-      { label: 'Contracts', href: '/people/forms?category=Contracts' },
+      { label: 'Contracts', href: '/people/forms/category/Contracts' },
       { label: 'All Forms', href: '/people/forms' },
       { label: 'Custom Report Builder' },
     ],
@@ -113,7 +103,7 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
                   onClick={onNavigate}
                   data-testid={`link-nav-${child.label.toLowerCase().replace(/\s+/g, '-')}`}
                   className={`block w-full rounded-md px-2 py-1.5 text-left text-sm font-semibold transition hover:bg-sidebar-accent/60 hover:text-foreground ${
-                    getCurrentFullPath(location) === child.href ? 'text-foreground' : 'text-muted-foreground'
+                    location === child.href ? 'text-foreground' : 'text-muted-foreground'
                   }`}
                 >
                   {child.label}
@@ -141,19 +131,12 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
       }`}
     >
       <div className="flex h-full flex-col">
-        {/* Mobile-only logo header -- the drawer already sits below the
-            fixed header (pt-[170px] above), so this is a plain, non-overlapping
-            block, unlike the desktop version's overlap trick just below. */}
         <div className="border-b border-sidebar-border py-5 md:hidden">
           <Link href="/" onClick={onNavigate} className="flex items-center justify-center">
             <img src={connectedLogo} alt="Connected" className="h-24 w-auto drop-shadow-md" />
           </Link>
         </div>
 
-        {/* Logo panel -- the logo image intentionally overflows upward past
-            this panel's own top edge to sit on top of the header's black
-            utility bar above it. Needs the aside's z-40 (higher than
-            AppHeader's z-30) to actually paint on top rather than behind it. */}
         <div className="relative hidden border-b border-sidebar-border pb-6 pt-8 md:block">
           <Link href="/" className="relative -mt-16 flex items-center justify-center">
             <img src={connectedLogo} alt="Connected" className="h-24 w-auto drop-shadow-md" />
