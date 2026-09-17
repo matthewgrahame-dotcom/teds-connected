@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Send, Search, User, ExternalLink, X } from 'lucide-react';
+import { Send, Search, User, ExternalLink, X, Flag, Check } from 'lucide-react';
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
@@ -34,6 +34,11 @@ export function SocialTimelineCard() {
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [announcementsOnly, setAnnouncementsOnly] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportType, setReportType] = useState<'issue' | 'suggestion'>('issue');
+  const [reportText, setReportText] = useState('');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportSent, setReportSent] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Same rule as Phocal's own Ted's Talks page (canPostAnnouncements): only
@@ -95,12 +100,41 @@ export function SocialTimelineCard() {
     });
   };
 
+  // Goes to Matt directly via Phocal's Staff Reports -- a separate, private
+  // channel from the public Ted's Talks feed above, not a post anyone else
+  // sees. See artifacts/api-server/src/routes/staff-reports.ts.
+  const submitReport = async () => {
+    if (!reportText.trim() || reportSubmitting) return;
+    setReportSubmitting(true);
+    try {
+      const res = await fetch('/api/staff-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+        body: JSON.stringify({ issueText: reportText.trim(), reportType }),
+      });
+      if (!res.ok) throw new Error();
+      setReportText('');
+      setReportSent(true);
+      setTimeout(() => {
+        setReportSent(false);
+        setReportOpen(false);
+      }, 2000);
+    } catch {
+      // Left the draft text in place so nothing's lost -- silent failure
+      // here would just look like the button did nothing, which is worse.
+      alert("Couldn't send that -- try again in a moment.");
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
+
   return (
     <DashboardCard
       title="Ted's Talks"
       actions={
         <>
           <CardIconButton icon={Search} label="Search posts" tone="primary" onClick={() => setSearchOpen((v) => !v)} />
+          <CardIconButton icon={Flag} label="Report an issue or make a suggestion" tone="primary" onClick={() => setReportOpen((v) => !v)} />
           <button
             type="button"
             aria-label="Announcements only"
@@ -136,6 +170,54 @@ export function SocialTimelineCard() {
             autoFocus
             className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-accent"
           />
+        </div>
+      )}
+      {reportOpen && (
+        <div className="mb-3 rounded-lg border border-border bg-muted/30 p-3">
+          {reportSent ? (
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <Check className="h-4 w-4" /> Sent — thanks for flagging this.
+            </p>
+          ) : (
+            <>
+              <div className="mb-2 flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setReportType('issue')}
+                  className={`rounded-full px-2.5 py-1 text-xs font-bold transition ${reportType === 'issue' ? 'bg-foreground text-primary' : 'border border-border bg-card text-muted-foreground hover:bg-muted'}`}
+                >
+                  🚩 Report an issue
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReportType('suggestion')}
+                  className={`rounded-full px-2.5 py-1 text-xs font-bold transition ${reportType === 'suggestion' ? 'bg-foreground text-primary' : 'border border-border bg-card text-muted-foreground hover:bg-muted'}`}
+                >
+                  💡 Make a suggestion
+                </button>
+              </div>
+              <textarea
+                value={reportText}
+                onChange={(e) => setReportText(e.target.value)}
+                placeholder={reportType === 'issue' ? "What's the issue?" : "What's your suggestion?"}
+                rows={2}
+                className="w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground/70 focus:border-accent"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground/70">
+                Goes directly to Matt via Phocal's Staff Reports — not posted to the feed below.
+              </p>
+              <div className="mt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={submitReport}
+                  disabled={!reportText.trim() || reportSubmitting}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-extrabold text-primary-foreground transition hover:brightness-95 disabled:opacity-50"
+                >
+                  <Send className="h-3.5 w-3.5" /> {reportSubmitting ? 'Sending…' : 'Send'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
       {!location && (
