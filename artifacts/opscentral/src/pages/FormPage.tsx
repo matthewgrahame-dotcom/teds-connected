@@ -18,6 +18,8 @@ type FormField = {
 
 type FormDef = { id: number; title: string; slug: string; instructions: string | null; groupedFields: boolean; fields: FormField[] };
 
+type FileUploadState = { status: 'idle' | 'uploading' | 'error'; progress?: number; error?: string };
+
 export default function FormPage() {
   const { slug } = useParams<{ slug: string }>();
   const search = useSearch();
@@ -25,6 +27,8 @@ export default function FormPage() {
   const { session } = useAuth();
   const [form, setForm] = useState<FormDef | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
+  const [fileNames, setFileNames] = useState<Record<string, string>>({});
+  const [fileUploads, setFileUploads] = useState<Record<string, FileUploadState>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [thankYouMessage, setThankYouMessage] = useState<string | null>(null);
@@ -50,8 +54,56 @@ export default function FormPage() {
 
   const setValue = (key: string, value: string) => setValues((v) => ({ ...v, [key]: value }));
 
+  const MAX_FILE_UPLOAD_BYTES = 3 * 1024 * 1024;
+
+  // XHR rather than fetch specifically for xhr.upload.onprogress -- fetch
+  // has no equivalent for upload (as opposed to download) progress, and a
+  // base64-inflated multi-MB file over a slow store connection is exactly
+  // the case where a stalled-looking "Uploading..." with no feedback is
+  // worst.
+  const handleFileSelect = (field: FormField, file: File | undefined) => {
+    if (!file) return;
+    if (file.size > MAX_FILE_UPLOAD_BYTES) {
+      setFileUploads((u) => ({ ...u, [field.key]: { status: 'error', error: `File is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB) -- the limit is ${MAX_FILE_UPLOAD_BYTES / (1024 * 1024)}MB.` } }));
+      return;
+    }
+    setFileNames((n) => ({ ...n, [field.key]: file.name }));
+    setFileUploads((u) => ({ ...u, [field.key]: { status: 'uploading', progress: 0 } }));
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/forms/upload');
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      const headers = authHeaders(session);
+      Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v as string));
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) setFileUploads((u) => ({ ...u, [field.key]: { status: 'uploading', progress: Math.round((e.loaded / e.total) * 100) } }));
+      };
+      xhr.onload = () => {
+        try {
+          const responseData = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300 && responseData.url) {
+            setValue(field.key, responseData.url);
+            setFileUploads((u) => ({ ...u, [field.key]: { status: 'idle' } }));
+          } else {
+            setFileUploads((u) => ({ ...u, [field.key]: { status: 'error', error: responseData.error || 'Upload failed' } }));
+          }
+        } catch {
+          setFileUploads((u) => ({ ...u, [field.key]: { status: 'error', error: 'Upload failed' } }));
+        }
+      };
+      xhr.onerror = () => setFileUploads((u) => ({ ...u, [field.key]: { status: 'error', error: 'Network error during upload' } }));
+      xhr.send(JSON.stringify({ fileData: dataUrl, fileName: file.name, formSlug: slug }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const anyFileUploading = Object.values(fileUploads).some((u) => u.status === 'uploading');
+
   const handleSubmit = async () => {
-    if (!form) return;
+    if (!form || anyFileUploading) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -166,12 +218,28 @@ export default function FormPage() {
                     <input
                       data-testid={`input-${field.key}`}
                       type="file"
-                      onChange={(e) => setValue(field.key, e.target.files?.[0]?.name ?? '')}
+                      onChange={(e) => handleFileSelect(field, e.target.files?.[0])}
                       className="w-full rounded-md border border-border px-3 py-2 text-sm outline-none file:mr-3 file:rounded file:border-0 file:bg-muted file:px-2 file:py-1 file:text-xs"
                     />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      File storage isn't wired up yet — the filename is recorded, but attach the actual file another way for now.
-                    </p>
+                    {fileUploads[field.key]?.status === 'uploading' && (
+                      <div className="mt-1.5">
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${fileUploads[field.key]?.progress ?? 0}%` }} />
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">Uploading {fileNames[field.key]}… {fileUploads[field.key]?.progress ?? 0}%</p>
+                      </div>
+                    )}
+                    {fileUploads[field.key]?.status === 'error' && (
+                      <p className="mt-1 text-xs text-destructive">{fileUploads[field.key]?.error} — choose the file again to retry.</p>
+                    )}
+                    {(!fileUploads[field.key] || fileUploads[field.key]?.status === 'idle') && values[field.key] && (
+                      <p className="mt-1 text-xs text-emerald-600">
+                        ✓ {fileNames[field.key] || 'File'} uploaded —{' '}
+                        <a href={values[field.key]} target="_blank" rel="noreferrer" className="underline">
+                          view
+                        </a>
+                      </p>
+                    )}
                   </>
                 ) : field.type === 'signature' ? (
                   <SignaturePad value={values[field.key] ?? ''} onChange={(dataUrl) => setValue(field.key, dataUrl)} required={field.required} />
@@ -192,7 +260,7 @@ export default function FormPage() {
                     className="w-full rounded-md border border-border px-3 py-2 text-sm outline-none focus:border-primary"
                   />
                 )}
-                {field.helpText && field.type !== 'file' && <p className="mt-1 text-xs text-muted-foreground">{field.helpText}</p>}
+                {field.helpText && <p className="mt-1 text-xs text-muted-foreground">{field.helpText}</p>}
               </div>
             );
           })}
@@ -203,10 +271,10 @@ export default function FormPage() {
             type="button"
             data-testid="button-submit-form"
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || anyFileUploading}
             className="print:hidden w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-extrabold text-primary-foreground transition hover:brightness-95 disabled:opacity-60"
           >
-            {submitting ? 'Submitting…' : 'Submit'}
+            {submitting ? 'Submitting…' : anyFileUploading ? 'Waiting for upload…' : 'Submit'}
           </button>
         </div>
       </div>

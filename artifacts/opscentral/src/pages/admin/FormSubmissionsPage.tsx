@@ -4,7 +4,7 @@ import { ChevronLeft, Inbox } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 
-type FormField = { key: string; label: string };
+type FormField = { key: string; label: string; type?: string };
 type FormDef = { id: number; title: string; slug: string; fields: FormField[] };
 type Submission = { id: number; submittedBy: string; submitterLocation: string | null; data: Record<string, string>; submittedAt: string };
 
@@ -66,11 +66,24 @@ export default function FormSubmissionsPage() {
                     <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
                       {new Date(s.submittedAt).toLocaleString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    {form.fields.map((f) => (
-                      <td key={f.key} className="max-w-xs px-4 py-3 text-muted-foreground">
-                        {s.data[f.key] ?? '—'}
-                      </td>
-                    ))}
+                    {form.fields.map((f) => {
+                      const value = s.data[f.key];
+                      let cell: React.ReactNode = value ?? '—';
+                      if (value && f.type === 'signature') {
+                        cell = <img src={value} alt="Signature" className="h-8 w-auto rounded border border-border bg-white" />;
+                      } else if (value && f.type === 'file') {
+                        cell = (
+                          <a href={value} target="_blank" rel="noreferrer" className="font-semibold text-primary underline">
+                            View file
+                          </a>
+                        );
+                      }
+                      return (
+                        <td key={f.key} className="max-w-xs px-4 py-3 text-muted-foreground">
+                          {cell}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>

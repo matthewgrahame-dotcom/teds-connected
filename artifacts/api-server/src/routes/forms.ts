@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { put } from "@vercel/blob";
 import { asc, desc, eq, inArray } from "drizzle-orm";
 import {
   db,
@@ -229,6 +230,79 @@ async function notifyFormSubmission(form: { title: string; slug: string; notifyU
     // best-effort -- the submission itself already succeeded regardless
   }
 }
+
+// 3MB raw file -- base64 inflates that to ~4MB of JSON body text (the 4/3
+// overhead of base64 encoding), which is what the 4mb express.json limit
+// in app.ts is actually sized for. Vercel's serverless functions also
+// enforce their OWN hard 4.5MB request body cap that can't be configured
+// away, so keeping comfortably under that (rather than right up against
+// it) is deliberate headroom, not an arbitrary number.
+const MAX_FILE_UPLOAD_BYTES = 3 * 1024 * 1024;
+
+function sanitizeFileNameForStorage(name: string): string {
+  const trimmed = name.trim() || "file";
+  // Keep the extension (Blob/browsers use it for content-type hints and
+  // it's useful in the stored filename) but strip anything else that
+  // isn't a safe path segment.
+  return trimmed.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120);
+}
+
+// Used by FormPage's file field: uploads happen as soon as the person
+// picks a file (not deferred until final form submission), so they get
+// immediate feedback if something's wrong (too large, Blob not
+// configured) rather than finding out only after filling out the whole
+// rest of the form. Returns just the public URL, which FormPage then
+// stores as that field's value -- an ordinary string, same as every
+// other field type (including the signature pad's data URL), so nothing
+// downstream (submission storage, the admin submissions viewer) needs to
+// know this field is any different from a text field.
+router.post("/forms/upload", async (req, res) => {
+  const { fileData, fileName, formSlug } = req.body ?? {};
+  if (typeof fileData !== "string" || !fileData.startsWith("data:") || !fileData.includes(";base64,")) {
+    res.status(400).json({ error: "fileData must be a base64 data URL" });
+    return;
+  }
+  if (typeof fileName !== "string" || !fileName.trim()) {
+    res.status(400).json({ error: "fileName is required" });
+    return;
+  }
+
+  // Same public-vs-requires-login gating as everywhere else a form is
+  // touched -- if we know which form this upload is for, honor its
+  // isPublic flag; if the caller didn't tell us (shouldn't happen from
+  // FormPage, but this is a shared endpoint), fail closed and require a
+  // session rather than silently allowing anonymous uploads.
+  let isPublicForm = false;
+  if (typeof formSlug === "string" && formSlug.trim()) {
+    const [form] = await db.select({ isPublic: formsTable.isPublic }).from(formsTable).where(eq(formsTable.slug, formSlug.trim()));
+    isPublicForm = form?.isPublic ?? false;
+  }
+  if (!requireSessionUnlessPublic(req, res, isPublicForm)) return;
+
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    res.status(500).json({ error: "File storage isn't configured yet -- ask an admin to set up Vercel Blob for this project." });
+    return;
+  }
+
+  const [, mimeType, base64Payload] = /^data:([^;]+);base64,(.+)$/s.exec(fileData) ?? [];
+  if (!base64Payload) {
+    res.status(400).json({ error: "Malformed fileData" });
+    return;
+  }
+  const buffer = Buffer.from(base64Payload, "base64");
+  if (buffer.length > MAX_FILE_UPLOAD_BYTES) {
+    res.status(413).json({ error: `File is too large (${(buffer.length / (1024 * 1024)).toFixed(1)}MB) -- the limit is ${MAX_FILE_UPLOAD_BYTES / (1024 * 1024)}MB.` });
+    return;
+  }
+
+  try {
+    const pathname = `form-uploads/${Date.now()}-${sanitizeFileNameForStorage(fileName)}`;
+    const blob = await put(pathname, buffer, { access: "public", contentType: mimeType || "application/octet-stream" });
+    res.json({ ok: true, url: blob.url, fileName: fileName.trim() });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : "Upload failed" });
+  }
+});
 
 router.post("/forms/:slug/submit", async (req, res) => {
   const [form] = await db.select().from(formsTable).where(eq(formsTable.slug, String(req.params.slug)));
