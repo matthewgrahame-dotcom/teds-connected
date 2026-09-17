@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ExternalLink, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink, Sparkles } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { useAuth } from '@/lib/auth';
 
@@ -24,6 +24,7 @@ type RoundupData = {
 export function RecentProductsCard() {
   const { session } = useAuth();
   const [data, setData] = useState<RoundupData | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     fetch('/api/recent-roundup')
@@ -76,7 +77,33 @@ export function RecentProductsCard() {
             )}
             {data.savedAt && <span>Last updated {new Date(data.savedAt).toLocaleDateString('en-AU')}</span>}
           </div>
-          <div className="whitespace-pre-wrap text-sm leading-6 text-foreground/90">{data.roundup}</div>
+          {(() => {
+            const paragraphs = (data.roundup ?? '').split(/\n\s*\n/).filter((p) => p.trim());
+            const hasMore = paragraphs.length > 1;
+            const shown = expanded ? paragraphs : paragraphs.slice(0, 1);
+            return (
+              <>
+                <div className="whitespace-pre-wrap text-sm leading-6 text-foreground/90">{shown.join('\n\n')}</div>
+                {hasMore && (
+                  <button
+                    type="button"
+                    onClick={() => setExpanded((v) => !v)}
+                    className="mt-2 inline-flex items-center gap-1 text-xs font-extrabold text-accent hover:underline"
+                  >
+                    {expanded ? (
+                      <>
+                        Show less <ChevronUp className="h-3.5 w-3.5" />
+                      </>
+                    ) : (
+                      <>
+                        Read more <ChevronDown className="h-3.5 w-3.5" />
+                      </>
+                    )}
+                  </button>
+                )}
+              </>
+            );
+          })()}
         </>
       )}
     </DashboardCard>
