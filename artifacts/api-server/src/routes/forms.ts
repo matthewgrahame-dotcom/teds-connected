@@ -100,10 +100,24 @@ router.post("/forms/categories", requireFullLevel, async (req, res) => {
     return;
   }
 
+  // slug is NOT NULL + UNIQUE on this table (see form-categories.ts) but
+  // was never being set here -- every insert violated the NOT NULL
+  // constraint and crashed with an uncaught exception, which is why this
+  // route returned Vercel's generic HTML error page instead of JSON.
+  // Same slug-uniqueness-loop pattern already used for forms themselves
+  // just above.
+  const baseSlug = slugify(trimmed);
+  let slug = baseSlug;
+  let attempt = 1;
+  while ((await db.select({ id: formCategoriesTable.id }).from(formCategoriesTable).where(eq(formCategoriesTable.slug, slug))).length > 0) {
+    attempt += 1;
+    slug = `${baseSlug}-${attempt}`;
+  }
+
   const [last] = await db.select({ sortOrder: formCategoriesTable.sortOrder }).from(formCategoriesTable).orderBy(desc(formCategoriesTable.sortOrder)).limit(1);
   const nextSortOrder = (last?.sortOrder ?? -1) + 1;
 
-  const [category] = await db.insert(formCategoriesTable).values({ name: trimmed, sortOrder: nextSortOrder }).returning();
+  const [category] = await db.insert(formCategoriesTable).values({ name: trimmed, slug, sortOrder: nextSortOrder }).returning();
   res.json({ ok: true, category });
 });
 
