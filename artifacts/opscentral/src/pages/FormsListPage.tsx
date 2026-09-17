@@ -1,25 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'wouter';
+import { Link, useParams } from 'wouter';
 import { FileText, ChevronRight, ChevronLeft, Pencil, Plus, FolderOpen } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
 type FormSummary = { id: number; title: string; slug: string; categoryIds: number[]; categoryNames: string[] };
 
-// Same defensive pattern SearchResultsPage's useQueryParam already uses --
-// wouter's location from useLocation() doesn't reliably include the query
-// string depending on how navigation happened, so fall back to
-// window.location.search when it's missing.
-function useQueryParam(name: string): string {
-  const [location] = useLocation();
-  const search = location.includes('?') ? location.split('?')[1] : window.location.search.slice(1);
-  return new URLSearchParams(search).get(name) ?? '';
-}
-
 export default function FormsListPage() {
   const { session } = useAuth();
   const canEdit = session?.level === 'full';
   const [forms, setForms] = useState<FormSummary[] | null>(null);
-  const category = useQueryParam('category');
+  // Real path param now (/people/forms/category/:category), not a query
+  // string -- wouter's location tracking only reliably re-renders on
+  // pathname changes, and ?query= changes weren't consistently triggering
+  // a re-render when navigating from a mounted FormsListPage instance,
+  // which is why clicking a category block appeared to do nothing.
+  const params = useParams<{ category?: string }>();
+  const category = params.category ? decodeURIComponent(params.category) : '';
 
   useEffect(() => {
     fetch('/api/forms')
@@ -56,8 +52,9 @@ export default function FormsListPage() {
 
   // A specific category is selected -- either from clicking a block below,
   // or from a direct sidebar link like "Staff Surveys"/"Contracts" that
-  // points straight at ?category=X. Shows just that group's forms in the
-  // original flat list layout, with a way back to the full category grid.
+  // points straight at /people/forms/category/X. Shows just that group's
+  // forms in the original flat list layout, with a way back to the full
+  // category grid.
   if (category) {
     const groupForms = groups.get(category) ?? [];
     return (
@@ -119,7 +116,7 @@ export default function FormsListPage() {
             {sortedGroups.map(([label, groupForms]) => (
               <Link
                 key={label}
-                href={`/people/forms?category=${encodeURIComponent(label)}`}
+                href={`/people/forms/category/${encodeURIComponent(label)}`}
                 data-testid={`link-form-category-${label.toLowerCase().replace(/\s+/g, '-')}`}
                 className="group flex flex-col overflow-hidden rounded-xl border border-card-border bg-card shell-shadow transition hover:-translate-y-0.5 hover:shadow-md"
               >
