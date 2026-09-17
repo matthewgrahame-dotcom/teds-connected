@@ -117,10 +117,11 @@ export function SocialTimelineCard() {
             href={`${PHOCAL_BASE_URL}/?page=tedstalks${session?.crossAppToken ? `&ssoToken=${encodeURIComponent(session.crossAppToken)}` : ''}`}
             target="_blank"
             rel="noreferrer"
-            aria-label="Open in Phocal"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground transition hover:brightness-95"
+            aria-label="Open the full Ted's Talks feed in Phocal"
+            title="Open the full Ted's Talks feed in Phocal"
+            className="flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-extrabold text-primary-foreground transition hover:brightness-95"
           >
-            <ExternalLink className="h-4 w-4" />
+            <ExternalLink className="h-3.5 w-3.5" /> Open in Phocal
           </a>
         </>
       }
@@ -236,4 +237,3 @@ export function SocialTimelineCard() {
     </DashboardCard>
   );
 }
-
