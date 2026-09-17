@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'wouter';
-import { FileText, ChevronRight, ChevronLeft, Pencil, Plus, FolderOpen } from 'lucide-react';
+import { FileText, ChevronRight, ChevronLeft, Pencil, Plus } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import formsCategoryIcon from '@/assets/icons/forms-category-icon.jpg';
 
 type FormSummary = { id: number; title: string; slug: string; categoryIds: number[]; categoryNames: string[] };
 
@@ -121,7 +122,7 @@ export default function FormsListPage() {
                 className="group flex flex-col overflow-hidden rounded-xl border border-card-border bg-card shell-shadow transition hover:-translate-y-0.5 hover:shadow-md"
               >
                 <div className="grid aspect-video w-full shrink-0 place-items-center bg-muted text-muted-foreground">
-                  <FolderOpen className="h-8 w-8" />
+                  <img src={formsCategoryIcon} alt="" className="h-14 w-14 rounded-full" />
                 </div>
                 <div className="flex flex-1 items-center justify-between gap-2 p-4">
                   <h2 className="font-extrabold leading-snug text-foreground">{label}</h2>
