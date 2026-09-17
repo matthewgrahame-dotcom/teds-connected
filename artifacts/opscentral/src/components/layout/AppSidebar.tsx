@@ -23,6 +23,16 @@ type NavItem = {
   children?: NavChild[];
 };
 
+// wouter's useLocation() doesn't reliably include the query string
+// depending on how navigation happened -- same ambiguity SearchResultsPage's
+// useQueryParam already works around. Used below so a child link with a
+// ?category= filter (Staff Surveys, Contracts) only shows as "active" when
+// its specific category is the one actually selected, not for every link
+// that shares the /people/forms path.
+function getCurrentFullPath(location: string): string {
+  return location.includes('?') ? location : `${location}${window.location.search}`;
+}
+
 const primaryNav: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutGrid },
   { label: 'News', href: '/news', icon: Newspaper },
@@ -45,11 +55,11 @@ const secondaryNav: NavItem[] = [
     children: [
       { label: 'Performance Review' },
       { label: 'Discussion Forums' },
-      { label: 'Staff Surveys' },
+      { label: 'Staff Surveys', href: '/people/forms?category=Staff+Surveys' },
       { label: 'Recruiting' },
       { label: 'Onboarding', href: '/people/onboarding' },
-      { label: 'Contracts' },
-      { label: 'Forms', href: '/people/forms' },
+      { label: 'Contracts', href: '/people/forms?category=Contracts' },
+      { label: 'All Forms', href: '/people/forms' },
       { label: 'Custom Report Builder' },
     ],
   },
@@ -103,7 +113,7 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
                   onClick={onNavigate}
                   data-testid={`link-nav-${child.label.toLowerCase().replace(/\s+/g, '-')}`}
                   className={`block w-full rounded-md px-2 py-1.5 text-left text-sm font-semibold transition hover:bg-sidebar-accent/60 hover:text-foreground ${
-                    location === child.href ? 'text-foreground' : 'text-muted-foreground'
+                    getCurrentFullPath(location) === child.href ? 'text-foreground' : 'text-muted-foreground'
                   }`}
                 >
                   {child.label}
