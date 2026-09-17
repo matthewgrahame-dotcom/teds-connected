@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
-import { put } from "@vercel/blob";
+import { put, get } from "@vercel/blob";
+import { Readable } from "node:stream";
 import { asc, desc, eq, inArray } from "drizzle-orm";
 import {
   db,
@@ -297,10 +298,57 @@ router.post("/forms/upload", async (req, res) => {
 
   try {
     const pathname = `form-uploads/${Date.now()}-${sanitizeFileNameForStorage(fileName)}`;
-    const blob = await put(pathname, buffer, { access: "public", contentType: mimeType || "application/octet-stream" });
+    const blob = await put(pathname, buffer, { access: "private", contentType: mimeType || "application/octet-stream" });
     res.json({ ok: true, url: blob.url, fileName: fileName.trim() });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : "Upload failed" });
+  }
+});
+
+// Private Blob URLs aren't fetchable directly by the browser (that's the
+// whole point of choosing private storage over public) -- every read
+// needs to go through the SDK's get() with the read-write token, which
+// only server code has. This route is that delivery point: authenticates
+// the request the same way the upload route does, fetches the blob, and
+// streams it straight through. The frontend fetches this (not a plain
+// <a href>) specifically so it can attach the X-Session-Token auth
+// header, which a bare link has no way to send.
+router.get("/forms/upload/view", async (req, res) => {
+  const blobUrl = typeof req.query.url === "string" ? req.query.url : "";
+  const formSlug = typeof req.query.formSlug === "string" ? req.query.formSlug : "";
+  if (!blobUrl) {
+    res.status(400).json({ error: "url is required" });
+    return;
+  }
+
+  let isPublicForm = false;
+  if (formSlug.trim()) {
+    const [form] = await db.select({ isPublic: formsTable.isPublic }).from(formsTable).where(eq(formsTable.slug, formSlug.trim()));
+    isPublicForm = form?.isPublic ?? false;
+  }
+  if (!requireSessionUnlessPublic(req, res, isPublicForm)) return;
+
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    res.status(500).json({ error: "File storage isn't configured yet -- ask an admin to set up Vercel Blob for this project." });
+    return;
+  }
+
+  try {
+    const result = await get(blobUrl, { access: "private" });
+    if (!result || result.statusCode !== 200) {
+      res.status(404).json({ error: "File not found" });
+      return;
+    }
+    // Sensitive documents (a Tax Declaration Form, an ID scan) shouldn't
+    // linger in a shared or disk cache -- private, no-store forces the
+    // browser to re-request (and re-authenticate) every time rather than
+    // serving a cached copy to whoever next opens this tab/device.
+    res.setHeader("Content-Type", result.blob.contentType || "application/octet-stream");
+    res.setHeader("Content-Disposition", `inline; filename="${result.blob.pathname.split("/").pop()}"`);
+    res.setHeader("Cache-Control", "private, no-store");
+    Readable.fromWeb(result.stream as any).pipe(res);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : "Failed to fetch file" });
   }
 });
 

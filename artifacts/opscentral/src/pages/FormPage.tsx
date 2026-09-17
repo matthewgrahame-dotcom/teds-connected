@@ -5,6 +5,7 @@ import DOMPurify from 'dompurify';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 import { SignaturePad } from '@/components/SignaturePad';
+import { openPrivateFormFile } from '@/lib/privateFile';
 
 type FormField = {
   key: string;
@@ -235,9 +236,16 @@ export default function FormPage() {
                     {(!fileUploads[field.key] || fileUploads[field.key]?.status === 'idle') && values[field.key] && (
                       <p className="mt-1 text-xs text-emerald-600">
                         ✓ {fileNames[field.key] || 'File'} uploaded —{' '}
-                        <a href={values[field.key]} target="_blank" rel="noreferrer" className="underline">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const err = await openPrivateFormFile(values[field.key], slug ?? '', session);
+                            if (err) setFileUploads((u) => ({ ...u, [field.key]: { status: 'error', error: err } }));
+                          }}
+                          className="underline"
+                        >
                           view
-                        </a>
+                        </button>
                       </p>
                     )}
                   </>

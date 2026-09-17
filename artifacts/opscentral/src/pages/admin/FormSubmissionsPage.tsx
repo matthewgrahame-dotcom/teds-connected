@@ -3,6 +3,7 @@ import { useParams, Link } from 'wouter';
 import { ChevronLeft, Inbox } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
+import { openPrivateFormFile } from '@/lib/privateFile';
 
 type FormField = { key: string; label: string; type?: string };
 type FormDef = { id: number; title: string; slug: string; fields: FormField[] };
@@ -13,6 +14,7 @@ export default function FormSubmissionsPage() {
   const { session } = useAuth();
   const [form, setForm] = useState<FormDef | null>(null);
   const [submissions, setSubmissions] = useState<Submission[] | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/forms/admin/${id}`, { headers: authHeaders(session) })
@@ -33,6 +35,7 @@ export default function FormSubmissionsPage() {
           <ChevronLeft className="h-4 w-4" /> Back to {form ? 'Form Editor' : 'Forms'}
         </Link>
         <h1 className="text-2xl font-extrabold text-foreground">{form ? `${form.title} — Submissions` : 'Submissions'}</h1>
+        {fileError && <p className="text-sm text-destructive">{fileError}</p>}
 
         {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
 
@@ -73,9 +76,16 @@ export default function FormSubmissionsPage() {
                         cell = <img src={value} alt="Signature" className="h-8 w-auto rounded border border-border bg-white" />;
                       } else if (value && f.type === 'file') {
                         cell = (
-                          <a href={value} target="_blank" rel="noreferrer" className="font-semibold text-primary underline">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const err = await openPrivateFormFile(value, form.slug, session);
+                              if (err) setFileError(err);
+                            }}
+                            className="font-semibold text-primary underline"
+                          >
                             View file
-                          </a>
+                          </button>
                         );
                       }
                       return (
