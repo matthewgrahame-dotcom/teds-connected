@@ -278,7 +278,7 @@ router.get("/forms/:slug/submissions", requireFullLevel, async (req, res) => {
 });
 
 function parseFields(fields: unknown): FormField[] {
-  const validTypes = new Set(["text", "textarea", "number", "currency", "radio", "select", "file"]);
+  const validTypes = new Set(["text", "textarea", "number", "currency", "radio", "select", "file", "signature", "date"]);
   if (!Array.isArray(fields)) return [];
   return fields.map((f: Partial<FormField> & { label?: string }, i: number) => {
     const label = typeof f?.label === "string" && f.label.trim() ? f.label.trim() : `Field ${i + 1}`;

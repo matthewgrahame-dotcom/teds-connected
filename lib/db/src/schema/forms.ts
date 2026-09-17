@@ -6,7 +6,7 @@ import { formCategoriesTable } from "./form-categories";
 export const formFieldSchema = z.object({
   key: z.string(),
   label: z.string(),
-  type: z.enum(["text", "textarea", "number", "currency", "radio", "select", "file"]),
+  type: z.enum(["text", "textarea", "number", "currency", "radio", "select", "file", "signature", "date"]),
   required: z.boolean().optional(),
   options: z.array(z.string()).optional(),
   helpText: z.string().optional(),
