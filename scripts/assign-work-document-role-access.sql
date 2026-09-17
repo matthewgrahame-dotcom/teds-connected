@@ -1,3 +1,13 @@
+CREATE TABLE IF NOT EXISTS "work_document_role_access" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"document_id" integer NOT NULL,
+	"role" text NOT NULL,
+	"accessible" boolean DEFAULT true NOT NULL,
+	"required_reading" boolean DEFAULT false NOT NULL,
+	"notify_on_publish" boolean DEFAULT false NOT NULL,
+	CONSTRAINT "work_document_role_access_document_id_role_unique" UNIQUE("document_id","role")
+);
+
 INSERT INTO work_document_role_access (document_id, role, accessible, required_reading, notify_on_publish) VALUES
   ((SELECT id FROM work_documents WHERE title = 'Acceptable Workplace Behaviour Policy & Procedure'), 'Admin', true, false, false),
   ((SELECT id FROM work_documents WHERE title = 'Acceptable Workplace Behaviour Policy & Procedure'), 'Assistant Store Manager', true, false, false),
