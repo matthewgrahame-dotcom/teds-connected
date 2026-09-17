@@ -8,6 +8,7 @@ import {
   calendarEventsTable,
   eventRsvpsTable,
   workDocumentsTable,
+  workDocumentRoleAccessTable,
   workDocumentAcknowledgmentsTable,
   appSettingsTable,
   formsTable,
@@ -77,7 +78,8 @@ router.get("/tasks", requireSession, async (req, res) => {
       progress,
       events,
       myRsvps,
-      requiredDocs,
+      allWorkDocs,
+      docRoleAccessRows,
       myAcks,
       liveForms,
       formRoleAssignments,
@@ -98,7 +100,8 @@ router.get("/tasks", requireSession, async (req, res) => {
         .where(and(eq(calendarEventsTable.requiresRsvp, true), gte(calendarEventsTable.date, todayKey())))
         .orderBy(asc(calendarEventsTable.date)),
       db.select().from(eventRsvpsTable).where(eq(eventRsvpsTable.staffName, staffName)),
-      db.select().from(workDocumentsTable).where(eq(workDocumentsTable.requiresAcknowledgment, true)),
+      db.select().from(workDocumentsTable),
+      db.select().from(workDocumentRoleAccessTable),
       db.select({ documentId: workDocumentAcknowledgmentsTable.documentId }).from(workDocumentAcknowledgmentsTable).where(eq(workDocumentAcknowledgmentsTable.staffName, staffName)),
       db.select().from(formsTable).where(and(eq(formsTable.status, "live"), eq(formsTable.archived, false))),
       db.select().from(formRoleAssignmentsTable),
@@ -138,6 +141,22 @@ router.get("/tasks", requireSession, async (req, res) => {
       : [];
 
     const ackedDocIds = new Set(myAcks.map((a) => a.documentId));
+    // A doc with role-access rows is required only when the caller's role
+    // has requiredReading=true on it; a doc with no role rows falls back to
+    // the blanket requiresAcknowledgment flag, same resolution rule as
+    // work-documents.ts's reporting endpoints.
+    const docRoleAccessByDoc = new Map<number, Map<string, (typeof docRoleAccessRows)[number]>>();
+    for (const row of docRoleAccessRows) {
+      const byRole = docRoleAccessByDoc.get(row.documentId) ?? new Map();
+      byRole.set(row.role, row);
+      docRoleAccessByDoc.set(row.documentId, byRole);
+    }
+    const requiredDocs = allWorkDocs.filter((d) => {
+      const rolesForDoc = docRoleAccessByDoc.get(d.id);
+      if (!rolesForDoc) return d.requiresAcknowledgment;
+      if (!portalUser) return false;
+      return rolesForDoc.get(portalUser.role)?.requiredReading ?? false;
+    });
     const workDocumentTasks = enabledTypes.has("work_documents")
       ? requiredDocs
           .filter((d) => !ackedDocIds.has(d.id))

@@ -34,3 +34,33 @@ export const workDocumentAcknowledgmentsTable = pgTable(
 
 export type WorkDocument = typeof workDocumentsTable.$inferSelect;
 export type WorkDocumentAcknowledgment = typeof workDocumentAcknowledgmentsTable.$inferSelect;
+
+// Per-role access control, migrated from the old system's real
+// Accessible/Required Reading/Notify Users permissions matrix (previously
+// nothing in Connected restricted a document by role at all -- every
+// document was portal-wide visible with only the blanket
+// requiresAcknowledgment flag above). A document with NO rows here is
+// unrestricted (visible to everyone, acknowledgment governed by the
+// blanket flag) -- same empty-set-means-unrestricted pattern used
+// throughout this app (Forms' view permissions, Onboarding's). Only once a
+// document has at least one row does per-role filtering actually kick in
+// for it, and requiredReading on those rows takes over from the blanket
+// flag for that document.
+export const workDocumentRoleAccessTable = pgTable(
+  "work_document_role_access",
+  {
+    id: serial("id").primaryKey(),
+    documentId: integer("document_id").notNull(),
+    role: text("role").notNull(),
+    accessible: boolean("accessible").notNull().default(true),
+    requiredReading: boolean("required_reading").notNull().default(false),
+    // Captured from the old system's "Notify Users" column but not wired to
+    // anything yet -- there's no "document published/updated" event in
+    // Connected to fire a notification from, same honest gap as
+    // reminder emails elsewhere (forms.ts, onboarding.ts).
+    notifyOnPublish: boolean("notify_on_publish").notNull().default(false),
+  },
+  (table) => [unique().on(table.documentId, table.role)],
+);
+
+export type WorkDocumentRoleAccess = typeof workDocumentRoleAccessTable.$inferSelect;
