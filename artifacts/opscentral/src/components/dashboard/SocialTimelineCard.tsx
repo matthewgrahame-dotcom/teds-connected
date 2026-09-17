@@ -15,6 +15,7 @@ const PHOCAL_BASE_URL = 'https://seo-optimiser.vercel.app'; // TODO: update once
 type PhocalMessage = {
   id: string;
   fromLocation: string;
+  fromName?: string | null;
   toLocation: string | null;
   toUserName?: string | null;
   messageText: string;
@@ -82,7 +83,7 @@ export function SocialTimelineCard() {
       await fetch('/api/social-timeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fromLocation: location.trim(), toLocation: null, toUserName: toUserName || null, messageText: draft.trim(), isAnnouncement: false }),
+        body: JSON.stringify({ fromLocation: location.trim(), fromName: session?.name ?? null, toLocation: null, toUserName: toUserName || null, messageText: draft.trim(), isAnnouncement: false }),
       });
       setDraft('');
       setToUserName('');
@@ -291,7 +292,7 @@ export function SocialTimelineCard() {
                 </span>
                 <div>
                   <p className="text-sm font-extrabold text-foreground">
-                    {post.fromLocation}
+                    {post.fromName ? `${post.fromName} · ${post.fromLocation}` : post.fromLocation}
                     {post.isAnnouncement ? ' 📣' : ''}
                     {post.toUserName && <span className="ml-2 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase text-accent">To: {post.toUserName}</span>}
                   </p>
