@@ -10,6 +10,8 @@ export const NEWS_CATEGORIES: NewsCategory[] = [
   { label: 'Products/Manufacturer News', value: 'bg-accent' },
   { label: 'Sales Results', value: 'bg-emerald-500' },
   { label: 'Announcements', value: 'bg-destructive' },
+  { label: 'New Training Module', value: 'bg-primary' },
+  { label: 'Store Announcements', value: 'bg-purple-500' },
 ];
 
 export function categoryLabelFor(tagColor: string): string {

@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 import { Pencil, Plus } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
+import { categoryLabelFor } from '@/lib/newsCategories';
 
 type NewsArticle = {
   id: number;
@@ -49,6 +50,7 @@ export default function NewsPage() {
               <Link href={`/news/${article.id}`} data-testid={`link-news-${article.id}`} className="flex min-w-0 flex-1 gap-4 transition hover:opacity-80">
                 <span className={`mt-1 h-10 w-1.5 shrink-0 rounded-full ${article.tagColor}`} />
                 <div className="min-w-0">
+                  <p className="mono-label mb-0.5 text-muted-foreground">{categoryLabelFor(article.tagColor)}</p>
                   <h3 className="font-extrabold text-foreground">{article.title}</h3>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">{article.snippet}</p>
                   <p className="mt-2 text-xs text-muted-foreground">

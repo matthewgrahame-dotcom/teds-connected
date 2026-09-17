@@ -6,14 +6,7 @@ import { authHeaders } from '@/lib/sessionAuth';
 import { useToast } from '@/hooks/use-toast';
 import { fileToResizedDataUri } from '@/lib/imageUpload';
 import { FormattingToolbar } from '@/components/FormattingToolbar';
-
-const TAG_COLORS = [
-  { label: 'Yellow', value: 'bg-primary' },
-  { label: 'Red', value: 'bg-destructive' },
-  { label: 'Blue', value: 'bg-accent' },
-  { label: 'Green', value: 'bg-emerald-500' },
-  { label: 'Purple', value: 'bg-purple-500' },
-];
+import { NEWS_CATEGORIES } from '@/lib/newsCategories';
 
 type NewsArticle = {
   id: number;
@@ -189,16 +182,22 @@ export default function NewsEditorPage() {
             />
           </div>
           <div>
-            <label className="mono-label mb-1.5 block text-muted-foreground">Tag Colour</label>
-            <div className="flex gap-2">
-              {TAG_COLORS.map((c) => (
+            <label className="mono-label mb-1.5 block text-muted-foreground">Category</label>
+            <div className="flex flex-wrap gap-2">
+              {NEWS_CATEGORIES.map((c) => (
                 <button
                   key={c.value}
                   type="button"
-                  aria-label={c.label}
                   onClick={() => setForm((f) => ({ ...f, tagColor: c.value }))}
-                  className={`h-8 w-8 rounded-full ${c.value} ${form.tagColor === c.value ? 'ring-2 ring-offset-2 ring-foreground' : ''}`}
-                />
+                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                    form.tagColor === c.value
+                      ? 'border-foreground bg-muted text-foreground'
+                      : 'border-input text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${c.value}`} />
+                  {c.label}
+                </button>
               ))}
             </div>
           </div>

@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 import { ChevronLeft, Image as ImageIcon } from 'lucide-react';
 import { RichContent } from '@/components/RichContent';
+import { categoryLabelFor } from '@/lib/newsCategories';
 
 type NewsArticle = {
   id: number;
@@ -76,6 +77,7 @@ export default function NewsArticlePage() {
               <div className="flex gap-4">
                 <span className={`mt-1 h-10 w-1.5 shrink-0 rounded-full ${article.tagColor}`} />
                 <div className="min-w-0">
+                  <p className="mono-label mb-0.5 text-muted-foreground">{categoryLabelFor(article.tagColor)}</p>
                   <h1 className="text-xl font-extrabold text-foreground">{article.title}</h1>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {article.postedBy} · {new Date(article.createdAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
