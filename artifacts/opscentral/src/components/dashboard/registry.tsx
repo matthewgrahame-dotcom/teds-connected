@@ -11,7 +11,7 @@ import { KeyContactsCard } from './KeyContactsCard';
 import { RosteringCard } from './RosteringCard';
 import { AiHelpCard } from './AiHelpCard';
 
-export type DashboardColumn = 'main' | 'sidebar';
+export type DashboardColumn = 'main' | 'sidebar' | 'wide';
 
 // Maps a plain string key (what's actually stored in dashboard_widgets, and
 // what drag-and-drop reordering sends back) to the real component -- keeps

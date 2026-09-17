@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { GripVertical, Check, RotateCcw, Scale } from 'lucide-react';
+import { GripVertical, Check, RotateCcw, Scale, Maximize2, Minimize2 } from 'lucide-react';
 import {
   DndContext,
   DragOverlay,
@@ -23,10 +23,12 @@ function SortableWidget({
   item,
   editing,
   registerRef,
+  onToggleWide,
 }: {
   item: LayoutItem;
   editing: boolean;
   registerRef: (key: string, node: HTMLDivElement | null) => void;
+  onToggleWide: (widgetKey: string) => void;
 }) {
   const entry = DASHBOARD_WIDGET_REGISTRY[item.widgetKey];
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.widgetKey, disabled: !editing });
@@ -54,6 +56,17 @@ function SortableWidget({
           className="absolute -left-3 top-4 z-10 grid h-8 w-8 cursor-grab place-items-center rounded-md border border-border bg-card text-muted-foreground shadow-sm transition hover:text-foreground active:cursor-grabbing"
         >
           <GripVertical className="h-4 w-4" />
+        </button>
+      )}
+      {editing && (
+        <button
+          type="button"
+          onClick={() => onToggleWide(item.widgetKey)}
+          aria-label={item.column === 'wide' ? `Shrink ${entry.label} back to column width` : `Widen ${entry.label} to full width`}
+          title={item.column === 'wide' ? 'Shrink to column width' : 'Widen to full width'}
+          className="absolute -right-3 top-4 z-10 grid h-8 w-8 place-items-center rounded-md border border-border bg-card text-muted-foreground shadow-sm transition hover:text-foreground"
+        >
+          {item.column === 'wide' ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
         </button>
       )}
       <div className={editing ? 'pointer-events-none rounded-xl ring-2 ring-primary/40' : ''}>
@@ -125,6 +138,17 @@ export default function Dashboard() {
 
   const mainItems = useMemo(() => layout.filter((i) => i.column === 'main'), [layout]);
   const sidebarItems = useMemo(() => layout.filter((i) => i.column === 'sidebar'), [layout]);
+  const wideItems = useMemo(() => layout.filter((i) => i.column === 'wide'), [layout]);
+
+  // Toggle-only, not drag-based -- moving into/out of the full-width
+  // section happens by clicking the expand/shrink button, not by dragging
+  // across from the main/sidebar columns. Simpler and more predictable
+  // than teaching handleDragEnd's cross-column logic a three-way version;
+  // reordering *within* each of the three lists (and between main/sidebar)
+  // still works exactly as before via drag.
+  const toggleWide = (widgetKey: string) => {
+    setLayout((prev) => prev.map((i) => (i.widgetKey === widgetKey ? { ...i, column: i.column === 'wide' ? 'main' : 'wide' } : i)));
+  };
 
   const handleDragStart = (event: DragStartEvent) => setActiveId(String(event.active.id));
 
@@ -137,6 +161,12 @@ export default function Dashboard() {
       const activeItem = prev.find((i) => i.widgetKey === active.id);
       const overItem = prev.find((i) => i.widgetKey === over.id);
       if (!activeItem || !overItem) return prev;
+
+      // The wide section is toggle-only (see toggleWide above) -- a drag
+      // that crosses into or out of it is ignored rather than moving the
+      // widget, since only main<->sidebar cross-column dragging is wired
+      // up below.
+      if ((activeItem.column === 'wide') !== (overItem.column === 'wide')) return prev;
 
       // Moving within the same column: simple reorder.
       if (activeItem.column === overItem.column) {
@@ -167,7 +197,13 @@ export default function Dashboard() {
   // (dragging alone can't fix that -- it's a height-sum problem, not an
   // ordering problem).
   const balanceColumns = () => {
-    const heights = layout.map((item) => ({ item, height: widgetRefs.current[item.widgetKey]?.offsetHeight ?? 0 }));
+    // Wide items sit outside the main/sidebar height-balancing entirely --
+    // this used to iterate over ALL layout items regardless of column,
+    // which would have silently shrunk any wide widget back to a normal
+    // column on every click.
+    const balanceable = layout.filter((item) => item.column !== 'wide');
+    const wide = layout.filter((item) => item.column === 'wide');
+    const heights = balanceable.map((item) => ({ item, height: widgetRefs.current[item.widgetKey]?.offsetHeight ?? 0 }));
     heights.sort((a, b) => b.height - a.height);
 
     let mainHeight = 0;
@@ -183,7 +219,7 @@ export default function Dashboard() {
         sidebarHeight += height;
       }
     }
-    setLayout([...mainOut, ...sidebarOut]);
+    setLayout([...wide, ...mainOut, ...sidebarOut]);
   };
 
   const saveLayout = async () => {
@@ -264,18 +300,27 @@ export default function Dashboard() {
         )}
 
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          {wideItems.length > 0 && (
+            <SortableContext items={wideItems.map((i) => i.widgetKey)} strategy={verticalListSortingStrategy}>
+              <div className="mb-6 space-y-6">
+                {wideItems.map((item) => (
+                  <SortableWidget key={item.widgetKey} item={item} editing={editing} registerRef={registerRef} onToggleWide={toggleWide} />
+                ))}
+              </div>
+            </SortableContext>
+          )}
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,.9fr)]">
             <SortableContext items={mainItems.map((i) => i.widgetKey)} strategy={verticalListSortingStrategy}>
               <div className="space-y-6">
                 {mainItems.map((item) => (
-                  <SortableWidget key={item.widgetKey} item={item} editing={editing} registerRef={registerRef} />
+                  <SortableWidget key={item.widgetKey} item={item} editing={editing} registerRef={registerRef} onToggleWide={toggleWide} />
                 ))}
               </div>
             </SortableContext>
             <SortableContext items={sidebarItems.map((i) => i.widgetKey)} strategy={verticalListSortingStrategy}>
               <div className="space-y-6">
                 {sidebarItems.map((item) => (
-                  <SortableWidget key={item.widgetKey} item={item} editing={editing} registerRef={registerRef} />
+                  <SortableWidget key={item.widgetKey} item={item} editing={editing} registerRef={registerRef} onToggleWide={toggleWide} />
                 ))}
               </div>
             </SortableContext>

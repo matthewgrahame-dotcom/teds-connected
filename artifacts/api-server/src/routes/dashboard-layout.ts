@@ -20,7 +20,7 @@ router.put("/dashboard-widgets", requireFullLevel, async (req, res) => {
     return;
   }
   const rows = widgets
-    .filter((w) => typeof w?.widgetKey === "string" && (w.column === "main" || w.column === "sidebar"))
+    .filter((w) => typeof w?.widgetKey === "string" && (w.column === "main" || w.column === "sidebar" || w.column === "wide"))
     .map((w, i) => ({ widgetKey: w.widgetKey.trim(), column: w.column, sortOrder: i }));
 
   if (rows.length === 0) {
