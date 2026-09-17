@@ -6,7 +6,7 @@ import { authHeaders } from '@/lib/sessionAuth';
 import { useToast } from '@/hooks/use-toast';
 import { RichTextEditor } from '@/components/RichTextEditor';
 
-type FieldType = 'text' | 'textarea' | 'number' | 'currency' | 'radio' | 'select' | 'file';
+type FieldType = 'text' | 'textarea' | 'number' | 'currency' | 'radio' | 'select' | 'file' | 'signature' | 'date';
 type FieldDraft = {
   key: string;
   label: string;
@@ -26,6 +26,8 @@ const FIELD_TYPES: { value: FieldType; label: string }[] = [
   { value: 'radio', label: 'Radio buttons' },
   { value: 'select', label: 'Dropdown' },
   { value: 'file', label: 'File upload' },
+  { value: 'signature', label: 'Signature' },
+  { value: 'date', label: 'Date' },
 ];
 
 function emptyField(): FieldDraft {

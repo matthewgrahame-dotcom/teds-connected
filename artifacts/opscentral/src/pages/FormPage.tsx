@@ -4,11 +4,12 @@ import { CheckCircle2, Printer } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import { useAuth } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
+import { SignaturePad } from '@/components/SignaturePad';
 
 type FormField = {
   key: string;
   label: string;
-  type: 'text' | 'textarea' | 'number' | 'currency' | 'radio' | 'select' | 'file';
+  type: 'text' | 'textarea' | 'number' | 'currency' | 'radio' | 'select' | 'file' | 'signature' | 'date';
   required?: boolean;
   options?: string[];
   helpText?: string;
@@ -172,6 +173,16 @@ export default function FormPage() {
                       File storage isn't wired up yet — the filename is recorded, but attach the actual file another way for now.
                     </p>
                   </>
+                ) : field.type === 'signature' ? (
+                  <SignaturePad value={values[field.key] ?? ''} onChange={(dataUrl) => setValue(field.key, dataUrl)} required={field.required} />
+                ) : field.type === 'date' ? (
+                  <input
+                    data-testid={`input-${field.key}`}
+                    type="date"
+                    value={values[field.key] ?? ''}
+                    onChange={(e) => setValue(field.key, e.target.value)}
+                    className="w-full rounded-md border border-border px-3 py-2 text-sm outline-none focus:border-primary"
+                  />
                 ) : (
                   <input
                     data-testid={`input-${field.key}`}
