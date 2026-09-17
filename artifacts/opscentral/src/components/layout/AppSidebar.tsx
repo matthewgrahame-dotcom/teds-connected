@@ -56,11 +56,16 @@ const secondaryNav: NavItem[] = [
 
 export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; onNavigate: () => void }) {
   const [location] = useLocation();
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // Accordion: only one section open at a time across the whole sidebar --
+  // opening one collapses whatever else was open. A previous attempt at
+  // this (via AI Studio) didn't actually land; this replaces the old
+  // independent-per-section Record<string, boolean> that let every section
+  // stay open simultaneously.
+  const [openSection, setOpenSection] = useState<string | null>(null);
 
   const renderItem = (item: NavItem) => {
     const active = item.href ? location === item.href || (item.href !== '/' && location.startsWith(item.href)) : false;
-    const isExpanded = Boolean(expanded[item.label]);
+    const isExpanded = openSection === item.label;
     const Icon = item.icon;
     const rowClasses = `group flex w-full items-center justify-between rounded-lg px-3 py-3 text-left text-[15px] font-bold transition ${
       active ? 'bg-sidebar-accent text-foreground' : 'text-foreground/70 hover:bg-sidebar-accent/60 hover:text-foreground'
@@ -86,7 +91,7 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
           <button
             type="button"
             data-testid={`button-nav-${item.label.toLowerCase()}`}
-            onClick={() => setExpanded((current) => ({ ...current, [item.label]: !current[item.label] }))}
+            onClick={() => setOpenSection((current) => (current === item.label ? null : item.label))}
             className={rowClasses}
           >
             {content}
