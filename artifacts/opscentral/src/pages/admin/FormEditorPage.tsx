@@ -48,6 +48,8 @@ export default function FormEditorPage() {
   const [instructions, setInstructions] = useState('');
   const [categories, setCategories] = useState<Category[] | null>(null);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [addingCategory, setAddingCategory] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [groupedFields, setGroupedFields] = useState(false);
   const [showThankYouMessage, setShowThankYouMessage] = useState(false);
@@ -67,11 +69,15 @@ export default function FormEditorPage() {
   const instructionsRef = useRef(instructions);
   instructionsRef.current = instructions;
 
-  useEffect(() => {
+  const loadCategories = () => {
     fetch('/api/forms/categories', { headers: authHeaders(session) })
       .then((r) => (r.ok ? r.json() : []))
       .then(setCategories)
       .catch(() => setCategories([]));
+  };
+
+  useEffect(() => {
+    loadCategories();
     fetch('/api/users', { headers: authHeaders(session) })
       .then((r) => (r.ok ? r.json() : []))
       .then((rows) => setUsers(rows.map((u: any) => ({ id: u.id, firstName: u.firstName, lastName: u.lastName, role: u.role }))))
@@ -118,6 +124,33 @@ export default function FormEditorPage() {
 
   const toggleCategory = (id: number) => {
     setSelectedCategoryIds((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
+  };
+
+  // Categories previously had no "create new" path anywhere -- the pills
+  // above only ever toggled existing rows from GET /forms/categories. This
+  // calls the new POST /forms/categories (idempotent on name), then adds
+  // the result to the local list and selects it immediately, so creating
+  // and assigning a brand new category is one action, not two.
+  const addCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name || addingCategory) return;
+    setAddingCategory(true);
+    try {
+      const res = await fetch('/api/forms/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not create category');
+      setCategories((prev) => (prev?.some((c) => c.id === data.category.id) ? prev : [...(prev ?? []), data.category]));
+      setSelectedCategoryIds((prev) => (prev.includes(data.category.id) ? prev : [...prev, data.category.id]));
+      setNewCategoryName('');
+    } catch (err) {
+      toast({ title: 'Could not create category', description: err instanceof Error ? err.message : undefined, variant: 'destructive' });
+    } finally {
+      setAddingCategory(false);
+    }
   };
 
   const updateField = (index: number, patch: Partial<FieldDraft>) => {
@@ -258,6 +291,23 @@ export default function FormEditorPage() {
                     {c.name}
                   </button>
                 ))}
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCategory())}
+                  placeholder="New category name…"
+                  className="h-8 flex-1 rounded-md border border-input bg-background px-2.5 text-xs outline-none focus:border-accent"
+                />
+                <button
+                  type="button"
+                  onClick={addCategory}
+                  disabled={!newCategoryName.trim() || addingCategory}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-input px-2.5 py-1.5 text-xs font-bold text-foreground transition hover:bg-muted disabled:opacity-50"
+                >
+                  <Plus className="h-3 w-3" /> {addingCategory ? 'Adding…' : 'Add category'}
+                </button>
               </div>
             </div>
           </div>
