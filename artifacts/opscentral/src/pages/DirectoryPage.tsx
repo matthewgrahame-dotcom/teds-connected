@@ -149,19 +149,23 @@ export default function DirectoryPage() {
         {users !== null && filtered.length === 0 && <p className="text-sm text-muted-foreground">No matches.</p>}
 
         {users !== null && filtered.length > 0 && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {grouped.map((group) => {
               const isCollapsed = collapsed[group.key];
               return (
-                <div key={group.key}>
-                  <button type="button" onClick={() => toggleCollapsed(group.key)} className="mb-3 flex w-full items-center gap-2 text-left">
+                <div key={group.key} className="overflow-hidden rounded-xl border border-card-border bg-card shell-shadow">
+                  <button
+                    type="button"
+                    onClick={() => toggleCollapsed(group.key)}
+                    className="flex w-full items-center gap-2 px-4 py-3.5 text-left transition hover:bg-muted/50"
+                  >
                     <h2 className="text-sm font-extrabold uppercase tracking-wide text-foreground">{group.label}</h2>
                     {group.meta && <span className="text-xs font-semibold text-muted-foreground">{group.meta}</span>}
                     <span className="text-xs font-semibold text-muted-foreground">({group.users.length})</span>
                     <ChevronDown className={`ml-auto h-4 w-4 text-muted-foreground transition ${isCollapsed ? '-rotate-90' : ''}`} />
                   </button>
                   {!isCollapsed && (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-4 border-t border-border p-4 sm:grid-cols-2 lg:grid-cols-3">
                       {group.users.map((user) => (
                         <StaffCard key={`${group.key}-${user.id}`} user={user} />
                       ))}
