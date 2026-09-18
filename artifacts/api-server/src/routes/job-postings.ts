@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { asc, desc, eq } from "drizzle-orm";
 import { db, jobPostingsTable } from "@workspace/db";
-import { requireFullLevel } from "../lib/sessionAuth";
+import { requireConnectedTier } from "../lib/connectedTiers";
 
 const router: IRouter = Router();
 
@@ -16,12 +16,12 @@ router.get("/job-postings", async (_req, res) => {
 
 // -- Admin ----------------------------------------------------------------
 
-router.get("/job-postings/admin", requireFullLevel, async (_req, res) => {
+router.get("/job-postings/admin", requireConnectedTier('admin'), async (_req, res) => {
   const postings = await db.select().from(jobPostingsTable).orderBy(desc(jobPostingsTable.updatedAt));
   res.json(postings);
 });
 
-router.get("/job-postings/admin/:id", requireFullLevel, async (req, res) => {
+router.get("/job-postings/admin/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid posting id" });
@@ -35,7 +35,7 @@ router.get("/job-postings/admin/:id", requireFullLevel, async (req, res) => {
   res.json(posting);
 });
 
-router.post("/job-postings", requireFullLevel, async (req, res) => {
+router.post("/job-postings", requireConnectedTier('admin'), async (req, res) => {
   const { title, location, description, status, formSlug } = req.body ?? {};
   if (typeof title !== "string" || !title.trim()) {
     res.status(400).json({ error: "title is required" });
@@ -63,7 +63,7 @@ router.post("/job-postings", requireFullLevel, async (req, res) => {
   res.json({ ok: true, posting });
 });
 
-router.patch("/job-postings/:id", requireFullLevel, async (req, res) => {
+router.patch("/job-postings/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid posting id" });
@@ -92,7 +92,7 @@ router.patch("/job-postings/:id", requireFullLevel, async (req, res) => {
   res.json({ ok: true, posting });
 });
 
-router.delete("/job-postings/:id", requireFullLevel, async (req, res) => {
+router.delete("/job-postings/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid posting id" });

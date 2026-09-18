@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, userGroupsTable, userGroupMembersTable, portalUsersTable } from "@workspace/db";
-import { requireFullLevel, requireSession } from "../lib/sessionAuth";
+import { requireSession } from "../lib/sessionAuth";
+import { requireConnectedTier } from "../lib/connectedTiers";
 
 const router: IRouter = Router();
 
@@ -22,7 +23,7 @@ router.get("/user-groups", requireSession, async (_req, res) => {
   res.json(groups.map((g) => ({ ...g, members: membersByGroup.get(g.id) ?? [] })));
 });
 
-router.post("/user-groups", requireFullLevel, async (req, res) => {
+router.post("/user-groups", requireConnectedTier('admin'), async (req, res) => {
   const { name } = req.body ?? {};
   if (typeof name !== "string" || !name.trim()) {
     res.status(400).json({ error: "name is required" });
@@ -40,7 +41,7 @@ router.post("/user-groups", requireFullLevel, async (req, res) => {
   }
 });
 
-router.patch("/user-groups/:id", requireFullLevel, async (req, res) => {
+router.patch("/user-groups/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid group id" });
@@ -59,7 +60,7 @@ router.patch("/user-groups/:id", requireFullLevel, async (req, res) => {
   res.json({ ok: true, group });
 });
 
-router.delete("/user-groups/:id", requireFullLevel, async (req, res) => {
+router.delete("/user-groups/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid group id" });
@@ -72,7 +73,7 @@ router.delete("/user-groups/:id", requireFullLevel, async (req, res) => {
 // Wholesale replace of membership -- a group's member list is edited as a
 // unit in the UI (a multi-select of people), so there's no meaningful
 // single-member patch operation the way there is for e.g. Quick Links.
-router.put("/user-groups/:id/members", requireFullLevel, async (req, res) => {
+router.put("/user-groups/:id/members", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid group id" });

@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { desc, eq } from "drizzle-orm";
 import { db, newsArticlesTable } from "@workspace/db";
-import { requireFullLevel, requireSession } from "../lib/sessionAuth";
+import { requireSession } from "../lib/sessionAuth";
+import { requireConnectedTier } from "../lib/connectedTiers";
 
 const router: IRouter = Router();
 
@@ -24,7 +25,7 @@ router.get("/news/:id", requireSession, async (req, res) => {
   res.json(article);
 });
 
-router.post("/news", requireFullLevel, async (req, res) => {
+router.post("/news", requireConnectedTier('admin'), async (req, res) => {
   const { title, snippet, body, imageUrl, imagePhotographerName, imagePhotographerUrl, linkUrl, tagColor } = req.body ?? {};
   const postedBy = req.sessionPayload!.name;
   if (typeof title !== "string" || !title.trim() || typeof snippet !== "string" || !snippet.trim()) {
@@ -48,7 +49,7 @@ router.post("/news", requireFullLevel, async (req, res) => {
   res.json({ ok: true, article });
 });
 
-router.patch("/news/:id", requireFullLevel, async (req, res) => {
+router.patch("/news/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid article id" });

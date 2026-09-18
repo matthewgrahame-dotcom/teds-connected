@@ -19,7 +19,8 @@ import {
   userGroupMembersTable,
   portalUsersTable,
 } from "@workspace/db";
-import { requireFullLevel, requireSession } from "../lib/sessionAuth";
+import { requireSession } from "../lib/sessionAuth";
+import { requireConnectedTier } from "../lib/connectedTiers";
 
 const router: IRouter = Router();
 
@@ -104,7 +105,7 @@ router.get("/training/categories", requireSession, async (_req, res) => {
   res.json(categories);
 });
 
-router.post("/training/categories", requireFullLevel, async (req, res) => {
+router.post("/training/categories", requireConnectedTier('admin'), async (req, res) => {
   const parsed = insertTrainingCategorySchema.pick({ name: true, color: true }).safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "name is required" });
@@ -127,7 +128,7 @@ router.post("/training/categories", requireFullLevel, async (req, res) => {
   }
 });
 
-router.patch("/training/categories/:id", requireFullLevel, async (req, res) => {
+router.patch("/training/categories/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   const parsed = insertTrainingCategorySchema.pick({ name: true, color: true }).partial().safeParse(req.body);
   if (!parsed.success || Object.keys(parsed.data).length === 0) {
@@ -142,7 +143,7 @@ router.patch("/training/categories/:id", requireFullLevel, async (req, res) => {
   res.json(category);
 });
 
-router.put("/training/categories/reorder", requireFullLevel, async (req, res) => {
+router.put("/training/categories/reorder", requireConnectedTier('admin'), async (req, res) => {
   const categoryIds = req.body?.categoryIds;
   if (!Array.isArray(categoryIds) || categoryIds.some((id) => typeof id !== "number")) {
     res.status(400).json({ error: "categoryIds must be an array of numbers" });
@@ -160,7 +161,7 @@ router.put("/training/categories/reorder", requireFullLevel, async (req, res) =>
 // they keep whatever free-text category string they already had, it just
 // stops having a color/group until reassigned to something else (or this
 // name is re-added).
-router.delete("/training/categories/:id", requireFullLevel, async (req, res) => {
+router.delete("/training/categories/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   await db.delete(trainingCategoriesTable).where(eq(trainingCategoriesTable.id, id));
   res.json({ ok: true });
@@ -402,7 +403,7 @@ router.get("/training/admin/programs/:id", requireSession, async (req, res) => {
 // sortOrder untouched rather than being pushed to the end, so a reorder
 // done from a status-filtered admin view can't silently scramble programs
 // outside that filter.
-router.put("/training/programs/reorder", requireFullLevel, async (req, res) => {
+router.put("/training/programs/reorder", requireConnectedTier('admin'), async (req, res) => {
   const { programIds } = req.body ?? {};
   if (!Array.isArray(programIds) || programIds.some((id) => !Number.isInteger(id))) {
     res.status(400).json({ error: "programIds must be an array of integers" });
@@ -422,7 +423,7 @@ router.put("/training/programs/reorder", requireFullLevel, async (req, res) => {
 // (a program with no modules isn't useful yet, and the AI Help "create a
 // training program" action always proposes both at once), so one endpoint
 // rather than a separate create-then-add-modules round trip.
-router.post("/training/programs", requireFullLevel, async (req, res) => {
+router.post("/training/programs", requireConnectedTier('admin'), async (req, res) => {
   const { title, description, category, thumbnailUrl, startDate, endDate, modules } = req.body ?? {};
   if (typeof title !== "string" || !title.trim()) {
     res.status(400).json({ error: "title is required" });
@@ -493,7 +494,7 @@ const BOOLEAN_FIELDS = [
   "recognizePriorCompletions",
 ] as const;
 
-router.patch("/training/programs/:id", requireFullLevel, async (req, res) => {
+router.patch("/training/programs/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid program id" });
@@ -545,7 +546,7 @@ router.patch("/training/programs/:id", requireFullLevel, async (req, res) => {
 
 // -- Modules (individual CRUD, for the program editor) ----------------------
 
-router.post("/training/programs/:id/modules", requireFullLevel, async (req, res) => {
+router.post("/training/programs/:id/modules", requireConnectedTier('admin'), async (req, res) => {
   const programId = Number(req.params.id);
   if (!Number.isInteger(programId)) {
     res.status(400).json({ error: "Invalid program id" });
@@ -577,7 +578,7 @@ router.post("/training/programs/:id/modules", requireFullLevel, async (req, res)
   res.json({ ok: true, module: module_ });
 });
 
-router.patch("/training/modules/:id", requireFullLevel, async (req, res) => {
+router.patch("/training/modules/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid module id" });
@@ -601,7 +602,7 @@ router.patch("/training/modules/:id", requireFullLevel, async (req, res) => {
   res.json({ ok: true, module: module_ });
 });
 
-router.delete("/training/modules/:id", requireFullLevel, async (req, res) => {
+router.delete("/training/modules/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid module id" });
@@ -614,7 +615,7 @@ router.delete("/training/modules/:id", requireFullLevel, async (req, res) => {
 // -- Quiz questions (admin editing) -----------------------------------------
 // Wholesale replace, same reasoning as dashboard_widgets/assignments -- the
 // editor naturally produces the whole new question list at once.
-router.put("/training/modules/:id/quiz", requireFullLevel, async (req, res) => {
+router.put("/training/modules/:id/quiz", requireConnectedTier('admin'), async (req, res) => {
   const moduleId = Number(req.params.id);
   if (!Number.isInteger(moduleId)) {
     res.status(400).json({ error: "Invalid module id" });
@@ -648,7 +649,7 @@ router.put("/training/modules/:id/quiz", requireFullLevel, async (req, res) => {
 // naturally produces the whole new assignment set at once (a checkbox grid
 // / picker list), not a single incremental change.
 
-router.put("/training/programs/:id/assignments", requireFullLevel, async (req, res) => {
+router.put("/training/programs/:id/assignments", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid program id" });
@@ -741,7 +742,7 @@ async function resolveProgramAssignmentsByUser(): Promise<Map<number, ResolvedAs
   return result;
 }
 
-router.get("/training/reporting/learners", requireFullLevel, async (_req, res) => {
+router.get("/training/reporting/learners", requireConnectedTier('admin'), async (_req, res) => {
   const [users, assignmentsByUser, modules, progress] = await Promise.all([
     db
       .select({ id: portalUsersTable.id, firstName: portalUsersTable.firstName, lastName: portalUsersTable.lastName, role: portalUsersTable.role, locations: portalUsersTable.locations })
@@ -806,7 +807,7 @@ router.get("/training/reporting/learners", requireFullLevel, async (_req, res) =
   res.json(rows);
 });
 
-router.get("/training/reporting/by-location", requireFullLevel, async (req, res) => {
+router.get("/training/reporting/by-location", requireConnectedTier('admin'), async (req, res) => {
   const programIdFilter = typeof req.query.programId === "string" && req.query.programId !== "all" ? Number(req.query.programId) : null;
 
   const [users, assignmentsByUser, modules, progress] = await Promise.all([

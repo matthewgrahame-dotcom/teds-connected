@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { desc, eq } from "drizzle-orm";
 import { db, portalUsersTable, portalUserProfilesTable } from "@workspace/db";
-import { requireFullLevel, requireSession } from "../lib/sessionAuth";
+import { requireSession } from "../lib/sessionAuth";
+import { requireConnectedTier, getUserLocations } from "../lib/connectedTiers";
 
 const router: IRouter = Router();
 
@@ -35,7 +36,7 @@ router.get("/users/:id", requireSession, async (req, res) => {
   res.json(user);
 });
 
-router.post("/users", requireFullLevel, async (req, res) => {
+router.post("/users", requireConnectedTier('admin'), async (req, res) => {
   const { firstName, lastName, username, email, locations, role, activated, brand } = req.body ?? {};
   if (
     typeof firstName !== "string" || !firstName.trim() ||
@@ -72,7 +73,7 @@ router.post("/users", requireFullLevel, async (req, res) => {
   }
 });
 
-router.patch("/users/:id", requireFullLevel, async (req, res) => {
+router.patch("/users/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid user id" });
@@ -132,17 +133,36 @@ const PROFILE_FIELDS = [
   "emergencyContactPhone",
 ] as const;
 
-router.get("/users/:id/profile", requireFullLevel, async (req, res) => {
+// Manager-tier gets this too, but scoped to just their own team -- a
+// Store Manager plausibly needs a team member's phone/emergency contact
+// in a pinch, but shouldn't see this for every location company-wide.
+// Admin sees everyone, unscoped, same as before this change.
+router.get("/users/:id/profile", requireConnectedTier('manager'), async (req, res) => {
   const userId = Number(req.params.id);
   if (!Number.isInteger(userId)) {
     res.status(400).json({ error: "Invalid user id" });
     return;
   }
+
+  if (req.connectedTier !== 'admin') {
+    const [targetUser] = await db.select({ locations: portalUsersTable.locations }).from(portalUsersTable).where(eq(portalUsersTable.id, userId));
+    if (!targetUser) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    const callerLocations = await getUserLocations(req.sessionPayload!.name);
+    const sharesLocation = targetUser.locations.some((l) => callerLocations.includes(l));
+    if (!sharesLocation) {
+      res.status(403).json({ error: "You can only view profile details for people at your own location(s)." });
+      return;
+    }
+  }
+
   const [profile] = await db.select().from(portalUserProfilesTable).where(eq(portalUserProfilesTable.userId, userId));
   res.json(profile ?? { userId, tfnFormCompleted: false });
 });
 
-router.put("/users/:id/profile", requireFullLevel, async (req, res) => {
+router.put("/users/:id/profile", requireConnectedTier('admin'), async (req, res) => {
   const userId = Number(req.params.id);
   if (!Number.isInteger(userId)) {
     res.status(400).json({ error: "Invalid user id" });

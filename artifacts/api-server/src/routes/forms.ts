@@ -16,7 +16,7 @@ import {
   trainingAssignmentLevelSchema,
   type FormField,
 } from "@workspace/db";
-import { requireFullLevel } from "../lib/sessionAuth";
+import { requireConnectedTier } from "../lib/connectedTiers";
 import { verifyCrossAppToken } from "../lib/crossAppToken";
 
 const PHOCAL_BASE_URL = process.env.PHOCAL_BASE_URL || "https://seo-optimiser.vercel.app";
@@ -88,7 +88,7 @@ router.get("/forms/categories", async (_req, res) => {
 // with a name that already exists just returns that existing row rather
 // than erroring or creating a duplicate, since the editor UI calling this
 // can't easily know in advance whether a given name already exists.
-router.post("/forms/categories", requireFullLevel, async (req, res) => {
+router.post("/forms/categories", requireConnectedTier('admin'), async (req, res) => {
   const { name } = req.body ?? {};
   if (typeof name !== "string" || !name.trim()) {
     res.status(400).json({ error: "name is required" });
@@ -132,12 +132,12 @@ router.get("/forms", async (_req, res) => {
 
 // Admin list for the editor's own "existing forms" list -- includes drafts,
 // which the staff-facing list above deliberately excludes.
-router.get("/forms/admin", requireFullLevel, async (_req, res) => {
+router.get("/forms/admin", requireConnectedTier('admin'), async (_req, res) => {
   const forms = await db.select().from(formsTable).where(eq(formsTable.archived, false));
   res.json(await attachCategories(forms));
 });
 
-router.get("/forms/admin/:id", requireFullLevel, async (req, res) => {
+router.get("/forms/admin/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid form id" });
@@ -179,7 +179,7 @@ async function canViewSubmissions(formId: number, staffName: string): Promise<bo
   return false;
 }
 
-router.get("/forms/admin/:id/submissions", requireFullLevel, async (req, res) => {
+router.get("/forms/admin/:id/submissions", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid form id" });
@@ -384,7 +384,7 @@ router.post("/forms/:slug/submit", async (req, res) => {
 
 // Admin-only: who's actually submitted a form and what they said, not
 // something every logged-in person should be able to pull for any form.
-router.get("/forms/:slug/submissions", requireFullLevel, async (req, res) => {
+router.get("/forms/:slug/submissions", requireConnectedTier('admin'), async (req, res) => {
   const [form] = await db.select().from(formsTable).where(eq(formsTable.slug, String(req.params.slug)));
   if (!form) {
     res.status(404).json({ error: "Form not found" });
@@ -416,7 +416,7 @@ function parseFields(fields: unknown): FormField[] {
   });
 }
 
-router.post("/forms", requireFullLevel, async (req, res) => {
+router.post("/forms", requireConnectedTier('admin'), async (req, res) => {
   const { title, fields, instructions, status, isPublic, groupedFields, showThankYouMessage, thankYouMessage, autoArchive, notifyUserName, categoryIds } = req.body ?? {};
   if (typeof title !== "string" || !title.trim()) {
     res.status(400).json({ error: "title is required" });
@@ -464,7 +464,7 @@ router.post("/forms", requireFullLevel, async (req, res) => {
   res.json({ ok: true, form });
 });
 
-router.patch("/forms/:id", requireFullLevel, async (req, res) => {
+router.patch("/forms/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid form id" });
@@ -519,7 +519,7 @@ router.patch("/forms/:id", requireFullLevel, async (req, res) => {
 // Required Task assignment matrix -- mirrors PUT
 // /training/programs/:id/assignments exactly (role/user, mandatory/optional
 // levels), minus groups to keep scope contained. Surfaced via GET /tasks.
-router.put("/forms/:id/assignments", requireFullLevel, async (req, res) => {
+router.put("/forms/:id/assignments", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid form id" });
@@ -541,7 +541,7 @@ router.put("/forms/:id/assignments", requireFullLevel, async (req, res) => {
 
 // Who can view this form's submissions -- an empty set means unrestricted
 // (any full-level admin), see canViewSubmissions above.
-router.put("/forms/:id/view-permissions", requireFullLevel, async (req, res) => {
+router.put("/forms/:id/view-permissions", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid form id" });

@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { asc, desc, eq } from "drizzle-orm";
 import { db, locationsTable } from "@workspace/db";
-import { requireFullLevel, requireSession } from "../lib/sessionAuth";
+import { requireSession } from "../lib/sessionAuth";
+import { requireConnectedTier } from "../lib/connectedTiers";
 
 const router: IRouter = Router();
 
@@ -14,7 +15,7 @@ router.get("/locations", requireSession, async (_req, res) => {
   res.json(locations);
 });
 
-router.post("/locations", requireFullLevel, async (req, res) => {
+router.post("/locations", requireConnectedTier('admin'), async (req, res) => {
   const { name, locationType, suburb, state, phone } = req.body ?? {};
   if (typeof name !== "string" || !name.trim()) {
     res.status(400).json({ error: "name is required" });
@@ -49,7 +50,7 @@ router.post("/locations", requireFullLevel, async (req, res) => {
   }
 });
 
-router.patch("/locations/:id", requireFullLevel, async (req, res) => {
+router.patch("/locations/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid location id" });
@@ -86,7 +87,7 @@ router.patch("/locations/:id", requireFullLevel, async (req, res) => {
   }
 });
 
-router.delete("/locations/:id", requireFullLevel, async (req, res) => {
+router.delete("/locations/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid location id" });

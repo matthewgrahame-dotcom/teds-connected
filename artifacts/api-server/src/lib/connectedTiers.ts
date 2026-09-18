@@ -3,6 +3,20 @@ import { eq } from "drizzle-orm";
 import { db, appSettingsTable, portalUsersTable } from "@workspace/db";
 import { verifyCrossAppToken } from "./crossAppToken";
 
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Express {
+    interface Request {
+      // Set by requireConnectedTier once it's verified the minimum tier is
+      // met -- exposed so a route that needs manager-vs-admin-specific
+      // behavior (see e.g. GET /users/:id/profile, GET /work/reporting/by-staff)
+      // doesn't need a second, redundant getConnectedTier lookup just to find
+      // out which of the two it actually is.
+      connectedTier?: ConnectedTier;
+    }
+  }
+}
+
 // Connected's OWN permission tiers -- deliberately separate from Phocal's
 // `level` (full/basic), which stays exactly as-is and keeps doing exactly
 // what it does today (proving you're a real, currently logged-in staff
@@ -64,11 +78,6 @@ export async function getConnectedTier(fullName: string): Promise<ConnectedTier>
 // Connected tier meets the minimum. Tiers are ordered (admin implies
 // manager implies basic), not an exact-match check, matching how "more
 // access" is normally expected to work.
-//
-// NOT yet applied to any existing admin route -- see Portal Settings'
-// "Roles & Access" section, which needs to be reviewed for correctness
-// first before any route's actual access requirement changes. Wiring this
-// in is a deliberate follow-up step, not part of introducing it.
 export function requireConnectedTier(minTier: ConnectedTier) {
   return async (req: Request, res: Response, next: NextFunction) => {
     const token = req.header("x-session-token");
@@ -83,6 +92,22 @@ export function requireConnectedTier(minTier: ConnectedTier) {
       return;
     }
     req.sessionPayload = payload;
+    req.connectedTier = tier;
     next();
   };
 }
+
+// For a manager-tier route that needs to scope its own results (a manager
+// sees only their own team, an admin sees everyone) -- looks up the
+// CALLER's own locations, using the exact same name-matching convention as
+// getConnectedTier (portal_users has no single "full name" column, so this
+// matches "firstName lastName" against the full string). Returns an empty
+// array (never null/undefined) if the caller has no portal_users match at
+// all, so a scoping check like `locations.some(l => callerLocations.includes(l))`
+// always safely evaluates to "no overlap" rather than throwing.
+export async function getUserLocations(fullName: string): Promise<string[]> {
+  const users = await db.select({ locations: portalUsersTable.locations, firstName: portalUsersTable.firstName, lastName: portalUsersTable.lastName }).from(portalUsersTable);
+  const person = users.find((u) => `${u.firstName} ${u.lastName}` === fullName);
+  return person?.locations ?? [];
+}
+

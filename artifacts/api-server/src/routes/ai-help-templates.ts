@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { asc, eq } from "drizzle-orm";
 import { db, aiHelpTemplatesTable } from "@workspace/db";
-import { requireFullLevel, requireSession } from "../lib/sessionAuth";
+import { requireSession } from "../lib/sessionAuth";
+import { requireConnectedTier } from "../lib/connectedTiers";
 
 const router: IRouter = Router();
 
@@ -10,7 +11,7 @@ router.get("/ai-help/templates", requireSession, async (_req, res) => {
   res.json(templates);
 });
 
-router.post("/ai-help/templates", requireFullLevel, async (req, res) => {
+router.post("/ai-help/templates", requireConnectedTier('admin'), async (req, res) => {
   const { label, prompt } = req.body ?? {};
   if (typeof label !== "string" || !label.trim() || typeof prompt !== "string" || !prompt.trim()) {
     res.status(400).json({ error: "label and prompt are required" });
@@ -22,7 +23,7 @@ router.post("/ai-help/templates", requireFullLevel, async (req, res) => {
   res.json({ ok: true, template });
 });
 
-router.patch("/ai-help/templates/:id", requireFullLevel, async (req, res) => {
+router.patch("/ai-help/templates/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid template id" });
@@ -45,7 +46,7 @@ router.patch("/ai-help/templates/:id", requireFullLevel, async (req, res) => {
   res.json({ ok: true, template });
 });
 
-router.delete("/ai-help/templates/:id", requireFullLevel, async (req, res) => {
+router.delete("/ai-help/templates/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid template id" });

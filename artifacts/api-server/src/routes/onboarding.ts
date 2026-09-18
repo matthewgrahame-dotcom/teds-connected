@@ -13,7 +13,8 @@ import {
   workDocumentAcknowledgmentsTable,
   portalUsersTable,
 } from "@workspace/db";
-import { requireFullLevel, requireSession } from "../lib/sessionAuth";
+import { requireSession } from "../lib/sessionAuth";
+import { requireConnectedTier } from "../lib/connectedTiers";
 
 const router: IRouter = Router();
 
@@ -22,7 +23,7 @@ const BOOLEAN_FIELDS = ["reminderEmailsEnabled", "autoAssignExternal"] as const;
 
 // -- Admin (Manage Onboarding) -----------------------------------------------
 
-router.get("/onboarding/admin/programs", requireFullLevel, async (_req, res) => {
+router.get("/onboarding/admin/programs", requireConnectedTier('admin'), async (_req, res) => {
   const programs = await db.select().from(onboardingProgramsTable).orderBy(desc(onboardingProgramsTable.updatedAt));
   const sections = await db.select().from(onboardingSectionsTable);
   const items = await db.select().from(onboardingItemsTable);
@@ -41,7 +42,7 @@ router.get("/onboarding/admin/programs", requireFullLevel, async (_req, res) => 
   res.json(result);
 });
 
-router.get("/onboarding/admin/programs/:id", requireFullLevel, async (req, res) => {
+router.get("/onboarding/admin/programs/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid program id" });
@@ -87,7 +88,7 @@ router.get("/onboarding/admin/programs/:id", requireFullLevel, async (req, res) 
   res.json({ ...program, sections: sectionsWithItems, viewRoleAssignments, viewUserAssignments });
 });
 
-router.post("/onboarding/programs", requireFullLevel, async (req, res) => {
+router.post("/onboarding/programs", requireConnectedTier('admin'), async (req, res) => {
   const { title, defaultRoles } = req.body ?? {};
   if (typeof title !== "string" || !title.trim()) {
     res.status(400).json({ error: "title is required" });
@@ -112,7 +113,7 @@ router.post("/onboarding/programs", requireFullLevel, async (req, res) => {
   res.json({ ok: true, program });
 });
 
-router.patch("/onboarding/programs/:id", requireFullLevel, async (req, res) => {
+router.patch("/onboarding/programs/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid program id" });
@@ -155,7 +156,7 @@ router.patch("/onboarding/programs/:id", requireFullLevel, async (req, res) => {
 // section/item builder produces the full new tree client-side on every
 // save (add/remove/reorder all happen in local state first), same
 // reasoning as PUT /dashboard-widgets and PUT /training/programs/reorder.
-router.put("/onboarding/programs/:id/content", requireFullLevel, async (req, res) => {
+router.put("/onboarding/programs/:id/content", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid program id" });
@@ -209,7 +210,7 @@ router.put("/onboarding/programs/:id/content", requireFullLevel, async (req, res
   res.json({ ok: true });
 });
 
-router.put("/onboarding/programs/:id/view-permissions", requireFullLevel, async (req, res) => {
+router.put("/onboarding/programs/:id/view-permissions", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid program id" });

@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { and, asc, eq } from "drizzle-orm";
 import { db, calendarEventsTable, eventRsvpsTable, rsvpResponseSchema } from "@workspace/db";
-import { requireFullLevel, requireSession } from "../lib/sessionAuth";
+import { requireSession } from "../lib/sessionAuth";
+import { requireConnectedTier } from "../lib/connectedTiers";
 
 const router: IRouter = Router();
 
@@ -73,7 +74,7 @@ router.put("/calendar/events/:id/rsvp", requireSession, async (req, res) => {
 // permissions there). Editing/deleting someone else's event is more
 // consequential, so these two are full-level gated, matching how Ted's
 // Talks message deletion works (the closest existing precedent in this app).
-router.patch("/calendar/events/:id", requireFullLevel, async (req, res) => {
+router.patch("/calendar/events/:id", requireConnectedTier('admin'), async (req, res) => {
   const eventId = Number(req.params.id);
   if (!Number.isInteger(eventId)) {
     res.status(400).json({ error: "Invalid event id" });
@@ -100,7 +101,7 @@ router.patch("/calendar/events/:id", requireFullLevel, async (req, res) => {
   res.json({ ok: true, event });
 });
 
-router.delete("/calendar/events/:id", requireFullLevel, async (req, res) => {
+router.delete("/calendar/events/:id", requireConnectedTier('admin'), async (req, res) => {
   const eventId = Number(req.params.id);
   if (!Number.isInteger(eventId)) {
     res.status(400).json({ error: "Invalid event id" });

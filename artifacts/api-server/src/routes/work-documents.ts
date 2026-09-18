@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { db, workDocumentsTable, workDocumentAcknowledgmentsTable, workDocumentRoleAccessTable, portalUsersTable } from "@workspace/db";
-import { requireFullLevel, requireSession } from "../lib/sessionAuth";
+import { requireSession } from "../lib/sessionAuth";
+import { requireConnectedTier, getUserLocations } from "../lib/connectedTiers";
 
 const router: IRouter = Router();
 
@@ -103,7 +104,7 @@ router.post("/work/documents/:id/acknowledge", requireSession, async (req, res) 
 
 // -- Admin ----------------------------------------------------------------
 
-router.patch("/work/documents/:id", requireFullLevel, async (req, res) => {
+router.patch("/work/documents/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid document id" });
@@ -156,7 +157,7 @@ async function loadComplianceData() {
   return { allDocs, users, ackedByStaffAndDoc, isRequiredFor };
 }
 
-router.get("/work/reporting/overview", requireFullLevel, async (_req, res) => {
+router.get("/work/reporting/overview", requireConnectedTier('admin'), async (_req, res) => {
   const { allDocs, users, ackedByStaffAndDoc, isRequiredFor } = await loadComplianceData();
   let totalPossible = 0;
   let totalAcked = 0;
@@ -171,7 +172,7 @@ router.get("/work/reporting/overview", requireFullLevel, async (_req, res) => {
   res.json({ overallCompliancePercent: totalPossible > 0 ? Math.round((totalAcked / totalPossible) * 1000) / 10 : 0 });
 });
 
-router.get("/work/reporting/by-location", requireFullLevel, async (_req, res) => {
+router.get("/work/reporting/by-location", requireConnectedTier('admin'), async (_req, res) => {
   const { allDocs, users, ackedByStaffAndDoc, isRequiredFor } = await loadComplianceData();
   const tally = new Map<string, { acked: number; total: number }>();
 
@@ -196,10 +197,23 @@ router.get("/work/reporting/by-location", requireFullLevel, async (_req, res) =>
   res.json(result);
 });
 
-router.get("/work/reporting/by-staff", requireFullLevel, async (_req, res) => {
+// Manager-tier gets this too, but scoped to just their own team --
+// filters `users` down to people sharing at least one location with the
+// caller before computing anything, rather than computing for everyone
+// and hiding rows after the fact (simpler to reason about: a manager's
+// response literally never contains another location's staff at all).
+// Admin sees everyone, unscoped, same as before this change.
+router.get("/work/reporting/by-staff", requireConnectedTier('manager'), async (req, res) => {
   const { allDocs, users, ackedByStaffAndDoc, isRequiredFor } = await loadComplianceData();
 
-  const result = users.map((u) => {
+  const scopedUsers = req.connectedTier === 'admin'
+    ? users
+    : await (async () => {
+        const callerLocations = await getUserLocations(req.sessionPayload!.name);
+        return users.filter((u) => u.locations.some((l) => callerLocations.includes(l)));
+      })();
+
+  const result = scopedUsers.map((u) => {
     const fullName = `${u.firstName} ${u.lastName}`;
     const requiredDocs = allDocs.filter((doc) => isRequiredFor(doc, u.role));
     let acked = 0;
@@ -214,7 +228,7 @@ router.get("/work/reporting/by-staff", requireFullLevel, async (_req, res) => {
   res.json(result);
 });
 
-router.get("/work/reporting/by-policy", requireFullLevel, async (_req, res) => {
+router.get("/work/reporting/by-policy", requireConnectedTier('admin'), async (_req, res) => {
   const { allDocs, users, ackedByStaffAndDoc, isRequiredFor } = await loadComplianceData();
 
   const result = allDocs

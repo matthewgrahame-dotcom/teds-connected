@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { asc, eq } from "drizzle-orm";
 import { db, appSettingsTable, quickLinksTable, keyContactsTable, portalUsersTable, portalUserProfilesTable } from "@workspace/db";
-import { requireFullLevel, requireSession } from "../lib/sessionAuth";
+import { requireSession } from "../lib/sessionAuth";
+import { requireConnectedTier } from "../lib/connectedTiers";
 
 const router: IRouter = Router();
 
@@ -18,7 +19,7 @@ router.get("/app-settings/:key", requireSession, async (req, res) => {
   res.json({ key, value: row?.value ?? null });
 });
 
-router.put("/app-settings/:key", requireFullLevel, async (req, res) => {
+router.put("/app-settings/:key", requireConnectedTier('admin'), async (req, res) => {
   const key = String(req.params.key);
   const { value } = req.body ?? {};
   if (typeof value !== "string") {
@@ -32,7 +33,7 @@ router.put("/app-settings/:key", requireFullLevel, async (req, res) => {
   res.json({ ok: true, key, value });
 });
 
-router.delete("/app-settings/:key", requireFullLevel, async (req, res) => {
+router.delete("/app-settings/:key", requireConnectedTier('admin'), async (req, res) => {
   const key = String(req.params.key);
   await db.delete(appSettingsTable).where(eq(appSettingsTable.key, key));
   res.json({ ok: true });
@@ -45,7 +46,7 @@ router.get("/quick-links", requireSession, async (_req, res) => {
   res.json(links);
 });
 
-router.post("/quick-links", requireFullLevel, async (req, res) => {
+router.post("/quick-links", requireConnectedTier('admin'), async (req, res) => {
   const { label, icon, href, external, sortOrder } = req.body ?? {};
   if (typeof label !== "string" || !label.trim() || typeof icon !== "string" || !icon.trim() || typeof href !== "string" || !href.trim()) {
     res.status(400).json({ error: "label, icon, and href are required" });
@@ -58,7 +59,7 @@ router.post("/quick-links", requireFullLevel, async (req, res) => {
   res.json({ ok: true, link });
 });
 
-router.patch("/quick-links/:id", requireFullLevel, async (req, res) => {
+router.patch("/quick-links/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid link id" });
@@ -80,7 +81,7 @@ router.patch("/quick-links/:id", requireFullLevel, async (req, res) => {
   res.json({ ok: true, link });
 });
 
-router.delete("/quick-links/:id", requireFullLevel, async (req, res) => {
+router.delete("/quick-links/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid link id" });
@@ -133,7 +134,7 @@ router.get("/key-contacts", requireSession, async (_req, res) => {
   res.json(contacts);
 });
 
-router.post("/key-contacts", requireFullLevel, async (req, res) => {
+router.post("/key-contacts", requireConnectedTier('admin'), async (req, res) => {
   const { userId, photoUrl, phoneOverride, emailOverride, sortOrder } = req.body ?? {};
   const uid = Number(userId);
   if (!Number.isInteger(uid)) {
@@ -166,7 +167,7 @@ router.post("/key-contacts", requireFullLevel, async (req, res) => {
   }
 });
 
-router.patch("/key-contacts/:id", requireFullLevel, async (req, res) => {
+router.patch("/key-contacts/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid contact id" });
@@ -187,7 +188,7 @@ router.patch("/key-contacts/:id", requireFullLevel, async (req, res) => {
   res.json({ ok: true, contact });
 });
 
-router.delete("/key-contacts/:id", requireFullLevel, async (req, res) => {
+router.delete("/key-contacts/:id", requireConnectedTier('admin'), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid contact id" });
