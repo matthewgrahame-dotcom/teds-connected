@@ -63,6 +63,8 @@ export function QuickLinksCard() {
     icon: iconForKey(l.icon),
     href: l.href === PHOCAL_TOKEN ? phocalHref : l.href,
     external: l.href === PHOCAL_TOKEN ? true : l.external,
+    iconKey: l.icon,
+    rawHref: l.href,
   }));
 
   const openSettings = () => requirePublishAccess(() => setEditing(true));

@@ -14,6 +14,8 @@ import { GripVertical, type LucideIcon } from 'lucide-react';
 import { useAuth } from './auth';
 import { authHeaders } from './sessionAuth';
 import { keyForIcon } from '@/components/dashboard/iconRegistry';
+import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 
 // Admin-only feature: drag a sidebar nav item onto the dashboard to add
 // it as a Quick Links tile, or drag a Quick Links tile back onto the
@@ -31,13 +33,17 @@ import { keyForIcon } from '@/components/dashboard/iconRegistry';
 // - 'nav-item': dragged FROM the sidebar, dropped on the dashboard's
 //   drop zone -> POST a new quick_links row.
 // - 'quick-link-tile': dragged FROM a Quick Links tile, dropped on the
-//   sidebar's drop zone -> DELETE that row.
+//   sidebar's drop zone -> DELETE that row, with an Undo toast that
+//   re-POSTs the same data if clicked (see handleDragEnd) -- a real
+//   DELETE has no undo of its own, and Matt asked specifically for a
+//   safety net here before testing removal on a real link.
 type NavItemDragData = { kind: 'nav-item'; label: string; icon: LucideIcon; href: string };
-type QuickLinkTileDragData = { kind: 'quick-link-tile'; id: number; label: string };
+type QuickLinkTileDragData = { kind: 'quick-link-tile'; id: number; label: string; iconKey: string; href: string; external: boolean };
 type DragData = NavItemDragData | QuickLinkTileDragData;
 
 const DASHBOARD_DROP_ZONE_ID = 'nav-dashboard-dnd:dashboard-drop-zone';
 const SIDEBAR_DROP_ZONE_ID = 'nav-dashboard-dnd:sidebar-drop-zone';
+const UNDO_WINDOW_MS = 8000;
 
 type NavDashboardDndContextValue = {
   // Increments on every successful add/remove -- QuickLinksCard reads
@@ -49,6 +55,7 @@ const NavDashboardDndContext = createContext<NavDashboardDndContextValue | null>
 
 export function NavDashboardDndProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
+  const { toast } = useToast();
   const [activeDrag, setActiveDrag] = useState<DragData | null>(null);
   const [quickLinksVersion, setQuickLinksVersion] = useState(0);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
@@ -73,8 +80,23 @@ export function NavDashboardDndProvider({ children }: { children: ReactNode }) {
     } else if (data.kind === 'quick-link-tile' && overId === SIDEBAR_DROP_ZONE_ID) {
       await fetch(`/api/quick-links/${data.id}`, { method: 'DELETE', headers: authHeaders(session) });
       setQuickLinksVersion((v) => v + 1);
+
+      const undo = async () => {
+        await fetch('/api/quick-links', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+          body: JSON.stringify({ label: data.label, icon: data.iconKey, href: data.href, external: data.external, sortOrder: 9999 }),
+        });
+        setQuickLinksVersion((v) => v + 1);
+      };
+      toast({
+        title: `Removed "${data.label}"`,
+        description: `This closes in ${UNDO_WINDOW_MS / 1000}s.`,
+        duration: UNDO_WINDOW_MS,
+        action: <ToastAction altText="Undo" onClick={undo}>Undo</ToastAction>,
+      });
     }
-  }, [session]);
+  }, [session, toast]);
 
   return (
     <NavDashboardDndContext.Provider value={{ quickLinksVersion }}>
@@ -114,8 +136,8 @@ export function useDroppableDashboard() {
   return { setDropRef: setNodeRef, isOver };
 }
 
-export function useDraggableQuickLinkTile({ enabled, id, label }: { enabled: boolean; id: number; label: string }) {
-  const data: QuickLinkTileDragData = { kind: 'quick-link-tile', id, label };
+export function useDraggableQuickLinkTile({ enabled, id, label, iconKey, href, external }: { enabled: boolean; id: number; label: string; iconKey: string; href: string; external: boolean }) {
+  const data: QuickLinkTileDragData = { kind: 'quick-link-tile', id, label, iconKey, href, external };
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `quick-link-tile:${id}`, data, disabled: !enabled });
   return { dragHandleProps: enabled ? { ...attributes, ...listeners } : {}, setDragRef: enabled ? setNodeRef : undefined, isDragging };
 }

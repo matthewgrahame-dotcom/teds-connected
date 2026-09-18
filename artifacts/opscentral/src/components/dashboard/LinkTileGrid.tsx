@@ -11,18 +11,39 @@ export type LinkTile = {
   icon: LucideIcon;
   href: string;
   external?: boolean;
+  // The raw string key (quick_links.icon) behind the LucideIcon component
+  // above -- carried alongside it, not derived by reverse-looking-up the
+  // component, so recreating this exact row after an undo never risks
+  // picking a different key that happens to map to the same icon.
+  iconKey?: string;
+  // The TRUE, stored href -- distinct from href above for the one tile
+  // where they differ (the Phocal shortcut, whose display href gets a
+  // live, session-specific SSO token spliced in). Recreating a tile
+  // after undo must use this, or an undo of that specific tile would
+  // permanently store today's one-time SSO token as its real link.
+  rawHref?: string;
 };
 
 /** One tile -- its own component (not inlined in the .map() below) because
  * useDraggableQuickLinkTile is a hook, and hooks can't be called from
  * inside a loop directly. */
 function LinkTileItem({ tile, draggable }: { tile: LinkTile; draggable: boolean }) {
-  const { label, icon: Icon, href, external, id } = tile;
+  const { label, icon: Icon, href, external, id, iconKey, rawHref } = tile;
   const canDragThis = draggable && id != null;
   // Admin-only, drag this tile back onto the sidebar to remove it (see
   // navDashboardDnd.tsx) -- disabled entirely, not just visually, for
-  // anyone else or for a tile with no real id to remove.
-  const { dragHandleProps, setDragRef, isDragging } = useDraggableQuickLinkTile({ enabled: canDragThis, id: id ?? -1, label });
+  // anyone else or for a tile with no real id to remove. Carries the
+  // tile's full real data (not just id/label) so an undo toast can
+  // recreate an equivalent row without a second fetch -- rawHref (the
+  // TRUE stored href), never the possibly-substituted display href.
+  const { dragHandleProps, setDragRef, isDragging } = useDraggableQuickLinkTile({
+    enabled: canDragThis,
+    id: id ?? -1,
+    label,
+    iconKey: iconKey ?? 'Link',
+    href: rawHref ?? href,
+    external: !!external,
+  });
 
   return (
     <a
