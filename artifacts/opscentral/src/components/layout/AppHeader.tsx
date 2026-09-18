@@ -41,7 +41,7 @@ export function AppHeader({ userName }: { userName: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
-  const { session, logout, canPreview, isPreviewingBasic, setPreviewAsBasic } = useAuth();
+  const { session, logout, canPreview, isPreviewingBasic, setPreviewAsBasic, connectedTier, previewConnectedTier, setPreviewConnectedTier } = useAuth();
   const [location, navigate] = useLocation();
   const menuRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLDivElement>(null);
@@ -208,6 +208,23 @@ export function AppHeader({ userName }: { userName: string }) {
                     <Eye className="h-4 w-4 text-muted-foreground" />
                     {isPreviewingBasic ? 'Exit Basic User Preview' : 'Preview as Basic User'}
                   </button>
+                )}
+                {canPreview && (
+                  <div className="px-4 py-2">
+                    <label className="mb-1 flex items-center gap-2 text-xs font-bold text-muted-foreground">
+                      <Eye className="h-3.5 w-3.5" /> Preview Connected tier
+                    </label>
+                    <select
+                      value={previewConnectedTier ?? ''}
+                      onChange={(e) => setPreviewConnectedTier(e.target.value ? (e.target.value as 'basic' | 'manager' | 'admin') : null)}
+                      className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs outline-none"
+                    >
+                      <option value="">Your real tier{connectedTier ? ` (${connectedTier})` : ''}</option>
+                      <option value="basic">Basic</option>
+                      <option value="manager">Manager</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
                 )}
                 <div className="my-1 border-t border-border" />
                 <button

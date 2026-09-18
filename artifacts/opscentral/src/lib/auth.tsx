@@ -8,8 +8,21 @@ export type StaffSession = {
   crossAppToken?: string | null;
 };
 
+export type ConnectedTier = 'basic' | 'manager' | 'admin';
+const CONNECTED_TIER_RANK: Record<ConnectedTier, number> = { basic: 0, manager: 1, admin: 2 };
+
 const STORAGE_KEY = 'connected_staff_session';
 const PREVIEW_KEY = 'connected_preview_as_basic';
+const PREVIEW_TIER_KEY = 'connected_preview_tier';
+
+function readStoredPreviewTier(): ConnectedTier | null {
+  try {
+    const raw = localStorage.getItem(PREVIEW_TIER_KEY);
+    return raw === 'basic' || raw === 'manager' || raw === 'admin' ? raw : null;
+  } catch {
+    return null;
+  }
+}
 
 function readStoredSession(): StaffSession | null {
   try {
@@ -58,6 +71,19 @@ type AuthContextValue = {
   isPreviewingBasic: boolean;
   canPreview: boolean; // true only when the REAL underlying session is full-level
   setPreviewAsBasic: (value: boolean) => void;
+  // Connected's OWN tier (basic/manager/admin), separate from the Phocal
+  // level preview above -- resolved server-side from portal_users.role via
+  // Roles & Access, not something the crossAppToken carries. connectedTier
+  // is the REAL resolved value; previewConnectedTier is a same-shaped
+  // override (same "look without actually becoming" property as
+  // isPreviewingBasic above -- a route actually gated by requireConnectedTier
+  // would still enforce against the real session, this only changes what
+  // tier-aware UI here renders). effectiveConnectedTier is the one
+  // components should actually read.
+  connectedTier: ConnectedTier | null;
+  previewConnectedTier: ConnectedTier | null;
+  effectiveConnectedTier: ConnectedTier | null;
+  setPreviewConnectedTier: (tier: ConnectedTier | null) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -69,6 +95,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loggingIn, setLoggingIn] = useState(false);
   const [isPreviewingBasic, setIsPreviewingBasic] = useState(readStoredPreview);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [connectedTier, setConnectedTier] = useState<ConnectedTier | null>(null);
+  const [previewConnectedTier, setPreviewConnectedTierState] = useState<ConnectedTier | null>(readStoredPreviewTier);
   // Read inside the fetch interceptor below, which is set up once on mount
   // and would otherwise only ever see the session value from that first
   // render -- a ref stays current without re-patching window.fetch on
@@ -158,8 +186,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     writeStoredSession(null);
     setIsPreviewingBasic(false);
     setSessionExpired(false);
+    setPreviewConnectedTierState(null);
     try {
       localStorage.removeItem(PREVIEW_KEY);
+      localStorage.removeItem(PREVIEW_TIER_KEY);
     } catch {
       // ignore
     }
@@ -170,6 +200,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       if (value) localStorage.setItem(PREVIEW_KEY, 'true');
       else localStorage.removeItem(PREVIEW_KEY);
+    } catch {
+      // ignore -- preview toggle just won't persist across reloads
+    }
+  }, []);
+
+  // Fetches the real Connected tier whenever a session appears, and clears
+  // it on logout -- resolved fresh from the server (portal_users.role via
+  // Roles & Access) rather than derived from anything in the token itself.
+  useEffect(() => {
+    if (!realSession?.crossAppToken) {
+      setConnectedTier(null);
+      return;
+    }
+    fetch('/api/me/connected-tier', { headers: { 'X-Session-Token': realSession.crossAppToken } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setConnectedTier(data?.tier ?? null))
+      .catch(() => setConnectedTier(null));
+  }, [realSession?.crossAppToken]);
+
+  const setPreviewConnectedTier = useCallback((tier: ConnectedTier | null) => {
+    setPreviewConnectedTierState(tier);
+    try {
+      if (tier) localStorage.setItem(PREVIEW_TIER_KEY, tier);
+      else localStorage.removeItem(PREVIEW_TIER_KEY);
     } catch {
       // ignore -- preview toggle just won't persist across reloads
     }
@@ -186,9 +240,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return realSession;
   }, [realSession, isPreviewingBasic, canPreview]);
 
+  const effectiveConnectedTier = previewConnectedTier ?? connectedTier;
+
   const value = useMemo(
-    () => ({ session, ready, loginError, loggingIn, sessionExpired, login, logout, isPreviewingBasic, canPreview, setPreviewAsBasic }),
-    [session, ready, loginError, loggingIn, sessionExpired, login, logout, isPreviewingBasic, canPreview, setPreviewAsBasic],
+    () => ({
+      session, ready, loginError, loggingIn, sessionExpired, login, logout,
+      isPreviewingBasic, canPreview, setPreviewAsBasic,
+      connectedTier, previewConnectedTier, effectiveConnectedTier, setPreviewConnectedTier,
+    }),
+    [session, ready, loginError, loggingIn, sessionExpired, login, logout,
+     isPreviewingBasic, canPreview, setPreviewAsBasic,
+     connectedTier, previewConnectedTier, effectiveConnectedTier, setPreviewConnectedTier],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
