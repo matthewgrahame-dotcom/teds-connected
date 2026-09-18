@@ -13,7 +13,14 @@ const router: IRouter = Router();
 // Access mapping immediately if an admin changes it.
 router.get("/me/connected-tier", requireSession, async (req, res) => {
   const tier = await getConnectedTier(req.sessionPayload!.name);
-  res.json({ tier });
+  // sessionName included alongside tier -- getConnectedTier matches by
+  // exact "firstName lastName" string against this, so if it silently
+  // doesn't match any portal_users record (a nickname vs. a formal name,
+  // a typo, anything), the person falls back to "basic" with nothing in
+  // the UI explaining why. Exposing the raw name here means that
+  // mismatch is actually visible and diagnosable from the browser,
+  // rather than just looking like an unexplained wrong tier.
+  res.json({ tier, sessionName: req.sessionPayload!.name });
 });
 
 export default router;
