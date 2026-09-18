@@ -53,12 +53,9 @@ const secondaryNav: NavItem[] = [
     icon: UsersRound,
     children: [
       { label: 'Performance Review' },
-      { label: 'Staff Surveys', href: '/people/forms/category/Staff%20Surveys' },
       { label: 'Recruiting', href: '/people/recruiting' },
       { label: 'Onboarding', href: '/people/onboarding' },
-      { label: 'Contracts', href: '/people/forms/category/Contracts' },
       { label: 'All Forms', href: '/people/forms' },
-      { label: 'Custom Report Builder' },
     ],
   },
 ];
