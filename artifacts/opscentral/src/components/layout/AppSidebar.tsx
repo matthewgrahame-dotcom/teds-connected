@@ -76,7 +76,7 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
     const active = item.href ? location === item.href || (item.href !== '/' && location.startsWith(item.href)) : false;
     const isExpanded = openSection === item.label;
     const Icon = item.icon;
-    const rowClasses = `group flex w-full items-center justify-between rounded-lg px-3 py-3 text-left text-[15px] font-bold transition ${
+    const rowClasses = `group flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-[15px] font-bold transition ${
       active ? 'bg-sidebar-accent text-foreground' : 'text-foreground/70 hover:bg-sidebar-accent/60 hover:text-foreground'
     }`;
 
@@ -115,7 +115,7 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
                   href={child.href}
                   onClick={onNavigate}
                   data-testid={`link-nav-${child.label.toLowerCase().replace(/\s+/g, '-')}`}
-                  className={`block w-full rounded-md px-2 py-1.5 text-left text-sm font-semibold transition hover:bg-sidebar-accent/60 hover:text-foreground ${
+                  className={`block w-full rounded-xl px-3 py-1.5 text-left text-sm font-semibold transition hover:bg-sidebar-accent/60 hover:text-foreground ${
                     location === child.href ? 'text-foreground' : 'text-muted-foreground'
                   }`}
                 >
@@ -125,7 +125,7 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
                 <button
                   key={child.label}
                   type="button"
-                  className="block w-full rounded-md px-2 py-1.5 text-left text-sm font-semibold text-muted-foreground transition hover:bg-sidebar-accent/60 hover:text-foreground"
+                  className="block w-full rounded-xl px-3 py-1.5 text-left text-sm font-semibold text-muted-foreground transition hover:bg-sidebar-accent/60 hover:text-foreground"
                 >
                   {child.label}
                 </button>
