@@ -55,6 +55,29 @@ async function getRoleTierMap(): Promise<Record<string, ConnectedTier>> {
   }
 }
 
+// Debug-only: exposes every intermediate step of getConnectedTier's own
+// resolution, rather than just its final answer -- built specifically
+// because the final answer alone ("basic") gave no way to tell WHERE in
+// the resolution it went wrong when the input data all checked out
+// correct on its own (matching name, correct role, correct map entry,
+// no duplicates). Mirrors getConnectedTier's exact logic rather than
+// calling it, so every intermediate value used along the way is visible.
+export async function getConnectedTierDebugInfo(fullName: string) {
+  const map = await getRoleTierMap();
+  const users = await db.select({ role: portalUsersTable.role, firstName: portalUsersTable.firstName, lastName: portalUsersTable.lastName }).from(portalUsersTable);
+  const match = users.find((u) => `${u.firstName} ${u.lastName}` === fullName);
+  return {
+    fullNameReceived: fullName,
+    fullNameLength: fullName.length,
+    matchFound: !!match,
+    matchedRole: match?.role ?? null,
+    mapKeys: Object.keys(map),
+    mapHasMatchedRole: match ? Object.prototype.hasOwnProperty.call(map, match.role) : null,
+    mapLookupResult: match ? (map[match.role] ?? null) : null,
+    resolvedTier: match ? (map[match.role] ?? "basic") : "basic",
+  };
+}
+
 // Resolves a logged-in person to their Connected tier. Matches
 // portal_users by exact "firstName lastName" against the session's `name`
 // -- same name-matching convention already used throughout this app for

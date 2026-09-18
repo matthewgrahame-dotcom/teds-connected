@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { getConnectedTier } from "../lib/connectedTiers";
+import { getConnectedTier, getConnectedTierDebugInfo } from "../lib/connectedTiers";
 import { requireSession } from "../lib/sessionAuth";
 
 const router: IRouter = Router();
@@ -13,14 +13,13 @@ const router: IRouter = Router();
 // Access mapping immediately if an admin changes it.
 router.get("/me/connected-tier", requireSession, async (req, res) => {
   const tier = await getConnectedTier(req.sessionPayload!.name);
-  // sessionName included alongside tier -- getConnectedTier matches by
-  // exact "firstName lastName" string against this, so if it silently
-  // doesn't match any portal_users record (a nickname vs. a formal name,
-  // a typo, anything), the person falls back to "basic" with nothing in
-  // the UI explaining why. Exposing the raw name here means that
-  // mismatch is actually visible and diagnosable from the browser,
-  // rather than just looking like an unexplained wrong tier.
-  res.json({ tier, sessionName: req.sessionPayload!.name });
+  // TEMPORARY, while diagnosing Matt's own tier resolving to basic
+  // despite the underlying data all checking out correct: debug shows
+  // every intermediate step getConnectedTier took internally, so the
+  // exact point of failure is visible instead of just "basic" with no
+  // way to tell why. Meant to be removed once resolved.
+  const debug = await getConnectedTierDebugInfo(req.sessionPayload!.name);
+  res.json({ tier, sessionName: req.sessionPayload!.name, debug });
 });
 
 export default router;
