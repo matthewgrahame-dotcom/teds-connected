@@ -46,9 +46,9 @@ function StaffCard({ user, onOpen }: { user: DirectoryUser; onOpen: () => void }
       onClick={onOpen}
       className="group flex flex-col overflow-hidden rounded-xl border border-card-border bg-card text-left shell-shadow transition hover:-translate-y-0.5 hover:shadow-md"
     >
-      <div className="grid aspect-video w-full shrink-0 place-items-center overflow-hidden bg-muted text-muted-foreground">
+      <div className="grid aspect-square w-full shrink-0 place-items-center overflow-hidden bg-muted text-muted-foreground">
         {user.photoUrl ? (
-          <img src={user.photoUrl} alt="" className="h-full w-full object-cover transition group-hover:scale-[1.03]" />
+          <img src={user.photoUrl} alt="" className="h-full w-full object-cover object-top transition group-hover:scale-[1.03]" />
         ) : (
           <UserIcon className="h-8 w-8" />
         )}
@@ -108,8 +108,8 @@ function StaffDetailModal({ user, session, onClose }: { user: DirectoryUser; ses
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
       <div className="w-full max-w-sm overflow-hidden rounded-xl border border-card-border bg-card shell-shadow" onClick={(e) => e.stopPropagation()}>
-        <div className="grid aspect-video w-full place-items-center overflow-hidden bg-muted text-muted-foreground">
-          {user.photoUrl ? <img src={user.photoUrl} alt="" className="h-full w-full object-cover" /> : <UserIcon className="h-10 w-10" />}
+        <div className="grid aspect-square w-full place-items-center overflow-hidden bg-muted text-muted-foreground">
+          {user.photoUrl ? <img src={user.photoUrl} alt="" className="h-full w-full object-cover object-top" /> : <UserIcon className="h-10 w-10" />}
         </div>
         <div className="space-y-4 p-5">
           <div className="flex items-start justify-between gap-2">
