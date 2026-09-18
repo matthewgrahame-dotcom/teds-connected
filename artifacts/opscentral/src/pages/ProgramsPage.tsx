@@ -60,7 +60,7 @@ function ProgramCardInner({ program }: { program: Program }) {
 
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
           {program.category && (
-            <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
               {program.category}
             </span>
           )}
