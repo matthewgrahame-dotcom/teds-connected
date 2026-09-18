@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Send, Search, User, ExternalLink, X, Flag, Check } from 'lucide-react';
 import { DashboardCard, CardIconButton } from './DashboardCard';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 import { usePublishAccess } from '@/lib/publishAccess';
 import { RichContent } from '@/components/RichContent';
@@ -24,7 +24,7 @@ type PhocalMessage = {
 };
 
 export function SocialTimelineCard() {
-  const { session } = useAuth();
+  const { session, effectiveConnectedTier } = useAuth();
   const { requirePublishAccess } = usePublishAccess();
   const [draft, setDraft] = useState('');
   const [location, setLocation] = useState(session?.store ?? '');
@@ -46,7 +46,7 @@ export function SocialTimelineCard() {
   // full-level staff can delete. No staffSession at all isn't possible here
   // (Connected requires login), unlike Phocal where that also means "Matt
   // himself, outside the staff-login layer".
-  const canDelete = session?.level === 'full';
+  const canDelete = meetsConnectedTier(effectiveConnectedTier, 'admin');
 
   const loadMessages = async () => {
     try {

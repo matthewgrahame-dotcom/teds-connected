@@ -41,7 +41,7 @@ export function AppHeader({ userName }: { userName: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
-  const { session, logout, canPreview, isPreviewingBasic, setPreviewAsBasic, connectedTier, previewConnectedTier, setPreviewConnectedTier, effectiveConnectedTier } = useAuth();
+  const { session, logout, connectedTier, previewConnectedTier, setPreviewConnectedTier, effectiveConnectedTier } = useAuth();
   const [location, navigate] = useLocation();
   const menuRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLDivElement>(null);
@@ -196,20 +196,7 @@ export function AppHeader({ userName }: { userName: string }) {
                     Edit Dashboard Layout
                   </button>
                 )}
-                {canPreview && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      setPreviewAsBasic(!isPreviewingBasic);
-                    }}
-                    className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-foreground transition hover:bg-muted"
-                  >
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                    {isPreviewingBasic ? 'Exit Basic User Preview' : 'Preview as Basic User'}
-                  </button>
-                )}
-                {canPreview && (
+                {connectedTier === 'admin' && (
                   <div className="px-4 py-2">
                     <label className="mb-1 flex items-center gap-2 text-xs font-bold text-muted-foreground">
                       <Eye className="h-3.5 w-3.5" /> Preview Connected tier
