@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Settings } from 'lucide-react';
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
 import { authHeaders } from '@/lib/sessionAuth';
 
@@ -37,7 +37,7 @@ declare global {
  * pick up a new width, e.g. after a window resize.
  */
 export function FacebookStreamCard() {
-  const { session } = useAuth();
+  const { session, effectiveConnectedTier } = useAuth();
   const { requirePublishAccess } = usePublishAccess();
   const containerRef = useRef<HTMLDivElement>(null);
   const [pageUrl, setPageUrl] = useState(DEFAULT_PAGE_URL);
@@ -48,7 +48,7 @@ export function FacebookStreamCard() {
   const lastWidthRef = useRef<number | null>(null);
   const resizeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const canEdit = session?.level === 'full';
+  const canEdit = meetsConnectedTier(effectiveConnectedTier, 'admin');
 
   useEffect(() => {
     fetch('/api/app-settings/facebook_page_url', { headers: authHeaders(session) })

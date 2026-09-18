@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
 import { authHeaders } from '@/lib/sessionAuth';
 import { fileToSquareDataUri } from '@/lib/imageUpload';
@@ -88,9 +88,9 @@ function toFormState(user: PortalUser): UserFormState {
 
 export default function UserManagementPage() {
   const { toast } = useToast();
-  const { session } = useAuth();
+  const { session, effectiveConnectedTier } = useAuth();
   const { requirePublishAccess } = usePublishAccess();
-  const canViewProfiles = session?.level === 'full';
+  const canViewProfiles = meetsConnectedTier(effectiveConnectedTier, 'admin');
   const [tab, setTab] = useState<'active' | 'archived'>('active');
   const [users, setUsers] = useState<PortalUser[] | null>(null);
   const [search, setSearch] = useState('');

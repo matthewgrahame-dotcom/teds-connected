@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import { Pencil, Plus } from 'lucide-react';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 import { categoryLabelFor } from '@/lib/newsCategories';
 
@@ -15,8 +15,8 @@ type NewsArticle = {
 };
 
 export default function NewsPage() {
-  const { session } = useAuth();
-  const canEdit = session?.level === 'full';
+  const { session, effectiveConnectedTier } = useAuth();
+  const canEdit = meetsConnectedTier(effectiveConnectedTier, 'admin');
   const [articles, setArticles] = useState<NewsArticle[] | null>(null);
 
   useEffect(() => {

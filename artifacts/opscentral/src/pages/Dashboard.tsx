@@ -12,7 +12,7 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 import { usePublishAccess } from '@/lib/publishAccess';
 import { DASHBOARD_WIDGET_REGISTRY, DEFAULT_DASHBOARD_LAYOUT, type DashboardColumn } from '@/components/dashboard/registry';
@@ -77,7 +77,7 @@ function SortableWidget({
 }
 
 export default function Dashboard() {
-  const { session } = useAuth();
+  const { session, effectiveConnectedTier } = useAuth();
   const { requirePublishAccess } = usePublishAccess();
   const [layout, setLayout] = useState<LayoutItem[]>(DEFAULT_DASHBOARD_LAYOUT);
   const [editing, setEditing] = useState(false);
@@ -85,7 +85,7 @@ export default function Dashboard() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const widgetRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const canEdit = session?.level === 'full';
+  const canEdit = meetsConnectedTier(effectiveConnectedTier, 'admin');
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const load = () => {

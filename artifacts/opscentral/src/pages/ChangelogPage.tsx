@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Rocket, Plus, Trash2 } from 'lucide-react';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
 import { authHeaders } from '@/lib/sessionAuth';
 
@@ -13,7 +13,7 @@ type ChangelogEntry = {
 };
 
 export default function ChangelogPage() {
-  const { session } = useAuth();
+  const { session, effectiveConnectedTier } = useAuth();
   const { requirePublishAccess } = usePublishAccess();
   const [entries, setEntries] = useState<ChangelogEntry[] | null>(null);
   const [adding, setAdding] = useState(false);
@@ -21,7 +21,7 @@ export default function ChangelogPage() {
   const [body, setBody] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const canEdit = session?.level === 'full';
+  const canEdit = meetsConnectedTier(effectiveConnectedTier, 'admin');
 
   const load = () => {
     fetch('/api/changelog', { headers: authHeaders(session) })

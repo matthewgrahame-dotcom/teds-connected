@@ -11,6 +11,16 @@ export type StaffSession = {
 export type ConnectedTier = 'basic' | 'manager' | 'admin';
 const CONNECTED_TIER_RANK: Record<ConnectedTier, number> = { basic: 0, manager: 1, admin: 2 };
 
+// For any component gating a nav item, button, or page section by tier --
+// mirrors the backend's own TIER_RANK ordering in connectedTiers.ts
+// (admin implies manager implies basic). `tier` is nullable since a
+// logged-out or not-yet-resolved session has none yet; treated as not
+// meeting anything above 'basic' rather than throwing.
+export function meetsConnectedTier(tier: ConnectedTier | null, min: ConnectedTier): boolean {
+  if (!tier) return false;
+  return CONNECTED_TIER_RANK[tier] >= CONNECTED_TIER_RANK[min];
+}
+
 const STORAGE_KEY = 'connected_staff_session';
 const PREVIEW_KEY = 'connected_preview_as_basic';
 const PREVIEW_TIER_KEY = 'connected_preview_tier';

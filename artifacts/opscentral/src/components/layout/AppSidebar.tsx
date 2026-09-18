@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import connectedLogo from '@/assets/connected-logo.png';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 
 type NavChild = { label: string; href?: string };
 
@@ -21,14 +22,22 @@ type NavItem = {
   href?: string;
   icon: LucideIcon;
   children?: NavChild[];
+  // Omitted entirely (not just disabled) for anyone below this tier --
+  // matches Matt's actual reason for wanting this: previewing a lower
+  // tier should show what that tier really sees, not the same nav with
+  // buttons that then fail. Exiting a preview (including one that hides
+  // this sidebar's own way back to Roles & Access) happens via the
+  // "Preview Connected tier" dropdown in the header, not from here.
+  minTier?: 'manager' | 'admin';
 };
 
 const primaryNav: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutGrid },
   { label: 'News', href: '/news', icon: Newspaper },
-  { label: 'Admin', icon: IdCard, children: [{ label: 'Portal settings', href: '/admin/portal-settings' }, { label: 'User Management', href: '/admin/users' }, { label: 'Manage Locations', href: '/admin/locations' }, { label: 'Manage Programs', href: '/admin/programs' }, { label: 'Manage Onboarding', href: '/admin/onboarding' }, { label: 'Manage Job Postings', href: '/admin/job-postings' }] },
-  { label: 'Reporting', href: '/reporting', icon: FileText },
+  { label: 'Admin', icon: IdCard, minTier: 'admin', children: [{ label: 'Portal settings', href: '/admin/portal-settings' }, { label: 'User Management', href: '/admin/users' }, { label: 'Manage Locations', href: '/admin/locations' }, { label: 'Manage Programs', href: '/admin/programs' }, { label: 'Manage Onboarding', href: '/admin/onboarding' }, { label: 'Manage Job Postings', href: '/admin/job-postings' }] },
+  { label: 'Reporting', href: '/reporting', icon: FileText, minTier: 'manager' },
 ];
+
 
 const secondaryNav: NavItem[] = [
   { label: 'Work', href: '/work', icon: Briefcase },
@@ -56,6 +65,9 @@ const secondaryNav: NavItem[] = [
 
 export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; onNavigate: () => void }) {
   const [location] = useLocation();
+  const { effectiveConnectedTier } = useAuth();
+  const visiblePrimaryNav = primaryNav.filter((item) => !item.minTier || meetsConnectedTier(effectiveConnectedTier, item.minTier));
+  const visibleSecondaryNav = secondaryNav.filter((item) => !item.minTier || meetsConnectedTier(effectiveConnectedTier, item.minTier));
   // Accordion: only one section open at a time across the whole sidebar --
   // opening one collapses whatever else was open. A previous attempt at
   // this (via AI Studio) didn't actually land; this replaces the old
@@ -148,9 +160,9 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-4" aria-label="Portal navigation">
-          {primaryNav.map(renderItem)}
+          {visiblePrimaryNav.map(renderItem)}
           <div className="my-3 border-t border-sidebar-border" />
-          {secondaryNav.map(renderItem)}
+          {visibleSecondaryNav.map(renderItem)}
         </nav>
       </div>
     </aside>

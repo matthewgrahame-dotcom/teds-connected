@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Settings, Plus, Trash2, ListChecks, ShieldCheck } from 'lucide-react';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
 import { authHeaders } from '@/lib/sessionAuth';
 
@@ -29,7 +29,7 @@ const TASK_TYPE_OPTIONS: { key: string; label: string }[] = [
 const ENABLED_TASK_TYPES_KEY = 'enabled_task_types';
 
 export default function PortalSettingsPage() {
-  const { session } = useAuth();
+  const { session, effectiveConnectedTier } = useAuth();
   const { requirePublishAccess } = usePublishAccess();
   const [settings, setSettings] = useState<AppSetting[] | null>(null);
   const [unlocked, setUnlocked] = useState(false);
@@ -40,7 +40,7 @@ export default function PortalSettingsPage() {
   const [distinctRoles, setDistinctRoles] = useState<string[] | null>(null);
   const [savingRole, setSavingRole] = useState<string | null>(null);
 
-  const canEdit = session?.level === 'full';
+  const canEdit = meetsConnectedTier(effectiveConnectedTier, 'admin');
 
   const load = () => {
     fetch('/api/app-settings', { headers: authHeaders(session) })

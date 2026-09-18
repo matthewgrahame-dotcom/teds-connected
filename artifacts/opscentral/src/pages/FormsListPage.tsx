@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'wouter';
 import { FileText, ChevronRight, ChevronLeft, Pencil, Plus } from 'lucide-react';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import formsCategoryIcon from '@/assets/icons/forms-category-icon.jpg';
 
 type FormSummary = { id: number; title: string; slug: string; categoryIds: number[]; categoryNames: string[] };
 
 export default function FormsListPage() {
-  const { session } = useAuth();
-  const canEdit = session?.level === 'full';
+  const { session, effectiveConnectedTier } = useAuth();
+  const canEdit = meetsConnectedTier(effectiveConnectedTier, 'admin');
   const [forms, setForms] = useState<FormSummary[] | null>(null);
   // Real path param now (/people/forms/category/:category), not a query
   // string -- wouter's location tracking only reliably re-renders on

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Users as UsersIcon, User as UserIcon, ChevronDown, Mail, X, Phone, MapPin, Cake, Briefcase, UserCog } from 'lucide-react';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 
 type DirectoryUser = {
@@ -84,13 +84,16 @@ function DetailRow({ icon: Icon, label, value }: { icon: typeof Phone; label: st
   );
 }
 
-// Admin-only -- portal_user_profiles (home address, DOB, emergency contact)
-// is materially more sensitive than anything else on this page and its API
-// route is gated to full-level sessions, so a basic session never attempts
-// this fetch at all rather than hitting a 403.
-function StaffDetailModal({ user, session, onClose }: { user: DirectoryUser; session: ReturnType<typeof useAuth>['session']; onClose: () => void }) {
+// Manager-tier and up -- portal_user_profiles (home address, DOB,
+// emergency contact) is materially more sensitive than anything else on
+// this page, but a manager genuinely needs it for their own team in a
+// pinch. The API route itself further scopes a manager to only people
+// sharing their own location (a 403 for anyone else's profile) -- this
+// check just decides whether to attempt the fetch at all, not which
+// specific person's profile is actually allowed.
+function StaffDetailModal({ user, session, effectiveConnectedTier, onClose }: { user: DirectoryUser; session: ReturnType<typeof useAuth>['session']; effectiveConnectedTier: ReturnType<typeof useAuth>['effectiveConnectedTier']; onClose: () => void }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const canSeeProfile = session?.level === 'full';
+  const canSeeProfile = meetsConnectedTier(effectiveConnectedTier, 'manager');
 
   useEffect(() => {
     if (!canSeeProfile) return;
@@ -125,7 +128,7 @@ function StaffDetailModal({ user, session, onClose }: { user: DirectoryUser; ses
           <div className="space-y-3 border-t border-border pt-4">
             {user.email && <DetailRow icon={Mail} label="Email" value={user.email} />}
             {user.locations.length > 0 && <DetailRow icon={MapPin} label="Location" value={user.locations.join(', ')} />}
-            {!canSeeProfile && <p className="text-xs text-muted-foreground">Sign in as an admin to see phone, address, and emergency contact details.</p>}
+            {!canSeeProfile && <p className="text-xs text-muted-foreground">Sign in as a manager or admin to see phone, address, and emergency contact details.</p>}
             {canSeeProfile && profile?.phoneNumber && <DetailRow icon={Phone} label="Phone" value={profile.phoneNumber} />}
             {canSeeProfile && address && <DetailRow icon={MapPin} label="Home Address" value={address} />}
             {canSeeProfile && profile?.dateOfBirth && <DetailRow icon={Cake} label="Date of Birth" value={profile.dateOfBirth} />}
@@ -139,7 +142,7 @@ function StaffDetailModal({ user, session, onClose }: { user: DirectoryUser; ses
 }
 
 export default function DirectoryPage() {
-  const { session } = useAuth();
+  const { session, effectiveConnectedTier } = useAuth();
   const [users, setUsers] = useState<DirectoryUser[] | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
   const [search, setSearch] = useState('');
@@ -276,7 +279,7 @@ export default function DirectoryPage() {
           </div>
         )}
       </div>
-      {openUser && <StaffDetailModal user={openUser} session={session} onClose={() => setOpenUser(null)} />}
+      {openUser && <StaffDetailModal user={openUser} session={session} effectiveConnectedTier={effectiveConnectedTier} onClose={() => setOpenUser(null)} />}
     </div>
   );
 }

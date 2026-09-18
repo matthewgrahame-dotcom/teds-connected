@@ -3,7 +3,7 @@ import { Sparkles, Send, RotateCcw, FileText, GraduationCap, Newspaper, Calendar
 import { Link } from 'wouter';
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { AiHelpTemplatesDialog } from './AiHelpTemplatesDialog';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 
 type FormFieldInput = { label: string; type: string; required?: boolean; options?: string[]; section?: string };
@@ -111,8 +111,8 @@ async function resolveCategoryIds(names: string[] | undefined, session: ReturnTy
 }
 
 export function AiHelpCard() {
-  const { session } = useAuth();
-  const canManageTemplates = session?.level === 'full';
+  const { session, effectiveConnectedTier } = useAuth();
+  const canManageTemplates = meetsConnectedTier(effectiveConnectedTier, 'admin');
   const [question, setQuestion] = useState('');
   const [messages, setMessages] = useState<ChatTurn[]>([]);
   const [toolCall, setToolCall] = useState<ToolCall | null>(null);

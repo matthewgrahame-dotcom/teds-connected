@@ -2,15 +2,15 @@ import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import DOMPurify from 'dompurify';
 import { Briefcase, MapPin, FileText, Download, Pencil, Plus } from 'lucide-react';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 
 type JobPosting = { id: number; title: string; location: string | null; description: string | null; formSlug: string | null };
 type FormSummary = { id: number; title: string; slug: string; instructions: string | null; categoryNames: string[] };
 
 export default function RecruitingPage() {
-  const { session } = useAuth();
-  const canEdit = session?.level === 'full';
+  const { session, effectiveConnectedTier } = useAuth();
+  const canEdit = meetsConnectedTier(effectiveConnectedTier, 'admin');
   const [postings, setPostings] = useState<JobPosting[] | null>(null);
   const [forms, setForms] = useState<FormSummary[] | null>(null);
 

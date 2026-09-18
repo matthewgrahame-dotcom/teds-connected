@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { User, Phone, Mail, Settings, Plus, Trash2, ChevronUp, ChevronDown, X, Search, Upload } from 'lucide-react';
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
 import { authHeaders } from '@/lib/sessionAuth';
 import { fileToSquareDataUri } from '@/lib/imageUpload';
@@ -26,7 +26,7 @@ type PortalUserOption = {
 };
 
 export function KeyContactsCard() {
-  const { session } = useAuth();
+  const { session, effectiveConnectedTier } = useAuth();
   const { requirePublishAccess } = usePublishAccess();
   const [contacts, setContacts] = useState<KeyContactRow[] | null>(null);
   const [editing, setEditing] = useState(false);
@@ -36,7 +36,7 @@ export function KeyContactsCard() {
   const [allUsers, setAllUsers] = useState<PortalUserOption[] | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const canEdit = session?.level === 'full';
+  const canEdit = meetsConnectedTier(effectiveConnectedTier, 'admin');
 
   const load = () => {
     fetch('/api/key-contacts', { headers: authHeaders(session) })

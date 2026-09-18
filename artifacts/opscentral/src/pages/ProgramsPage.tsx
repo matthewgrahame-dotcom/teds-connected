@@ -13,7 +13,7 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 
 type ModuleStatus = 'not_started' | 'in_progress' | 'completed';
@@ -125,7 +125,7 @@ function SortableProgramCard({ program, editing, categoryColor }: { program: Pro
 }
 
 export default function ProgramsPage() {
-  const { session } = useAuth();
+  const { session, effectiveConnectedTier } = useAuth();
   const [programs, setPrograms] = useState<Program[] | null>(null);
   const [categories, setCategories] = useState<TrainingCategory[]>([]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
@@ -139,7 +139,7 @@ export default function ProgramsPage() {
   const [saving, setSaving] = useState(false);
   const [activeId, setActiveId] = useState<number | null>(null);
 
-  const canReorder = session?.level === 'full';
+  const canReorder = meetsConnectedTier(effectiveConnectedTier, 'admin');
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const load = () => {

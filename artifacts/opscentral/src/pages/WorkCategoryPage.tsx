@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'wouter';
 import { ChevronLeft, FileText, CheckCircle2, Circle } from 'lucide-react';
 import { workCategories } from '@/data/workCategories';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 
 type WorkDoc = {
@@ -31,8 +31,8 @@ function groupBySection(docs: WorkDoc[]) {
 
 export default function WorkCategoryPage() {
   const { slug } = useParams<{ slug: string }>();
-  const { session } = useAuth();
-  const canEdit = session?.level === 'full';
+  const { session, effectiveConnectedTier } = useAuth();
+  const canEdit = meetsConnectedTier(effectiveConnectedTier, 'admin');
   const categoryTitle = slug ? workCategories[slug]?.title : undefined;
 
   const [docs, setDocs] = useState<WorkDoc[] | null>(null);

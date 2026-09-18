@@ -3,7 +3,7 @@ import { Settings, Plus, Trash2, ChevronUp, ChevronDown, X } from 'lucide-react'
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { LinkTileGrid, type LinkTile } from './LinkTileGrid';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
 import { ICON_KEYS, iconForKey } from './iconRegistry';
 import { authHeaders } from '@/lib/sessionAuth';
@@ -24,13 +24,13 @@ type QuickLinkRow = {
 };
 
 export function QuickLinksCard() {
-  const { session } = useAuth();
+  const { session, effectiveConnectedTier } = useAuth();
   const { requirePublishAccess } = usePublishAccess();
   const [links, setLinks] = useState<QuickLinkRow[] | null>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState<number | 'new' | null>(null);
 
-  const canEdit = session?.level === 'full';
+  const canEdit = meetsConnectedTier(effectiveConnectedTier, 'admin');
 
   // Carries the same cross-app token used for the Connected -> Phocal
   // direction, so clicking through doesn't ask to log in again.

@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { FileText } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { TrainingReportingTab } from '@/components/reporting/TrainingReportingTab';
 import { PolicyComplianceTab } from '@/components/reporting/PolicyComplianceTab';
 
 export default function ReportingPage() {
-  const { session } = useAuth();
-  const canView = session?.level === 'full';
+  const { session, effectiveConnectedTier } = useAuth();
+  const canView = meetsConnectedTier(effectiveConnectedTier, 'manager');
   const [tab, setTab] = useState<'training' | 'compliance'>('training');
 
   if (!canView) {

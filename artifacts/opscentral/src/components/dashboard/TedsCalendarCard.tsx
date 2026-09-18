@@ -3,7 +3,7 @@ import { format, isToday } from 'date-fns';
 import { Clock, MapPin, Plus, X, Pencil, Trash2 } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { Calendar } from '@/components/ui/calendar';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
 import { authHeaders } from '@/lib/sessionAuth';
 
@@ -36,9 +36,9 @@ function toDateKey(date: Date): string {
 // full-level + publish-password gated (see canEdit below), matching how
 // Ted's Talks message deletion works elsewhere in this app.
 export function TedsCalendarCard() {
-  const { session } = useAuth();
+  const { session, effectiveConnectedTier } = useAuth();
   const { requirePublishAccess } = usePublishAccess();
-  const canEdit = session?.level === 'full';
+  const canEdit = meetsConnectedTier(effectiveConnectedTier, 'admin');
   const [events, setEvents] = useState<CalendarEvent[] | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showAddForm, setShowAddForm] = useState(false);

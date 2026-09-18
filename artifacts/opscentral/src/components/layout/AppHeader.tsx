@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bell, CalendarCheck, CircleUserRound, Eye, GraduationCap, HelpCircle, LayoutGrid, ListChecks, LogOut, MousePointer2, Rocket, Search, Settings, User, Users } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
-import { useAuth } from '@/lib/auth';
+import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import heroBanner from '@/assets/hero-banner.png';
@@ -41,7 +41,7 @@ export function AppHeader({ userName }: { userName: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
-  const { session, logout, canPreview, isPreviewingBasic, setPreviewAsBasic, connectedTier, previewConnectedTier, setPreviewConnectedTier } = useAuth();
+  const { session, logout, canPreview, isPreviewingBasic, setPreviewAsBasic, connectedTier, previewConnectedTier, setPreviewConnectedTier, effectiveConnectedTier } = useAuth();
   const [location, navigate] = useLocation();
   const menuRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLDivElement>(null);
@@ -177,7 +177,7 @@ export function AppHeader({ userName }: { userName: string }) {
                     {label}
                   </Link>
                 ))}
-                {session?.level === 'full' && (
+                {meetsConnectedTier(effectiveConnectedTier, 'admin') && (
                   <button
                     type="button"
                     onClick={() => {
