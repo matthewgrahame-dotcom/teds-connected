@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { namesMatch } from "../lib/staffNameMatching";
 import { and, asc, eq, gte, inArray } from "drizzle-orm";
 import {
   db,
@@ -112,7 +113,7 @@ router.get("/tasks", requireSession, async (req, res) => {
       db.select().from(onboardingSectionsTable),
       db.select().from(onboardingItemsTable),
     ]);
-    const portalUser = allPortalUsers.find((u) => `${u.firstName} ${u.lastName}` === staffName) ?? null;
+    const portalUser = allPortalUsers.find((u) => namesMatch(`${u.firstName} ${u.lastName}`, staffName)) ?? null;
 
     const programsById = new Map(programs.map((p) => [p.id, p]));
     const completedModuleIds = new Set(progress.filter((p) => p.status === "completed").map((p) => p.moduleId));

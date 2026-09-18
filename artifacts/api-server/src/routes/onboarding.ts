@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { namesMatch } from "../lib/staffNameMatching";
 import { asc, desc, eq, inArray } from "drizzle-orm";
 import {
   db,
@@ -243,7 +244,7 @@ router.get("/onboarding/programs", requireSession, async (req, res) => {
   const staffName = req.sessionPayload!.name;
 
   const allUsers = await db.select({ id: portalUsersTable.id, role: portalUsersTable.role, firstName: portalUsersTable.firstName, lastName: portalUsersTable.lastName }).from(portalUsersTable);
-  const me = allUsers.find((u) => `${u.firstName} ${u.lastName}` === staffName) ?? null;
+  const me = allUsers.find((u) => namesMatch(`${u.firstName} ${u.lastName}`, staffName)) ?? null;
 
   const publishedPrograms = await db.select().from(onboardingProgramsTable).where(eq(onboardingProgramsTable.status, "published")).orderBy(asc(onboardingProgramsTable.sortOrder));
   const myPrograms = me ? publishedPrograms.filter((p) => p.defaultRoles.includes(me.role)) : [];

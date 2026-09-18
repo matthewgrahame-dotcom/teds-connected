@@ -41,7 +41,7 @@ export function AppHeader({ userName }: { userName: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
-  const { session, logout, canPreview, isPreviewingBasic, setPreviewAsBasic, connectedTier, connectedTierSessionName, connectedTierDebug, previewConnectedTier, setPreviewConnectedTier, effectiveConnectedTier } = useAuth();
+  const { session, logout, canPreview, isPreviewingBasic, setPreviewAsBasic, connectedTier, previewConnectedTier, setPreviewConnectedTier, effectiveConnectedTier } = useAuth();
   const [location, navigate] = useLocation();
   const menuRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLDivElement>(null);
@@ -224,12 +224,6 @@ export function AppHeader({ userName }: { userName: string }) {
                       <option value="manager">Manager</option>
                       <option value="admin">Admin</option>
                     </select>
-                    {connectedTierSessionName && (
-                      <p className="mt-1 text-[10px] text-muted-foreground">Matched as: {connectedTierSessionName}</p>
-                    )}
-                    {connectedTierDebug != null && (
-                      <pre className="mt-1 max-w-full overflow-x-auto whitespace-pre-wrap break-all rounded bg-muted p-2 text-[9px] text-muted-foreground">{JSON.stringify(connectedTierDebug, null, 2)}</pre>
-                    )}
                   </div>
                 )}
                 <div className="my-1 border-t border-border" />

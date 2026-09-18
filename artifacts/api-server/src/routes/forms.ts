@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { namesMatch } from "../lib/staffNameMatching";
 import { put, get } from "@vercel/blob";
 import { Readable } from "node:stream";
 import { asc, desc, eq, inArray } from "drizzle-orm";
@@ -171,7 +172,7 @@ async function canViewSubmissions(formId: number, staffName: string): Promise<bo
   if (viewRoles.length === 0 && viewUsers.length === 0) return true; // unrestricted
 
   const allUsers = await db.select({ id: portalUsersTable.id, role: portalUsersTable.role, firstName: portalUsersTable.firstName, lastName: portalUsersTable.lastName }).from(portalUsersTable);
-  const matchedUser = allUsers.find((u) => `${u.firstName} ${u.lastName}` === staffName);
+  const matchedUser = allUsers.find((u) => namesMatch(`${u.firstName} ${u.lastName}`, staffName));
   if (!matchedUser) return false; // can't identify them against the roster -- fail closed
 
   if (viewRoles.some((r) => r.role === matchedUser.role)) return true;

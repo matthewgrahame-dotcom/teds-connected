@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { namesMatch } from "../lib/staffNameMatching";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { db, workDocumentsTable, workDocumentAcknowledgmentsTable, workDocumentRoleAccessTable, portalUsersTable } from "@workspace/db";
 import { requireSession } from "../lib/sessionAuth";
@@ -38,7 +39,7 @@ router.get("/work/documents", requireSession, async (req, res) => {
       .orderBy(asc(workDocumentsTable.sortOrder)),
     db.select({ firstName: portalUsersTable.firstName, lastName: portalUsersTable.lastName, role: portalUsersTable.role }).from(portalUsersTable),
   ]);
-  const myRole = allUsers.find((u) => `${u.firstName} ${u.lastName}` === staffName)?.role ?? null;
+  const myRole = allUsers.find((u) => namesMatch(`${u.firstName} ${u.lastName}`, staffName))?.role ?? null;
 
   const docIds = docs.map((d) => d.id);
   const [myAcks, roleAccessRows] = await Promise.all([

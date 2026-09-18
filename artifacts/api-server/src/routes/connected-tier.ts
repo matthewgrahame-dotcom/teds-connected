@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { getConnectedTier, getConnectedTierDebugInfo } from "../lib/connectedTiers";
+import { getConnectedTier } from "../lib/connectedTiers";
 import { requireSession } from "../lib/sessionAuth";
 
 const router: IRouter = Router();
@@ -13,13 +13,7 @@ const router: IRouter = Router();
 // Access mapping immediately if an admin changes it.
 router.get("/me/connected-tier", requireSession, async (req, res) => {
   const tier = await getConnectedTier(req.sessionPayload!.name);
-  // TEMPORARY, while diagnosing Matt's own tier resolving to basic
-  // despite the underlying data all checking out correct: debug shows
-  // every intermediate step getConnectedTier took internally, so the
-  // exact point of failure is visible instead of just "basic" with no
-  // way to tell why. Meant to be removed once resolved.
-  const debug = await getConnectedTierDebugInfo(req.sessionPayload!.name);
-  res.json({ tier, sessionName: req.sessionPayload!.name, debug });
+  res.json({ tier });
 });
 
 export default router;
