@@ -14,6 +14,27 @@ import { z } from "zod/v4";
 // boolean with the real three states -- "Enrolled" (see routes) only ever
 // shows non-zero once a program is live, matching the source data exactly
 // (every Draft row in the export showed Enrolled: 0).
+// A lightweight registry mapping category NAMES (matching whatever string
+// is typed into trainingProgramsTable.category -- see that field's comment)
+// to a display color and sort order, for the color-coded/grouped "folder"
+// view on Learn > Programs. Deliberately not a foreign key relationship --
+// category stays free text on the program itself, matching the source
+// export exactly; this table only adds color/ordering on top, looked up by
+// name (case-insensitive) at render time. A program whose category has no
+// matching row here (or no category at all) just falls into an
+// "Uncategorised" catch-all group instead of breaking anything.
+export const trainingCategoriesTable = pgTable("training_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  color: text("color").notNull().default("bg-accent"), // Tailwind bg-* class, same convention as newsCategories.ts
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertTrainingCategorySchema = createInsertSchema(trainingCategoriesTable).omit({ id: true, createdAt: true });
+export type InsertTrainingCategory = z.infer<typeof insertTrainingCategorySchema>;
+export type TrainingCategory = typeof trainingCategoriesTable.$inferSelect;
+
 export const trainingProgramStatusSchema = z.enum(["draft", "live", "archived"]);
 export const trainingAssignmentLevelSchema = z.enum(["optional", "mandatory"]);
 

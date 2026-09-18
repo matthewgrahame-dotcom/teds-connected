@@ -24,6 +24,7 @@ type ProgramModule = {
   quizQuestions: QuizQuestionDraft[];
 };
 type ProgramSummary = { id: number; title: string };
+type TrainingCategory = { id: number; name: string; color: string; sortOrder: number };
 
 type ProgramDetail = {
   id: number;
@@ -63,6 +64,7 @@ export default function ProgramEditorPage() {
   const [allUsers, setAllUsers] = useState<PortalUserOption[] | null>(null);
   const [groups, setGroups] = useState<UserGroup[] | null>(null);
   const [allPrograms, setAllPrograms] = useState<ProgramSummary[] | null>(null);
+  const [categories, setCategories] = useState<TrainingCategory[]>([]);
   const [newModuleTitle, setNewModuleTitle] = useState('');
   const [newModuleUrl, setNewModuleUrl] = useState('');
   const [userPickerOpen, setUserPickerOpen] = useState(false);
@@ -89,6 +91,10 @@ export default function ProgramEditorPage() {
       .then((r) => (r.ok ? r.json() : []))
       .then((rows: ProgramSummary[]) => setAllPrograms(rows.filter((p) => String(p.id) !== params.id)))
       .catch(() => setAllPrograms([]));
+    fetch('/api/training/categories', { headers: authHeaders(session) })
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setCategories)
+      .catch(() => setCategories([]));
   }, []);
 
   const loadProgram = () => {
@@ -113,6 +119,22 @@ export default function ProgramEditorPage() {
     } catch (err) {
       toast({ title: 'Could not upload that image', description: err instanceof Error ? err.message : undefined, variant: 'destructive' });
     }
+  };
+
+  const createCategory = async (name: string) => {
+    const res = await fetch('/api/training/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+      body: JSON.stringify({ name }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      toast({ title: 'Could not add category', description: data.error, variant: 'destructive' });
+      return;
+    }
+    setCategories((c) => [...c, data]);
+    if (isNew) setDraft((d) => ({ ...d, category: data.name }));
+    else setProgram((p) => p && { ...p, category: data.name });
   };
 
   const createProgram = async () => {
@@ -284,40 +306,38 @@ export default function ProgramEditorPage() {
               className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-accent"
             />
           </FormField>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FormField label="Category">
+          <FormField label="Category">
+            <CategoryPicker
+              categories={categories}
+              value={isNew ? draft.category : program!.category ?? ''}
+              onChange={(name) => (isNew ? setDraft((d) => ({ ...d, category: name })) : setProgram((p) => p && { ...p, category: name }))}
+              onCreate={createCategory}
+            />
+          </FormField>
+          <FormField label="Thumbnail">
+            <div className="flex gap-2">
               <input
-                value={isNew ? draft.category : program!.category ?? ''}
-                onChange={(e) => (isNew ? setDraft((d) => ({ ...d, category: e.target.value })) : setProgram((p) => p && { ...p, category: e.target.value }))}
-                placeholder="e.g. Sales Training"
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-accent"
+                value={isNew ? draft.thumbnailUrl : program!.thumbnailUrl ?? ''}
+                onChange={(e) => (isNew ? setDraft((d) => ({ ...d, thumbnailUrl: e.target.value })) : setProgram((p) => p && { ...p, thumbnailUrl: e.target.value }))}
+                placeholder="Paste a URL, or upload"
+                className="h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-accent"
               />
-            </FormField>
-            <FormField label="Thumbnail">
-              <div className="flex gap-2">
+              <label className="flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-dashed border-input px-3 text-xs font-semibold text-muted-foreground transition hover:bg-muted">
+                <Upload className="h-3.5 w-3.5" />
+                Upload
                 <input
-                  value={isNew ? draft.thumbnailUrl : program!.thumbnailUrl ?? ''}
-                  onChange={(e) => (isNew ? setDraft((d) => ({ ...d, thumbnailUrl: e.target.value })) : setProgram((p) => p && { ...p, thumbnailUrl: e.target.value }))}
-                  placeholder="Paste a URL, or upload"
-                  className="h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-accent"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleThumbnailUpload(file);
+                    e.target.value = '';
+                  }}
                 />
-                <label className="flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-dashed border-input px-3 text-xs font-semibold text-muted-foreground transition hover:bg-muted">
-                  <Upload className="h-3.5 w-3.5" />
-                  Upload
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleThumbnailUpload(file);
-                      e.target.value = '';
-                    }}
-                  />
-                </label>
-              </div>
-            </FormField>
-          </div>
+              </label>
+            </div>
+          </FormField>
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField label="Start Date" hint="Free text, e.g. Sep 2026">
               <input
@@ -763,6 +783,73 @@ function Section({ title, icon: Icon, children }: { title: string; icon?: typeof
         {Icon && <Icon className="h-4 w-4" />} {title}
       </h2>
       <div className="space-y-3">{children}</div>
+    </div>
+  );
+}
+
+function CategoryPicker({
+  categories,
+  value,
+  onChange,
+  onCreate,
+}: {
+  categories: TrainingCategory[];
+  value: string;
+  onChange: (name: string) => void;
+  onCreate: (name: string) => Promise<void>;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+
+  const submitNew = async () => {
+    const trimmed = newName.trim();
+    setAdding(false);
+    setNewName('');
+    if (trimmed) await onCreate(trimmed);
+  };
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {categories.map((c) => (
+        <button
+          key={c.id}
+          type="button"
+          onClick={() => onChange(value === c.name ? '' : c.name)}
+          className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+            value === c.name ? 'border-foreground bg-muted text-foreground' : 'border-input text-muted-foreground hover:bg-muted'
+          }`}
+        >
+          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${c.color}`} />
+          {c.name}
+        </button>
+      ))}
+      {!adding ? (
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="flex items-center gap-1 rounded-full border border-dashed border-input px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:bg-muted"
+        >
+          <Plus className="h-3 w-3" /> New category
+        </button>
+      ) : (
+        <div className="flex items-center gap-1.5">
+          <input
+            autoFocus
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onBlur={submitNew}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submitNew();
+              if (e.key === 'Escape') {
+                setAdding(false);
+                setNewName('');
+              }
+            }}
+            placeholder="Category name"
+            className="h-8 rounded-md border border-input bg-background px-2 text-xs outline-none focus:border-accent"
+          />
+        </div>
+      )}
     </div>
   );
 }

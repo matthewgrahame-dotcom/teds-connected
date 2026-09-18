@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'wouter';
-import { GraduationCap, ChevronRight, GripVertical, ListOrdered, Check, X } from 'lucide-react';
+import { GraduationCap, ChevronRight, ChevronDown, GripVertical, ListOrdered, Check, X } from 'lucide-react';
 import {
   DndContext,
   DragOverlay,
@@ -34,7 +34,10 @@ type Program = {
   modules: Module[];
 };
 
-function ProgramCardInner({ program }: { program: Program }) {
+type TrainingCategory = { id: number; name: string; color: string; sortOrder: number };
+const UNCATEGORISED_COLOR = 'bg-muted-foreground/40';
+
+function ProgramCardInner({ program, categoryColor }: { program: Program; categoryColor: string }) {
   const total = program.modules.length;
   const completed = program.modules.filter((m) => m.status === 'completed').length;
 
@@ -60,7 +63,8 @@ function ProgramCardInner({ program }: { program: Program }) {
 
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
           {program.category && (
-            <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+            <span className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+              <span className={`h-2 w-2 shrink-0 rounded-full ${categoryColor}`} />
               {program.category}
             </span>
           )}
@@ -81,7 +85,7 @@ function ProgramCardInner({ program }: { program: Program }) {
   );
 }
 
-function SortableProgramCard({ program, editing }: { program: Program; editing: boolean }) {
+function SortableProgramCard({ program, editing, categoryColor }: { program: Program; editing: boolean; categoryColor: string }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: program.id, disabled: !editing });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
 
@@ -92,7 +96,7 @@ function SortableProgramCard({ program, editing }: { program: Program; editing: 
         data-testid={`link-program-${program.id}`}
         className="group flex flex-col overflow-hidden rounded-xl border border-card-border bg-card shell-shadow transition hover:-translate-y-0.5 hover:shadow-md"
       >
-        <ProgramCardInner program={program} />
+        <ProgramCardInner program={program} categoryColor={categoryColor} />
       </Link>
     );
   }
@@ -114,7 +118,7 @@ function SortableProgramCard({ program, editing }: { program: Program; editing: 
         <GripVertical className="h-4 w-4" />
       </button>
       <div className="pointer-events-none">
-        <ProgramCardInner program={program} />
+        <ProgramCardInner program={program} categoryColor={categoryColor} />
       </div>
     </div>
   );
@@ -123,6 +127,14 @@ function SortableProgramCard({ program, editing }: { program: Program; editing: 
 export default function ProgramsPage() {
   const { session } = useAuth();
   const [programs, setPrograms] = useState<Program[] | null>(null);
+  const [categories, setCategories] = useState<TrainingCategory[]>([]);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('programsCollapsedCategories') ?? '{}');
+    } catch {
+      return {};
+    }
+  });
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -139,6 +151,55 @@ export default function ProgramsPage() {
   };
 
   useEffect(load, [session?.name]);
+  useEffect(() => {
+    fetch('/api/training/categories', { headers: authHeaders(session) })
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setCategories)
+      .catch(() => setCategories([]));
+  }, []);
+
+  const colorForCategory = (name: string | null) => {
+    if (!name) return UNCATEGORISED_COLOR;
+    const match = categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
+    return match?.color ?? UNCATEGORISED_COLOR;
+  };
+
+  const toggleCollapsed = (key: string) => {
+    setCollapsed((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      localStorage.setItem('programsCollapsedCategories', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // Groups by category for the default browsing view, in registry
+  // sortOrder, with any category not in the registry (or no category at
+  // all) trailing in a catch-all group -- non-fatal for programs whose
+  // category doesn't match anything, they just aren't color-grouped yet.
+  // Order WITHIN each group follows the same sortOrder-driven order the
+  // flat list already uses. Reorder mode (below) intentionally stays flat
+  // and ungrouped so the existing drag-and-drop logic doesn't need to
+  // understand groups at all -- dragging cards of the same category next
+  // to each other in that flat order is what naturally clusters them here.
+  const groupedPrograms = useMemo(() => {
+    if (!programs) return [];
+    const byName = new Map<string, Program[]>();
+    const uncategorised: Program[] = [];
+    for (const program of programs) {
+      const match = program.category && categories.find((c) => c.name.toLowerCase() === program.category!.toLowerCase());
+      if (match) {
+        if (!byName.has(match.name)) byName.set(match.name, []);
+        byName.get(match.name)!.push(program);
+      } else {
+        uncategorised.push(program);
+      }
+    }
+    const groups = categories
+      .filter((c) => byName.has(c.name))
+      .map((c) => ({ key: c.name, label: c.name, color: c.color, programs: byName.get(c.name)! }));
+    if (uncategorised.length > 0) groups.push({ key: '__uncategorised', label: 'Uncategorised', color: UNCATEGORISED_COLOR, programs: uncategorised });
+    return groups;
+  }, [programs, categories]);
 
   const handleDragStart = (event: DragStartEvent) => setActiveId(Number(event.active.id));
 
@@ -218,22 +279,53 @@ export default function ProgramsPage() {
         {programs === null && <p className="text-sm text-muted-foreground">Loading…</p>}
         {programs?.length === 0 && <p className="text-sm text-muted-foreground">No active programs right now.</p>}
 
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <SortableContext items={programs?.map((p) => p.id) ?? []} strategy={rectSortingStrategy}>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {programs?.map((program) => (
-                <SortableProgramCard key={program.id} program={program} editing={editing} />
-              ))}
-            </div>
-          </SortableContext>
-          <DragOverlay>
-            {activeProgram ? (
-              <div className="flex flex-col overflow-hidden rounded-xl border-2 border-primary bg-card shadow-lg">
-                <ProgramCardInner program={activeProgram} />
+        {!editing && programs && programs.length > 0 && (
+          <div className="space-y-6">
+            {groupedPrograms.map((group) => {
+              const isCollapsed = collapsed[group.key];
+              return (
+                <div key={group.key}>
+                  <button
+                    type="button"
+                    onClick={() => toggleCollapsed(group.key)}
+                    className="mb-3 flex w-full items-center gap-2 text-left"
+                  >
+                    <span className={`h-3 w-3 shrink-0 rounded-full ${group.color}`} />
+                    <h2 className="text-sm font-extrabold uppercase tracking-wide text-foreground">{group.label}</h2>
+                    <span className="text-xs font-semibold text-muted-foreground">({group.programs.length})</span>
+                    <ChevronDown className={`ml-auto h-4 w-4 text-muted-foreground transition ${isCollapsed ? '-rotate-90' : ''}`} />
+                  </button>
+                  {!isCollapsed && (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {group.programs.map((program) => (
+                        <SortableProgramCard key={program.id} program={program} editing={false} categoryColor={group.color} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {editing && (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <SortableContext items={programs?.map((p) => p.id) ?? []} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {programs?.map((program) => (
+                  <SortableProgramCard key={program.id} program={program} editing={editing} categoryColor={colorForCategory(program.category)} />
+                ))}
               </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+            </SortableContext>
+            <DragOverlay>
+              {activeProgram ? (
+                <div className="flex flex-col overflow-hidden rounded-xl border-2 border-primary bg-card shadow-lg">
+                  <ProgramCardInner program={activeProgram} categoryColor={colorForCategory(activeProgram.category)} />
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        )}
       </div>
     </div>
   );

@@ -6,6 +6,8 @@ import {
   moduleStatusSchema,
   trainingModulesTable,
   trainingProgramsTable,
+  trainingCategoriesTable,
+  insertTrainingCategorySchema,
   trainingRoleAssignmentsTable,
   trainingUserAssignmentsTable,
   trainingGroupAssignmentsTable,
@@ -91,6 +93,77 @@ router.get("/training/programs", requireSession, async (req, res) => {
     console.error("[GET /training/programs] error:", err);
     res.status(500).json({ error: "Something went wrong loading programs." });
   }
+});
+
+// -- Category registry (color-coded folder grouping on Learn > Programs) --
+// See trainingCategoriesTable's schema comment: this is a name->color->order
+// registry, not a foreign key -- trainingProgramsTable.category stays free
+// text, matched against this list by name at render time.
+router.get("/training/categories", requireSession, async (_req, res) => {
+  const categories = await db.select().from(trainingCategoriesTable).orderBy(asc(trainingCategoriesTable.sortOrder));
+  res.json(categories);
+});
+
+router.post("/training/categories", requireFullLevel, async (req, res) => {
+  const parsed = insertTrainingCategorySchema.pick({ name: true, color: true }).safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "name is required" });
+    return;
+  }
+  try {
+    const [{ maxSortOrder }] = await db
+      .select({ maxSortOrder: sql<number | null>`max(${trainingCategoriesTable.sortOrder})` })
+      .from(trainingCategoriesTable);
+    const [category] = await db
+      .insert(trainingCategoriesTable)
+      .values({ ...parsed.data, sortOrder: (maxSortOrder ?? -1) + 1 })
+      .returning();
+    res.status(201).json(category);
+  } catch (err) {
+    // Most likely a duplicate name (unique constraint) -- an admin typing a
+    // category that already exists should just be told plainly, not shown
+    // a raw Postgres error.
+    res.status(400).json({ error: "A category with that name already exists." });
+  }
+});
+
+router.patch("/training/categories/:id", requireFullLevel, async (req, res) => {
+  const id = Number(req.params.id);
+  const parsed = insertTrainingCategorySchema.pick({ name: true, color: true }).partial().safeParse(req.body);
+  if (!parsed.success || Object.keys(parsed.data).length === 0) {
+    res.status(400).json({ error: "Nothing to update" });
+    return;
+  }
+  const [category] = await db.update(trainingCategoriesTable).set(parsed.data).where(eq(trainingCategoriesTable.id, id)).returning();
+  if (!category) {
+    res.status(404).json({ error: "Category not found" });
+    return;
+  }
+  res.json(category);
+});
+
+router.put("/training/categories/reorder", requireFullLevel, async (req, res) => {
+  const categoryIds = req.body?.categoryIds;
+  if (!Array.isArray(categoryIds) || categoryIds.some((id) => typeof id !== "number")) {
+    res.status(400).json({ error: "categoryIds must be an array of numbers" });
+    return;
+  }
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < categoryIds.length; i++) {
+      await tx.update(trainingCategoriesTable).set({ sortOrder: i }).where(eq(trainingCategoriesTable.id, categoryIds[i]));
+    }
+  });
+  res.json({ ok: true });
+});
+
+// Removing a category from the registry is non-destructive to programs --
+// they keep whatever free-text category string they already had, it just
+// stops having a color/group until reassigned to something else (or this
+// name is re-added).
+router.delete("/training/categories/:id", requireFullLevel, async (req, res) => {
+  const id = Number(req.params.id);
+  await db.delete(trainingCategoriesTable).where(eq(trainingCategoriesTable.id, id));
+  res.json({ ok: true });
 });
 
 // -- Quiz taking (staff-facing) ---------------------------------------------
