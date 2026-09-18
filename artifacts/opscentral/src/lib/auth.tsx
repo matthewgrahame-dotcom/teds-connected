@@ -91,6 +91,7 @@ type AuthContextValue = {
   // tier-aware UI here renders). effectiveConnectedTier is the one
   // components should actually read.
   connectedTier: ConnectedTier | null;
+  connectedTierSessionName: string | null;
   previewConnectedTier: ConnectedTier | null;
   effectiveConnectedTier: ConnectedTier | null;
   setPreviewConnectedTier: (tier: ConnectedTier | null) => void;
@@ -106,6 +107,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isPreviewingBasic, setIsPreviewingBasic] = useState(readStoredPreview);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [connectedTier, setConnectedTier] = useState<ConnectedTier | null>(null);
+  // Purely a diagnostic: the exact name string getConnectedTier matched
+  // (or tried to match) against portal_users, surfaced in the UI so a
+  // mismatch (a nickname vs. the formal name on file, a typo) is
+  // actually visible from the app itself -- no dev tools needed to see
+  // why a tier came out lower than expected.
+  const [connectedTierSessionName, setConnectedTierSessionName] = useState<string | null>(null);
   const [previewConnectedTier, setPreviewConnectedTierState] = useState<ConnectedTier | null>(readStoredPreviewTier);
   // Read inside the fetch interceptor below, which is set up once on mount
   // and would otherwise only ever see the session value from that first
@@ -221,12 +228,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!realSession?.crossAppToken) {
       setConnectedTier(null);
+      setConnectedTierSessionName(null);
       return;
     }
     fetch('/api/me/connected-tier', { headers: { 'X-Session-Token': realSession.crossAppToken } })
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => setConnectedTier(data?.tier ?? null))
-      .catch(() => setConnectedTier(null));
+      .then((data) => {
+        setConnectedTier(data?.tier ?? null);
+        setConnectedTierSessionName(data?.sessionName ?? null);
+      })
+      .catch(() => {
+        setConnectedTier(null);
+        setConnectedTierSessionName(null);
+      });
   }, [realSession?.crossAppToken]);
 
   const setPreviewConnectedTier = useCallback((tier: ConnectedTier | null) => {
@@ -256,11 +270,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       session, ready, loginError, loggingIn, sessionExpired, login, logout,
       isPreviewingBasic, canPreview, setPreviewAsBasic,
-      connectedTier, previewConnectedTier, effectiveConnectedTier, setPreviewConnectedTier,
+      connectedTier, connectedTierSessionName, previewConnectedTier, effectiveConnectedTier, setPreviewConnectedTier,
     }),
     [session, ready, loginError, loggingIn, sessionExpired, login, logout,
      isPreviewingBasic, canPreview, setPreviewAsBasic,
-     connectedTier, previewConnectedTier, effectiveConnectedTier, setPreviewConnectedTier],
+     connectedTier, connectedTierSessionName, previewConnectedTier, effectiveConnectedTier, setPreviewConnectedTier],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
