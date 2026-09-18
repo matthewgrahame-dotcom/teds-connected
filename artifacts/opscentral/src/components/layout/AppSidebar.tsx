@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
 import {
   ChevronDown,
@@ -6,6 +6,7 @@ import {
   FileText,
   Briefcase,
   GraduationCap,
+  GripVertical,
   IdCard,
   LayoutGrid,
   Newspaper,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 import connectedLogo from '@/assets/connected-logo.png';
 import { useAuth, meetsConnectedTier } from '@/lib/auth';
+import { useDraggableNavItem, useDroppableSidebar } from '@/lib/navDashboardDnd';
 
 type NavChild = { label: string; href?: string };
 
@@ -63,6 +65,7 @@ const secondaryNav: NavItem[] = [
 export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; onNavigate: () => void }) {
   const [location] = useLocation();
   const { effectiveConnectedTier } = useAuth();
+  const canDrag = meetsConnectedTier(effectiveConnectedTier, 'admin');
   const visiblePrimaryNav = primaryNav.filter((item) => !item.minTier || meetsConnectedTier(effectiveConnectedTier, item.minTier));
   const visibleSecondaryNav = secondaryNav.filter((item) => !item.minTier || meetsConnectedTier(effectiveConnectedTier, item.minTier));
   // Accordion: only one section open at a time across the whole sidebar --
@@ -71,6 +74,11 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
   // independent-per-section Record<string, boolean> that let every section
   // stay open simultaneously.
   const [openSection, setOpenSection] = useState<string | null>(null);
+  // Admin-only drag-and-drop, onto the dashboard's Quick Links widget:
+  // drop this whole sidebar to REMOVE a Quick Links tile someone
+  // dragged back onto it -- see navDashboardDnd.tsx for the other half
+  // (the dashboard's own drop zone, for adding a tile).
+  const { setDropRef, isOver } = useDroppableSidebar();
 
   const renderItem = (item: NavItem) => {
     const active = item.href ? location === item.href || (item.href !== '/' && location.startsWith(item.href)) : false;
@@ -93,9 +101,11 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
     return (
       <div key={item.label}>
         {item.href ? (
-          <Link href={item.href} onClick={onNavigate} data-testid={`link-nav-${item.label.toLowerCase()}`} className={rowClasses}>
-            {content}
-          </Link>
+          <DraggableNavRow canDrag={canDrag} label={item.label} icon={Icon} href={item.href}>
+            <Link href={item.href} onClick={onNavigate} data-testid={`link-nav-${item.label.toLowerCase()}`} className={rowClasses}>
+              {content}
+            </Link>
+          </DraggableNavRow>
         ) : (
           <button
             type="button"
@@ -110,17 +120,18 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
           <div className="ml-9 mt-1 space-y-1 border-l border-border pl-3">
             {item.children.map((child) =>
               child.href ? (
-                <Link
-                  key={child.label}
-                  href={child.href}
-                  onClick={onNavigate}
-                  data-testid={`link-nav-${child.label.toLowerCase().replace(/\s+/g, '-')}`}
-                  className={`block w-full rounded-xl px-3 py-1.5 text-left text-sm font-semibold transition hover:bg-sidebar-accent/60 hover:text-foreground ${
-                    location === child.href ? 'text-foreground' : 'text-muted-foreground'
-                  }`}
-                >
-                  {child.label}
-                </Link>
+                <DraggableNavRow key={child.label} canDrag={canDrag} label={child.label} icon={Icon} href={child.href}>
+                  <Link
+                    href={child.href}
+                    onClick={onNavigate}
+                    data-testid={`link-nav-${child.label.toLowerCase().replace(/\s+/g, '-')}`}
+                    className={`block w-full rounded-xl px-3 py-1.5 text-left text-sm font-semibold transition hover:bg-sidebar-accent/60 hover:text-foreground ${
+                      location === child.href ? 'text-foreground' : 'text-muted-foreground'
+                    }`}
+                  >
+                    {child.label}
+                  </Link>
+                </DraggableNavRow>
               ) : (
                 <button
                   key={child.label}
@@ -139,9 +150,10 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
 
   return (
     <aside
+      ref={setDropRef}
       className={`fixed inset-y-0 left-0 z-40 w-[260px] border-r border-sidebar-border bg-sidebar pt-[170px] transition-transform duration-200 md:sticky md:top-0 md:h-screen md:translate-x-0 md:pt-0 ${
         mobileOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}
+      } ${isOver ? 'ring-2 ring-inset ring-primary' : ''}`}
     >
       <div className="flex h-full flex-col">
         <div className="border-b border-sidebar-border py-5 md:hidden">
@@ -156,6 +168,12 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
           </Link>
         </div>
 
+        {canDrag && (
+          <p className="border-b border-sidebar-border px-4 py-2 text-[11px] font-semibold text-muted-foreground">
+            Drag a link onto the dashboard to pin it to Quick Links
+          </p>
+        )}
+
         <nav className="flex-1 space-y-1 overflow-y-auto p-4" aria-label="Portal navigation">
           {visiblePrimaryNav.map(renderItem)}
           <div className="my-3 border-t border-sidebar-border" />
@@ -163,5 +181,23 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
         </nav>
       </div>
     </aside>
+  );
+}
+
+// Wraps a nav row so it can be dragged onto the dashboard's Quick Links
+// drop zone -- a no-op passthrough when canDrag is false, so the
+// non-admin experience is completely unchanged (same DOM shape as
+// before this feature existed, not just visually hidden drag affordance).
+// Attaches the drag listeners to this whole wrapper rather than a
+// separate grip handle: dnd-kit's PointerSensor activationConstraint
+// (6px of movement) already tells a click from a drag apart, so the
+// Link inside still navigates normally on a plain click.
+function DraggableNavRow({ canDrag, label, icon, href, children }: { canDrag: boolean; label: string; icon: LucideIcon; href: string; children: ReactNode }) {
+  const { dragHandleProps, setDragRef, isDragging } = useDraggableNavItem({ enabled: canDrag, label, icon, href });
+  if (!canDrag) return <>{children}</>;
+  return (
+    <div ref={setDragRef} {...dragHandleProps} className={`touch-none transition ${isDragging ? 'opacity-40' : 'cursor-grab active:cursor-grabbing'}`}>
+      {children}
+    </div>
   );
 }

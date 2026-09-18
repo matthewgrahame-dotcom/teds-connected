@@ -7,6 +7,7 @@ import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { usePublishAccess } from '@/lib/publishAccess';
 import { ICON_KEYS, iconForKey } from './iconRegistry';
 import { authHeaders } from '@/lib/sessionAuth';
+import { useDroppableDashboard, useQuickLinksVersion } from '@/lib/navDashboardDnd';
 
 // TODO: replace with the real Phocal URL for this store (currently
 // seo-optimiser.vercel.app -- see the pending Vercel-project-rename
@@ -29,6 +30,8 @@ export function QuickLinksCard() {
   const [links, setLinks] = useState<QuickLinkRow[] | null>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState<number | 'new' | null>(null);
+  const { setDropRef, isOver } = useDroppableDashboard();
+  const quickLinksVersion = useQuickLinksVersion();
 
   const canEdit = meetsConnectedTier(effectiveConnectedTier, 'admin');
 
@@ -46,8 +49,16 @@ export function QuickLinksCard() {
   };
 
   useEffect(load, []);
+  // Re-fetches whenever a drag onto/off this card actually lands (see
+  // navDashboardDnd.tsx) -- that add/remove happens via a plain fetch
+  // call outside this component entirely, so this is what notices it
+  // happened and pulls the real, current list back in.
+  useEffect(() => {
+    if (quickLinksVersion > 0) load();
+  }, [quickLinksVersion]);
 
   const tiles: LinkTile[] = (links ?? []).map((l) => ({
+    id: l.id,
     label: l.label,
     icon: iconForKey(l.icon),
     href: l.href === PHOCAL_TOKEN ? phocalHref : l.href,
@@ -95,12 +106,13 @@ export function QuickLinksCard() {
   };
 
   return (
-    <DashboardCard title="Quick Links" actions={canEdit ? <CardIconButton icon={Settings} label="Edit quick links" onClick={openSettings} /> : <></>}>
-      {links === null ? <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p> : <LinkTileGrid tiles={tiles} />}
+    <div ref={setDropRef} className={isOver ? 'rounded-xl ring-2 ring-primary' : ''}>
+      <DashboardCard title="Quick Links" actions={canEdit ? <CardIconButton icon={Settings} label="Edit quick links" onClick={openSettings} /> : <></>}>
+        {links === null ? <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p> : <LinkTileGrid tiles={tiles} draggable={canEdit} />}
 
-      <Dialog open={editing} onOpenChange={setEditing}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <Dialog open={editing} onOpenChange={setEditing}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
             <DialogTitle>Edit Quick Links</DialogTitle>
           </DialogHeader>
           <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
@@ -173,6 +185,7 @@ export function QuickLinksCard() {
           </div>
         </DialogContent>
       </Dialog>
-    </DashboardCard>
+      </DashboardCard>
+    </div>
   );
 }

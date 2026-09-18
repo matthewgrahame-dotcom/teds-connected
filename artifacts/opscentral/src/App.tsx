@@ -21,6 +21,7 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import Dashboard from '@/pages/Dashboard';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { NavDashboardDndProvider } from '@/lib/navDashboardDnd';
 import { PublishAccessProvider } from '@/lib/publishAccess';
 import { LoginPage } from '@/components/LoginPage';
 import ProgramsPage from '@/pages/ProgramsPage';
@@ -107,30 +108,32 @@ function AppShell({ children }: { children: ReactNode }) {
   if (!session) return <LoginPage />;
 
   return (
-    <div className="min-h-[100dvh] bg-background">
-      <AppHeader userName={session.name} />
-      <div className="flex">
-        <AppSidebar mobileOpen={mobileOpen} onNavigate={() => setMobileOpen(false)} />
-        {mobileOpen && (
-          <button
-            data-testid="button-close-sidebar"
-            aria-label="Close navigation"
-            onClick={() => setMobileOpen(false)}
-            className="fixed inset-0 z-10 bg-foreground/30 md:hidden"
-          />
-        )}
-        <div className="min-w-0 flex-1">
-          <button
-            data-testid="button-mobile-menu"
-            onClick={() => setMobileOpen((open) => !open)}
-            className="flex items-center gap-2 border-b border-border px-5 py-3 text-xs font-bold text-muted-foreground md:hidden"
-          >
-            {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />} Menu
-          </button>
-          <main>{children}</main>
+    <NavDashboardDndProvider>
+      <div className="min-h-[100dvh] bg-background">
+        <AppHeader userName={session.name} />
+        <div className="flex">
+          <AppSidebar mobileOpen={mobileOpen} onNavigate={() => setMobileOpen(false)} />
+          {mobileOpen && (
+            <button
+              data-testid="button-close-sidebar"
+              aria-label="Close navigation"
+              onClick={() => setMobileOpen(false)}
+              className="fixed inset-0 z-10 bg-foreground/30 md:hidden"
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <button
+              data-testid="button-mobile-menu"
+              onClick={() => setMobileOpen((open) => !open)}
+              className="flex items-center gap-2 border-b border-border px-5 py-3 text-xs font-bold text-muted-foreground md:hidden"
+            >
+              {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />} Menu
+            </button>
+            <main>{children}</main>
+          </div>
         </div>
       </div>
-    </div>
+    </NavDashboardDndProvider>
   );
 }
 
