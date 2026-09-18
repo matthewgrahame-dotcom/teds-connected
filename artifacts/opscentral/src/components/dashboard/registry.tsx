@@ -20,7 +20,7 @@ export const DASHBOARD_WIDGET_REGISTRY: Record<string, { label: string; componen
   hero: { label: 'Hero Carousel', component: HeroCarousel },
   news: { label: 'News', component: NewsCard },
   tedsTalks: { label: "Ted's Talks", component: SocialTimelineCard },
-  recentProducts: { label: "What's New on Teds.com.au", component: RecentProductsCard },
+  recentProducts: { label: "New on Teds.com.au", component: RecentProductsCard },
   facebook: { label: 'Facebook Stream', component: FacebookStreamCard },
   calendar: { label: "Teds Calendar", component: TedsCalendarCard },
   quickLinks: { label: 'Quick Links', component: QuickLinksCard },

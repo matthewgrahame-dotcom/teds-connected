@@ -37,7 +37,7 @@ export function RecentProductsCard() {
 
   return (
     <DashboardCard
-      title="What's New on Teds.com.au"
+      title="New on Teds.com.au"
       actions={
         <a
           href={phocalUrl}
@@ -69,7 +69,7 @@ export function RecentProductsCard() {
       {data?.available && (
         <>
           <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            {typeof data.productCount === 'number' && <span>{data.productCount} new product(s)</span>}
+            {typeof data.productCount === 'number' && <span>{data.productCount} new product{data.productCount === 1 ? '' : 's'}</span>}
             {data.dateRange?.oldest && data.dateRange?.newest && (
               <span>
                 {new Date(data.dateRange.oldest).toLocaleDateString('en-AU')} – {new Date(data.dateRange.newest).toLocaleDateString('en-AU')}
