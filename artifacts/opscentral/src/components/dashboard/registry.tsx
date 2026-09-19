@@ -26,7 +26,7 @@ export const DASHBOARD_WIDGET_REGISTRY: Record<string, { label: string; componen
   quickLinks: { label: 'Quick Links', component: QuickLinksCard },
   outstandingTasks: { label: 'Outstanding Tasks', component: OutstandingTasksCard },
   keyContacts: { label: 'Key Contacts', component: KeyContactsCard },
-  rostering: { label: 'Rostering', component: RosteringCard },
+  rostering: { label: 'Rostering & Payroll', component: RosteringCard },
   aiHelp: { label: 'AI Help', component: AiHelpCard },
 };
 
