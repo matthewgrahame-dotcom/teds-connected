@@ -1,12 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GripVertical, Check, RotateCcw, Scale, Maximize2, Minimize2 } from 'lucide-react';
 import {
-  DndContext,
   DragOverlay,
-  closestCorners,
-  PointerSensor,
-  useSensor,
-  useSensors,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
@@ -16,6 +11,7 @@ import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 import { usePublishAccess } from '@/lib/publishAccess';
 import { DASHBOARD_WIDGET_REGISTRY, DEFAULT_DASHBOARD_LAYOUT, type DashboardColumn } from '@/components/dashboard/registry';
+import { useRegisterDragHandlers } from '@/lib/navDashboardDnd';
 
 type LayoutItem = { widgetKey: string; column: DashboardColumn };
 
@@ -86,7 +82,6 @@ export default function Dashboard() {
   const widgetRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const canEdit = meetsConnectedTier(effectiveConnectedTier, 'admin');
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const load = () => {
     fetch('/api/dashboard-widgets', { headers: authHeaders(session) })
@@ -150,9 +145,9 @@ export default function Dashboard() {
     setLayout((prev) => prev.map((i) => (i.widgetKey === widgetKey ? { ...i, column: i.column === 'wide' ? 'main' : 'wide' } : i)));
   };
 
-  const handleDragStart = (event: DragStartEvent) => setActiveId(String(event.active.id));
+  const handleDragStart = useCallback((event: DragStartEvent) => setActiveId(String(event.active.id)), []);
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     setActiveId(null);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -187,7 +182,16 @@ export default function Dashboard() {
       targetColumnItems.splice(insertAt, 0, moved);
       return overItem.column === 'main' ? [...targetColumnItems, ...otherColumnItems] : [...otherColumnItems, ...targetColumnItems];
     });
-  };
+  }, []);
+
+  // Plugs into the app's ONE shared DndContext (lifted in App.tsx) rather
+  // than wrapping a separate one here -- see the CRITICAL note in
+  // navDashboardDnd.tsx for exactly why a second, nested DndContext here
+  // silently broke the nav<->dashboard drag feature. useMemo keeps this
+  // object identity-stable across renders (both handlers are already
+  // useCallback-stable), so the registration effect doesn't re-fire on
+  // every render for no reason.
+  useRegisterDragHandlers(useMemo(() => ({ onDragStart: handleDragStart, onDragEnd: handleDragEnd }), [handleDragStart, handleDragEnd]));
 
   // Measures each widget's actual rendered height and redistributes them
   // across the two columns with a greedy bin-pack (largest first, always
@@ -299,40 +303,38 @@ export default function Dashboard() {
           </div>
         )}
 
-        <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          {wideItems.length > 0 && (
-            <SortableContext items={wideItems.map((i) => i.widgetKey)} strategy={verticalListSortingStrategy}>
-              <div className="mb-6 space-y-6">
-                {wideItems.map((item) => (
-                  <SortableWidget key={item.widgetKey} item={item} editing={editing} registerRef={registerRef} onToggleWide={toggleWide} />
-                ))}
-              </div>
-            </SortableContext>
-          )}
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,.9fr)]">
-            <SortableContext items={mainItems.map((i) => i.widgetKey)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-6">
-                {mainItems.map((item) => (
-                  <SortableWidget key={item.widgetKey} item={item} editing={editing} registerRef={registerRef} onToggleWide={toggleWide} />
-                ))}
-              </div>
-            </SortableContext>
-            <SortableContext items={sidebarItems.map((i) => i.widgetKey)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-6">
-                {sidebarItems.map((item) => (
-                  <SortableWidget key={item.widgetKey} item={item} editing={editing} registerRef={registerRef} onToggleWide={toggleWide} />
-                ))}
-              </div>
-            </SortableContext>
-          </div>
-          <DragOverlay>
-            {activeId && DASHBOARD_WIDGET_REGISTRY[activeId] ? (
-              <div className="rounded-xl border-2 border-primary bg-card px-4 py-3 text-sm font-bold text-foreground shadow-lg">
-                {DASHBOARD_WIDGET_REGISTRY[activeId].label}
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+        {wideItems.length > 0 && (
+          <SortableContext items={wideItems.map((i) => i.widgetKey)} strategy={verticalListSortingStrategy}>
+            <div className="mb-6 space-y-6">
+              {wideItems.map((item) => (
+                <SortableWidget key={item.widgetKey} item={item} editing={editing} registerRef={registerRef} onToggleWide={toggleWide} />
+              ))}
+            </div>
+          </SortableContext>
+        )}
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,.9fr)]">
+          <SortableContext items={mainItems.map((i) => i.widgetKey)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-6">
+              {mainItems.map((item) => (
+                <SortableWidget key={item.widgetKey} item={item} editing={editing} registerRef={registerRef} onToggleWide={toggleWide} />
+              ))}
+            </div>
+          </SortableContext>
+          <SortableContext items={sidebarItems.map((i) => i.widgetKey)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-6">
+              {sidebarItems.map((item) => (
+                <SortableWidget key={item.widgetKey} item={item} editing={editing} registerRef={registerRef} onToggleWide={toggleWide} />
+              ))}
+            </div>
+          </SortableContext>
+        </div>
+        <DragOverlay>
+          {activeId && DASHBOARD_WIDGET_REGISTRY[activeId] ? (
+            <div className="rounded-xl border-2 border-primary bg-card px-4 py-3 text-sm font-bold text-foreground shadow-lg">
+              {DASHBOARD_WIDGET_REGISTRY[activeId].label}
+            </div>
+          ) : null}
+        </DragOverlay>
       </div>
     </div>
   );

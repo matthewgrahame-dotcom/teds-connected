@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
+  closestCorners,
   DndContext,
   DragOverlay,
   PointerSensor,
@@ -25,12 +26,31 @@ import { ToastAction } from '@/components/ui/toast';
 // existing quick_links AND nav_items tables/routes untouched; this file
 // is purely the glue between them.
 //
-// The two draggable "kinds" share one DndContext (lifted up here, above
-// both the sidebar and the dashboard page, since they're siblings in
-// App.tsx rather than one containing the other) and are told apart by
-// each drag's own `data.kind`. Both directions follow the same safe
-// order: POST the new side FIRST, and only DELETE the old side once that
-// POST actually succeeded -- if the POST fails, nothing is deleted, so a
+// CRITICAL: this is the ONLY DndContext for the whole app -- Dashboard.tsx's
+// own widget-drag-to-reorder feature (pre-existing, unrelated to this one)
+// used to have its OWN, separate <DndContext>, nested inside this one once
+// this provider was lifted into App.tsx. That's a real bug, not a harmless
+// duplication: React context always resolves to the NEAREST provider, so
+// QuickLinksCard's useDroppable (a descendant of Dashboard.tsx) was silently
+// binding to Dashboard's inner context instead of this outer one -- the
+// dragged nav item would lift and follow the cursor fine (that part's
+// handled by THIS context's own sensors), but dropping it over QuickLinksCard
+// registered with a completely different DndContext instance, so this
+// context's onDragEnd never saw it as a valid drop target at all. Confirmed
+// directly: Matt reported exactly that symptom (lifts fine, drop does
+// nothing) while on the dashboard page with Quick Links visible, which ruled
+// out every other explanation first. Fixed by registerDragHandlers below:
+// Dashboard.tsx registers its OWN onDragStart/onDragEnd here instead of
+// wrapping its own DndContext, so there is exactly one DndContext, and
+// every drag (nav-item, quick-link-tile, or a dashboard widget reorder) is
+// dispatched through the same onDragEnd, each kind safely ignoring events
+// that aren't its own (Dashboard's handler already only acts on ids that
+// match one of its own widgets, so passing every event through it is safe).
+//
+// The two draggable "kinds" native to this file are told apart by each
+// drag's own `data.kind`. Both directions follow the same safe order:
+// POST the new side FIRST, and only DELETE the old side once that POST
+// actually succeeded -- if the POST fails, nothing is deleted, so a
 // failed move never actually loses the item. Both also show an Undo
 // toast that reverses the WHOLE move (delete the new side, recreate the
 // old one with its original data) rather than just one half of it.
@@ -45,6 +65,8 @@ const DASHBOARD_DROP_ZONE_ID = 'nav-dashboard-dnd:dashboard-drop-zone';
 const SIDEBAR_DROP_ZONE_ID = 'nav-dashboard-dnd:sidebar-drop-zone';
 const UNDO_WINDOW_MS = 8000;
 
+type ExternalDragHandlers = { onDragStart?: (event: DragStartEvent) => void; onDragEnd?: (event: DragEndEvent) => void };
+
 type NavDashboardDndContextValue = {
   // Both increment on every successful move -- QuickLinksCard watches
   // quickLinksVersion and AppSidebar watches navItemsVersion, each
@@ -53,6 +75,12 @@ type NavDashboardDndContextValue = {
   // move increments BOTH, since it always touches both tables.
   quickLinksVersion: number;
   navItemsVersion: number;
+  // Lets another feature (currently just Dashboard.tsx's widget reorder)
+  // plug its own onDragStart/onDragEnd into THIS single shared DndContext,
+  // instead of wrapping its own -- see the CRITICAL note above for why
+  // that's required, not optional. Returns an unregister function; call it
+  // from the registering component's own useEffect cleanup.
+  registerDragHandlers: (handlers: ExternalDragHandlers) => () => void;
 };
 const NavDashboardDndContext = createContext<NavDashboardDndContextValue | null>(null);
 
@@ -63,15 +91,33 @@ export function NavDashboardDndProvider({ children }: { children: ReactNode }) {
   const [quickLinksVersion, setQuickLinksVersion] = useState(0);
   const [navItemsVersion, setNavItemsVersion] = useState(0);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  // A ref, not state -- registration happens in an effect (once, on
+  // mount) and is read inside drag callbacks; neither needs a re-render
+  // when the registered set changes, and a ref avoids handleDragEnd's
+  // identity changing every time something (un)registers.
+  const externalHandlersRef = useRef<Set<ExternalDragHandlers>>(new Set());
+
+  const registerDragHandlers = useCallback((handlers: ExternalDragHandlers) => {
+    externalHandlersRef.current.add(handlers);
+    return () => {
+      externalHandlersRef.current.delete(handlers);
+    };
+  }, []);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveDrag((event.active.data.current as DragData | undefined) ?? null);
+    for (const handlers of externalHandlersRef.current) handlers.onDragStart?.(event);
   }, []);
 
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const data = event.active.data.current as DragData | undefined;
     const overId = event.over?.id;
     setActiveDrag(null);
+    // Always give every registered external handler (Dashboard's widget
+    // reorder) a chance at every event -- it safely no-ops on anything
+    // that isn't one of its own widget ids, so this is safe even for a
+    // nav-item/quick-link-tile drag.
+    for (const handlers of externalHandlersRef.current) handlers.onDragEnd?.(event);
     if (!data) return;
 
     if (data.kind === 'nav-item' && overId === DASHBOARD_DROP_ZONE_ID) {
@@ -142,8 +188,8 @@ export function NavDashboardDndProvider({ children }: { children: ReactNode }) {
   }, [session, toast]);
 
   return (
-    <NavDashboardDndContext.Provider value={{ quickLinksVersion, navItemsVersion }}>
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <NavDashboardDndContext.Provider value={{ quickLinksVersion, navItemsVersion, registerDragHandlers }}>
+      <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         {children}
         <DragOverlay>
           {activeDrag && (
@@ -173,6 +219,20 @@ export function useNavItemsVersion(): number {
   const ctx = useContext(NavDashboardDndContext);
   if (!ctx) throw new Error('useNavItemsVersion used outside NavDashboardDndProvider');
   return ctx.navItemsVersion;
+}
+
+// Lets Dashboard.tsx's widget-reorder feature plug its own drag handlers
+// into this shared DndContext instead of wrapping its own -- see the
+// CRITICAL note at the top of this file for why that's required. Call
+// with the same handlers object every render (or memoize it) so the
+// registration doesn't churn on every re-render; the effect below
+// re-registers whenever the handlers reference changes, which is
+// correct but wasteful if it changes every render for no real reason.
+export function useRegisterDragHandlers(handlers: ExternalDragHandlers) {
+  const ctx = useContext(NavDashboardDndContext);
+  if (!ctx) throw new Error('useRegisterDragHandlers used outside NavDashboardDndProvider');
+  const { registerDragHandlers } = ctx;
+  useEffect(() => registerDragHandlers(handlers), [registerDragHandlers, handlers]);
 }
 
 export function useDraggableNavItem({ enabled, id, label, iconKey, href, parentId, section, sortOrder, minTier }: {
