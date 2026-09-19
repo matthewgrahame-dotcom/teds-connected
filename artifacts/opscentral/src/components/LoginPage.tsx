@@ -21,7 +21,11 @@ export function LoginPage() {
     >
       <div className="w-full max-w-sm rounded-xl border border-card-border bg-card p-8 shell-shadow">
         <div className="flex flex-col items-center gap-3 pb-6">
-          <img src={connectedLogo} alt="Connected" className="h-16 w-auto" />
+          <img
+            src={connectedLogo}
+            alt="Connected"
+            className="h-16 w-auto rounded-xl shadow-lg"
+          />
         </div>
         {sessionExpired && (
           <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
