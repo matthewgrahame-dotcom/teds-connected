@@ -1,4 +1,4 @@
-import { boolean, integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, integer, pgTable, serial, text, timestamp, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { portalUsersTable } from "./portal-users";
 
 // Generic key/value store for single-value dashboard widget settings that
@@ -27,6 +27,50 @@ export const quickLinksTable = pgTable("quick_links", {
   href: text("href").notNull(),
   external: boolean("external").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// The sidebar's own nav items -- previously a hardcoded array in
+// AppSidebar.tsx (primaryNav/secondaryNav), now admin-editable the same
+// way Quick Links already was, and the actual destination for the
+// nav<->dashboard drag-and-drop MOVE (not copy) feature: dragging a nav
+// item onto the dashboard deletes its row here and creates one in
+// quick_links, and the reverse deletes from quick_links and creates one
+// here.
+//
+// A "group" (Admin, Learn, People in the original hardcoded list) is
+// just a row with href=NULL and one or more other rows pointing at it
+// via parentId -- there's no separate "is this a group" flag, since
+// having children (or not) already fully determines that at render
+// time. parentId is nullable AnyPgColumn (not a direct self-reference)
+// because drizzle can't infer a table's own column type while still
+// defining that same table.
+export const navItemsTable = pgTable("nav_items", {
+  id: serial("id").primaryKey(),
+  label: text("label").notNull(),
+  // Nullable: only top-level items show an icon in the current sidebar
+  // (a child link under a group never has its own) -- a NULL here means
+  // exactly that, not a data-entry mistake. Falls back to a generic
+  // default (see iconRegistry's 'Link' fallback) only in the one case
+  // that needs a real value regardless: a child dragged onto the
+  // dashboard, becoming a quick_links row, which DOES require an icon.
+  icon: text("icon"),
+  href: text("href"),
+  parentId: integer("parent_id").references((): AnyPgColumn => navItemsTable.id, { onDelete: "cascade" }),
+  // 'primary' | 'secondary' in the frontend's own two-list convention
+  // (primaryNav appears above the divider, secondaryNav below) -- kept
+  // as plain text rather than a Postgres enum so a future third section
+  // never needs a migration to add, just a new string value.
+  section: text("section").notNull().default("primary"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  // 'manager' | 'admin' | NULL (NULL = visible to everyone) -- mirrors
+  // the frontend's existing NavItem.minTier exactly.
+  minTier: text("min_tier"),
+  // True only for the one item (Dashboard) that must always exist and
+  // can never be dragged away -- without this, an admin could drag the
+  // sidebar into a genuinely broken, navigation-less state by accident.
+  protected: boolean("protected").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

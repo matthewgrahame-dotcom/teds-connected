@@ -1,20 +1,26 @@
 import {
   Aperture,
+  Briefcase,
   BookOpen,
   Calendar,
   FileText,
   FileWarning,
+  GraduationCap,
   Globe,
   HelpCircle,
+  IdCard,
   Instagram,
   Laptop,
+  LayoutGrid,
   Link as LinkIcon,
   Mail,
   MapPin,
+  Newspaper,
   Phone,
   ShieldCheck,
   Store,
   Users,
+  UsersRound,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -24,23 +30,36 @@ import {
 // icon at render time, and what the edit dialog's dropdown offers. Add
 // more here as needed; unknown/removed keys fall back to LinkIcon (see
 // iconForKey) rather than crashing.
+//
+// Also the registry nav_items relies on for the exact same reason --
+// Briefcase/GraduationCap/IdCard/LayoutGrid/Newspaper/UsersRound were
+// added specifically because the sidebar's own nav items use them, and
+// the nav<->dashboard drag-move feature needs every nav icon to survive
+// becoming a quick_links row (and back) without silently downgrading to
+// the generic link icon.
 export const ICON_REGISTRY: Record<string, LucideIcon> = {
   Aperture,
+  Briefcase,
   BookOpen,
   Calendar,
   FileText,
   FileWarning,
+  GraduationCap,
   Globe,
   HelpCircle,
+  IdCard,
   Instagram,
   Laptop,
+  LayoutGrid,
   Link: LinkIcon,
   Mail,
   MapPin,
+  Newspaper,
   Phone,
   ShieldCheck,
   Store,
   Users,
+  UsersRound,
 };
 
 export const ICON_KEYS = Object.keys(ICON_REGISTRY);
@@ -49,14 +68,3 @@ export function iconForKey(key: string): LucideIcon {
   return ICON_REGISTRY[key] ?? LinkIcon;
 }
 
-// The reverse of iconForKey -- used when something OUTSIDE this registry
-// (a sidebar nav item, holding a real Lucide component reference rather
-// than a string key) needs to become a quick_links row, which only ever
-// stores the string key. Falls back to 'Link' (matching iconForKey's own
-// fallback for an unrecognized key) for any icon not in this registry --
-// the sidebar's own icon set is broader than what's offered in the Quick
-// Links edit dialog, so this is expected to miss sometimes, not a bug.
-export function keyForIcon(icon: LucideIcon): string {
-  const entry = Object.entries(ICON_REGISTRY).find(([, component]) => component === icon);
-  return entry?.[0] ?? 'Link';
-}

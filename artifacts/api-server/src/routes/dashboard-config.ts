@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { asc, eq } from "drizzle-orm";
-import { db, appSettingsTable, quickLinksTable, keyContactsTable, portalUsersTable, portalUserProfilesTable } from "@workspace/db";
+import { db, appSettingsTable, quickLinksTable, keyContactsTable, navItemsTable, portalUsersTable, portalUserProfilesTable } from "@workspace/db";
 import { requireSession } from "../lib/sessionAuth";
 import { requireConnectedTier } from "../lib/connectedTiers";
 
@@ -88,6 +88,81 @@ router.delete("/quick-links/:id", requireConnectedTier('admin'), async (req, res
     return;
   }
   await db.delete(quickLinksTable).where(eq(quickLinksTable.id, id));
+  res.json({ ok: true });
+});
+
+// -- Nav items (the sidebar) -----------------------------------------------
+// Replaces what used to be a hardcoded array in AppSidebar.tsx. GET
+// returns every row unfiltered -- the frontend builds the parent/children
+// tree and applies its own minTier filtering client-side (same as it
+// always has), rather than this route needing to know about tiers at all.
+
+router.get("/nav-items", requireSession, async (_req, res) => {
+  const items = await db.select().from(navItemsTable).orderBy(asc(navItemsTable.sortOrder), asc(navItemsTable.id));
+  res.json(items);
+});
+
+router.post("/nav-items", requireConnectedTier('admin'), async (req, res) => {
+  const { label, icon, href, parentId, section, sortOrder, minTier } = req.body ?? {};
+  if (typeof label !== "string" || !label.trim()) {
+    res.status(400).json({ error: "label is required" });
+    return;
+  }
+  const [item] = await db
+    .insert(navItemsTable)
+    .values({
+      label: label.trim(),
+      icon: typeof icon === "string" && icon.trim() ? icon.trim() : null,
+      href: typeof href === "string" && href.trim() ? href.trim() : null,
+      parentId: Number.isInteger(parentId) ? parentId : null,
+      section: section === "secondary" ? "secondary" : "primary",
+      sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+      minTier: minTier === "manager" || minTier === "admin" ? minTier : null,
+    })
+    .returning();
+  res.json({ ok: true, item });
+});
+
+router.patch("/nav-items/:id", requireConnectedTier('admin'), async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid nav item id" });
+    return;
+  }
+  const { label, icon, href, parentId, section, sortOrder, minTier } = req.body ?? {};
+  const updates: Partial<typeof navItemsTable.$inferInsert> = { updatedAt: new Date() };
+  if (typeof label === "string") updates.label = label.trim();
+  if (icon === null || typeof icon === "string") updates.icon = icon;
+  if (href === null || typeof href === "string") updates.href = href;
+  if (parentId === null || Number.isInteger(parentId)) updates.parentId = parentId;
+  if (section === "primary" || section === "secondary") updates.section = section;
+  if (typeof sortOrder === "number") updates.sortOrder = sortOrder;
+  if (minTier === null || minTier === "manager" || minTier === "admin") updates.minTier = minTier;
+
+  const [item] = await db.update(navItemsTable).set(updates).where(eq(navItemsTable.id, id)).returning();
+  if (!item) {
+    res.status(404).json({ error: "Nav item not found" });
+    return;
+  }
+  res.json({ ok: true, item });
+});
+
+router.delete("/nav-items/:id", requireConnectedTier('admin'), async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid nav item id" });
+    return;
+  }
+  // Server-side enforcement, not just a disabled drag handle in the
+  // UI -- the one thing this whole feature is meant to prevent (an
+  // admin dragging the sidebar into a genuinely navigation-less state)
+  // has to hold even if a request bypasses the frontend entirely.
+  const [existing] = await db.select({ protected: navItemsTable.protected }).from(navItemsTable).where(eq(navItemsTable.id, id));
+  if (existing?.protected) {
+    res.status(403).json({ error: "This nav item is protected and can't be removed." });
+    return;
+  }
+  await db.delete(navItemsTable).where(eq(navItemsTable.id, id));
   res.json({ ok: true });
 });
 

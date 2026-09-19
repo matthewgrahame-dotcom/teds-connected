@@ -1,73 +1,43 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import {
-  ChevronDown,
-  ChevronRight,
-  FileText,
-  Briefcase,
-  GraduationCap,
-  GripVertical,
-  IdCard,
-  LayoutGrid,
-  Newspaper,
-  UsersRound,
-  type LucideIcon,
-} from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import connectedLogo from '@/assets/connected-logo.png';
 import { useAuth, meetsConnectedTier } from '@/lib/auth';
-import { useDraggableNavItem, useDroppableSidebar } from '@/lib/navDashboardDnd';
+import { authHeaders } from '@/lib/sessionAuth';
+import { iconForKey } from '@/components/dashboard/iconRegistry';
+import { useDraggableNavItem, useDroppableSidebar, useNavItemsVersion } from '@/lib/navDashboardDnd';
 
-type NavChild = { label: string; href?: string };
-
-type NavItem = {
+// The real shape returned by GET /api/nav-items -- see nav_items in
+// lib/db/src/schema/dashboard-config.ts for what each field means.
+// Building the parent/children tree from this flat list, and the
+// minTier filtering, both happen here client-side rather than on the
+// server, exactly as they always did when this was a hardcoded array.
+type FetchedNavItem = {
+  id: number;
   label: string;
-  href?: string;
-  icon: LucideIcon;
-  children?: NavChild[];
-  // Omitted entirely (not just disabled) for anyone below this tier --
-  // matches Matt's actual reason for wanting this: previewing a lower
-  // tier should show what that tier really sees, not the same nav with
-  // buttons that then fail. Exiting a preview (including one that hides
-  // this sidebar's own way back to Roles & Access) happens via the
-  // "Preview Connected tier" dropdown in the header, not from here.
-  minTier?: 'manager' | 'admin';
+  icon: string | null;
+  href: string | null;
+  parentId: number | null;
+  section: string;
+  sortOrder: number;
+  minTier: string | null;
+  protected: boolean;
 };
 
-const primaryNav: NavItem[] = [
-  { label: 'Dashboard', href: '/', icon: LayoutGrid },
-  { label: 'News', href: '/news', icon: Newspaper },
-  { label: 'Admin', icon: IdCard, minTier: 'admin', children: [{ label: 'Portal settings', href: '/admin/portal-settings' }, { label: 'User Management', href: '/admin/users' }, { label: 'Manage Locations', href: '/admin/locations' }, { label: 'Manage Programs', href: '/admin/programs' }, { label: 'Manage Onboarding', href: '/admin/onboarding' }, { label: 'Manage Job Postings', href: '/admin/job-postings' }] },
-  { label: 'Reporting', href: '/reporting', icon: FileText, minTier: 'manager' },
-];
-
-
-const secondaryNav: NavItem[] = [
-  { label: 'Work', href: '/work', icon: Briefcase },
-  {
-    label: 'Learn',
-    icon: GraduationCap,
-    children: [
-      { label: 'Training and Programs', href: '/learn/programs' },
-    ],
-  },
-  {
-    label: 'People',
-    icon: UsersRound,
-    children: [
-      { label: 'Performance Review' },
-      { label: 'Recruiting', href: '/people/recruiting' },
-      { label: 'Onboarding', href: '/people/onboarding' },
-      { label: 'All Forms', href: '/people/forms' },
-    ],
-  },
-];
+// Narrows the API's generic `string | null` minTier down to the literal
+// union meetsConnectedTier actually expects -- the backend already only
+// ever stores 'manager'/'admin'/NULL (validated on write), so this is a
+// real narrowing of already-trustworthy data, not a blind cast papering
+// over a genuinely unknown value.
+function isRealMinTier(value: string | null): value is 'manager' | 'admin' {
+  return value === 'manager' || value === 'admin';
+}
 
 export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; onNavigate: () => void }) {
   const [location] = useLocation();
-  const { effectiveConnectedTier } = useAuth();
+  const { session, effectiveConnectedTier } = useAuth();
   const canDrag = meetsConnectedTier(effectiveConnectedTier, 'admin');
-  const visiblePrimaryNav = primaryNav.filter((item) => !item.minTier || meetsConnectedTier(effectiveConnectedTier, item.minTier));
-  const visibleSecondaryNav = secondaryNav.filter((item) => !item.minTier || meetsConnectedTier(effectiveConnectedTier, item.minTier));
+  const [items, setItems] = useState<FetchedNavItem[] | null>(null);
   // Accordion: only one section open at a time across the whole sidebar --
   // opening one collapses whatever else was open. A previous attempt at
   // this (via AI Studio) didn't actually land; this replaces the old
@@ -75,15 +45,29 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
   // stay open simultaneously.
   const [openSection, setOpenSection] = useState<string | null>(null);
   // Admin-only drag-and-drop, onto the dashboard's Quick Links widget:
-  // drop this whole sidebar to REMOVE a Quick Links tile someone
-  // dragged back onto it -- see navDashboardDnd.tsx for the other half
-  // (the dashboard's own drop zone, for adding a tile).
+  // drop this whole sidebar to MOVE a Quick Links tile someone dragged
+  // back onto it -- see navDashboardDnd.tsx for the other half (the
+  // dashboard's own drop zone, for moving a nav item the other way).
   const { setDropRef, isOver } = useDroppableSidebar();
+  const navItemsVersion = useNavItemsVersion();
 
-  const renderItem = (item: NavItem) => {
+  useEffect(() => {
+    fetch('/api/nav-items', { headers: authHeaders(session) })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then(setItems)
+      .catch(() => setItems([]));
+  }, [navItemsVersion]);
+
+  const visibleItems = (items ?? []).filter((item) => !isRealMinTier(item.minTier) || meetsConnectedTier(effectiveConnectedTier, item.minTier));
+  const topLevel = (section: string) =>
+    visibleItems.filter((item) => item.parentId === null && item.section === section).sort((a, b) => a.sortOrder - b.sortOrder);
+  const childrenOf = (parentId: number) => visibleItems.filter((item) => item.parentId === parentId).sort((a, b) => a.sortOrder - b.sortOrder);
+
+  const renderItem = (item: FetchedNavItem) => {
     const active = item.href ? location === item.href || (item.href !== '/' && location.startsWith(item.href)) : false;
     const isExpanded = openSection === item.label;
-    const Icon = item.icon;
+    const children = childrenOf(item.id);
+    const Icon = iconForKey(item.icon ?? 'Link');
     const rowClasses = `group flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-[15px] font-bold transition ${
       active ? 'bg-sidebar-accent text-foreground' : 'text-foreground/70 hover:bg-sidebar-accent/60 hover:text-foreground'
     }`;
@@ -94,14 +78,14 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
           <Icon className="h-[19px] w-[19px]" strokeWidth={1.75} />
           {item.label}
         </span>
-        {item.children && (isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />)}
+        {children.length > 0 && (isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />)}
       </>
     );
 
     return (
-      <div key={item.label}>
+      <div key={item.id}>
         {item.href ? (
-          <DraggableNavRow canDrag={canDrag} label={item.label} icon={Icon} href={item.href}>
+          <DraggableNavRow canDrag={canDrag} item={item}>
             <Link href={item.href} onClick={onNavigate} data-testid={`link-nav-${item.label.toLowerCase()}`} className={rowClasses}>
               {content}
             </Link>
@@ -116,11 +100,11 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
             {content}
           </button>
         )}
-        {item.children && isExpanded && (
+        {children.length > 0 && isExpanded && (
           <div className="ml-9 mt-1 space-y-1 border-l border-border pl-3">
-            {item.children.map((child) =>
+            {children.map((child) =>
               child.href ? (
-                <DraggableNavRow key={child.label} canDrag={canDrag} label={child.label} icon={Icon} href={child.href}>
+                <DraggableNavRow key={child.id} canDrag={canDrag} item={child}>
                   <Link
                     href={child.href}
                     onClick={onNavigate}
@@ -134,7 +118,7 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
                 </DraggableNavRow>
               ) : (
                 <button
-                  key={child.label}
+                  key={child.id}
                   type="button"
                   className="block w-full rounded-xl px-3 py-1.5 text-left text-sm font-semibold text-muted-foreground transition hover:bg-sidebar-accent/60 hover:text-foreground"
                 >
@@ -170,14 +154,14 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
 
         {canDrag && (
           <p className="border-b border-sidebar-border px-4 py-2 text-[11px] font-semibold text-muted-foreground">
-            Drag a link onto the dashboard to pin it to Quick Links
+            Drag a link to/from the dashboard to move it
           </p>
         )}
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-4" aria-label="Portal navigation">
-          {visiblePrimaryNav.map(renderItem)}
+          {topLevel('primary').map(renderItem)}
           <div className="my-3 border-t border-sidebar-border" />
-          {visibleSecondaryNav.map(renderItem)}
+          {topLevel('secondary').map(renderItem)}
         </nav>
       </div>
     </aside>
@@ -185,16 +169,29 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
 }
 
 // Wraps a nav row so it can be dragged onto the dashboard's Quick Links
-// drop zone -- a no-op passthrough when canDrag is false, so the
-// non-admin experience is completely unchanged (same DOM shape as
-// before this feature existed, not just visually hidden drag affordance).
-// Attaches the drag listeners to this whole wrapper rather than a
-// separate grip handle: dnd-kit's PointerSensor activationConstraint
-// (6px of movement) already tells a click from a drag apart, so the
-// Link inside still navigates normally on a plain click.
-function DraggableNavRow({ canDrag, label, icon, href, children }: { canDrag: boolean; label: string; icon: LucideIcon; href: string; children: ReactNode }) {
-  const { dragHandleProps, setDragRef, isDragging } = useDraggableNavItem({ enabled: canDrag, label, icon, href });
-  if (!canDrag) return <>{children}</>;
+// drop zone -- a no-op passthrough when canDrag is false OR the item is
+// protected (Dashboard), so the non-admin experience is completely
+// unchanged, and Dashboard specifically can never be dragged away
+// regardless of tier -- the one thing this whole feature is meant to
+// guarantee (the sidebar can't be dragged into a genuinely empty,
+// navigation-less state). Attaches the drag listeners to this whole
+// wrapper rather than a separate grip handle: dnd-kit's PointerSensor
+// activationConstraint (6px of movement) already tells a click from a
+// drag apart, so the Link inside still navigates normally on a plain click.
+function DraggableNavRow({ canDrag, item, children }: { canDrag: boolean; item: FetchedNavItem; children: ReactNode }) {
+  const enabled = canDrag && !item.protected;
+  const { dragHandleProps, setDragRef, isDragging } = useDraggableNavItem({
+    enabled,
+    id: item.id,
+    label: item.label,
+    iconKey: item.icon ?? 'Link',
+    href: item.href ?? '',
+    parentId: item.parentId,
+    section: item.section,
+    sortOrder: item.sortOrder,
+    minTier: item.minTier,
+  });
+  if (!enabled) return <>{children}</>;
   return (
     <div ref={setDragRef} {...dragHandleProps} className={`touch-none transition ${isDragging ? 'opacity-40' : 'cursor-grab active:cursor-grabbing'}`}>
       {children}
