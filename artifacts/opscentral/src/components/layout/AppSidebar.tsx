@@ -5,7 +5,7 @@ import connectedLogo from '@/assets/connected-logo.png';
 import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
 import { iconForKey } from '@/components/dashboard/iconRegistry';
-import { useDraggableNavItem, useDroppableSidebar, useNavItemsVersion } from '@/lib/navDashboardDnd';
+import { useDraggableNavItem, useDroppableNavGroup, useDroppableSidebar, useNavItemsVersion } from '@/lib/navDashboardDnd';
 
 // The real shape returned by GET /api/nav-items -- see nav_items in
 // lib/db/src/schema/dashboard-config.ts for what each field means.
@@ -38,7 +38,8 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
   const { session, effectiveConnectedTier } = useAuth();
   // 'full' specifically, not 'admin' -- Matt's own call: an ordinary
   // admin doesn't need to be able to drag nav items around/into Quick
-  // Links, only the one person this tier is scoped to.
+  // Links (or reparent them onto a group), only the one person this
+  // tier is scoped to.
   const canDrag = meetsConnectedTier(effectiveConnectedTier, 'full');
   const [items, setItems] = useState<FetchedNavItem[] | null>(null);
   // Accordion: only one section open at a time across the whole sidebar --
@@ -94,14 +95,22 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
             </Link>
           </DraggableNavRow>
         ) : (
-          <button
-            type="button"
-            data-testid={`button-nav-${item.label.toLowerCase()}`}
-            onClick={() => setOpenSection((current) => (current === item.label ? null : item.label))}
-            className={rowClasses}
-          >
-            {content}
-          </button>
+          // No href means this is a GROUP HEADER (Admin/Learn/People/etc) --
+          // the only place in this component's data that's ever true. Wrapped
+          // in its own droppable so dragging a nav item onto it reparents
+          // that item into this group -- see navDashboardDnd.tsx's
+          // useDroppableNavGroup and the NAV_GROUP_DROP_PREFIX handling in
+          // handleDragEnd for the other half of this.
+          <DroppableNavGroupRow canDrag={canDrag} groupId={item.id}>
+            <button
+              type="button"
+              data-testid={`button-nav-${item.label.toLowerCase()}`}
+              onClick={() => setOpenSection((current) => (current === item.label ? null : item.label))}
+              className={rowClasses}
+            >
+              {content}
+            </button>
+          </DroppableNavGroupRow>
         )}
         {children.length > 0 && isExpanded && (
           <div className="ml-9 mt-1 space-y-1 border-l border-border pl-3">
@@ -157,7 +166,7 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
 
         {canDrag && (
           <p className="border-b border-sidebar-border px-4 py-2 text-[11px] font-semibold text-muted-foreground">
-            Drag a link to/from the dashboard to move it
+            Drag a link to/from the dashboard to move it, or onto a group to file it there
           </p>
         )}
 
@@ -197,6 +206,28 @@ function DraggableNavRow({ canDrag, item, children }: { canDrag: boolean; item: 
   if (!enabled) return <>{children}</>;
   return (
     <div ref={setDragRef} {...dragHandleProps} className={`touch-none transition ${isDragging ? 'opacity-40' : 'cursor-grab active:cursor-grabbing'}`}>
+      {children}
+    </div>
+  );
+}
+
+// Wraps a GROUP HEADER row (Admin/Learn/People/etc) so a nav item can be
+// dropped directly onto it to be reparented into that group -- see
+// navDashboardDnd.tsx's useDroppableNavGroup for the id scheme and
+// handleDragEnd's NAV_GROUP_DROP_PREFIX branch for what actually happens
+// on drop. A no-op passthrough when canDrag is false, same as
+// DraggableNavRow above, so the non-'full'-tier experience is unchanged.
+// Deliberately its OWN component (not called inline from renderItem,
+// which runs inside a .map over a dynamic list) -- calling a dnd-kit hook
+// directly from a function invoked a variable number of times per render
+// would violate the rules of hooks; a dedicated component gets its own
+// stable per-instance hook call, exactly like DraggableNavRow already
+// does for the drag side.
+function DroppableNavGroupRow({ canDrag, groupId, children }: { canDrag: boolean; groupId: number; children: ReactNode }) {
+  const { setDropRef, isOver } = useDroppableNavGroup(groupId);
+  if (!canDrag) return <>{children}</>;
+  return (
+    <div ref={setDropRef} className={`rounded-xl transition ${isOver ? 'ring-2 ring-inset ring-primary' : ''}`}>
       {children}
     </div>
   );
