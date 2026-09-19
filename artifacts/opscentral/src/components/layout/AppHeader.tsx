@@ -177,7 +177,7 @@ export function AppHeader({ userName }: { userName: string }) {
                     {label}
                   </Link>
                 ))}
-                {meetsConnectedTier(effectiveConnectedTier, 'admin') && (
+                {meetsConnectedTier(effectiveConnectedTier, 'full') && (
                   <button
                     type="button"
                     onClick={() => {
@@ -196,20 +196,21 @@ export function AppHeader({ userName }: { userName: string }) {
                     Edit Dashboard Layout
                   </button>
                 )}
-                {connectedTier === 'admin' && (
+                {meetsConnectedTier(connectedTier, 'admin') && (
                   <div className="px-4 py-2">
                     <label className="mb-1 flex items-center gap-2 text-xs font-bold text-muted-foreground">
                       <Eye className="h-3.5 w-3.5" /> Preview Connected tier
                     </label>
                     <select
                       value={previewConnectedTier ?? ''}
-                      onChange={(e) => setPreviewConnectedTier(e.target.value ? (e.target.value as 'basic' | 'manager' | 'admin') : null)}
+                      onChange={(e) => setPreviewConnectedTier(e.target.value ? (e.target.value as 'basic' | 'manager' | 'admin' | 'full') : null)}
                       className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs outline-none"
                     >
                       <option value="">Your real tier{connectedTier ? ` (${connectedTier})` : ''}</option>
                       <option value="basic">Basic</option>
                       <option value="manager">Manager</option>
                       <option value="admin">Admin</option>
+                      <option value="full">Full</option>
                     </select>
                   </div>
                 )}

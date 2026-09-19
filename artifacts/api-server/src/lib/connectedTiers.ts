@@ -27,9 +27,9 @@ declare global {
 // with an "Admin" role and 22 Store Managers, almost none of whom are among
 // Phocal's 3 -- so Connected needs its own ladder, derived from
 // portal_users.role instead.
-export const CONNECTED_TIERS = ["basic", "manager", "admin"] as const;
+export const CONNECTED_TIERS = ["basic", "manager", "admin", "full"] as const;
 export type ConnectedTier = (typeof CONNECTED_TIERS)[number];
-const TIER_RANK: Record<ConnectedTier, number> = { basic: 0, manager: 1, admin: 2 };
+const TIER_RANK: Record<ConnectedTier, number> = { basic: 0, manager: 1, admin: 2, full: 3 };
 
 const ROLE_TIER_MAP_KEY = "connected_role_tier_map";
 
@@ -67,6 +67,14 @@ async function getRoleTierMap(): Promise<Record<string, ConnectedTier>> {
 // placeholder: an unrecognized person or role should never silently end up
 // with elevated access.
 export async function getConnectedTier(fullName: string): Promise<ConnectedTier> {
+  // "full" is deliberately not part of the Roles & Access role-tier map
+  // at all -- Matt asked for a tier meant for exactly one person, above
+  // admin, that even another admin's role couldn't grant just by having
+  // their role string mapped to "admin" in the map. Checked by name
+  // directly, before the map lookup, rather than inventing a role/flag
+  // whose only real purpose would be granting this to one specific
+  // person anyway.
+  if (namesMatch(fullName, "Matthew Grahame")) return "full";
   const [map, users] = await Promise.all([getRoleTierMap(), db.select({ role: portalUsersTable.role, firstName: portalUsersTable.firstName, lastName: portalUsersTable.lastName }).from(portalUsersTable)]);
   const match = users.find((u) => namesMatch(`${u.firstName} ${u.lastName}`, fullName));
   if (!match) return "basic";

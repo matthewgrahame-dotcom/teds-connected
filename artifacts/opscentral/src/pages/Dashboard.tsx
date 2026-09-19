@@ -81,7 +81,11 @@ export default function Dashboard() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const widgetRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const canEdit = meetsConnectedTier(effectiveConnectedTier, 'admin');
+  // 'full' specifically, not 'admin' -- same reasoning as AppSidebar's
+  // canDrag: Matt's own call that an ordinary admin doesn't need to be
+  // able to restructure the dashboard's widget layout, only the one
+  // person this tier is scoped to.
+  const canEdit = meetsConnectedTier(effectiveConnectedTier, 'full');
 
   const load = () => {
     fetch('/api/dashboard-widgets', { headers: authHeaders(session) })

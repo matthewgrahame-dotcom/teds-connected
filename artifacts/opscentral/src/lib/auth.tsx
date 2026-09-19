@@ -8,8 +8,8 @@ export type StaffSession = {
   crossAppToken?: string | null;
 };
 
-export type ConnectedTier = 'basic' | 'manager' | 'admin';
-const CONNECTED_TIER_RANK: Record<ConnectedTier, number> = { basic: 0, manager: 1, admin: 2 };
+export type ConnectedTier = 'basic' | 'manager' | 'admin' | 'full';
+const CONNECTED_TIER_RANK: Record<ConnectedTier, number> = { basic: 0, manager: 1, admin: 2, full: 3 };
 
 // For any component gating a nav item, button, or page section by tier --
 // mirrors the backend's own TIER_RANK ordering in connectedTiers.ts
@@ -27,7 +27,7 @@ const PREVIEW_TIER_KEY = 'connected_preview_tier';
 function readStoredPreviewTier(): ConnectedTier | null {
   try {
     const raw = localStorage.getItem(PREVIEW_TIER_KEY);
-    return raw === 'basic' || raw === 'manager' || raw === 'admin' ? raw : null;
+    return raw === 'basic' || raw === 'manager' || raw === 'admin' || raw === 'full' ? raw : null;
   } catch {
     return null;
   }

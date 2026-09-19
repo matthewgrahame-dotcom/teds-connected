@@ -36,7 +36,10 @@ function isRealMinTier(value: string | null): value is 'manager' | 'admin' {
 export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; onNavigate: () => void }) {
   const [location] = useLocation();
   const { session, effectiveConnectedTier } = useAuth();
-  const canDrag = meetsConnectedTier(effectiveConnectedTier, 'admin');
+  // 'full' specifically, not 'admin' -- Matt's own call: an ordinary
+  // admin doesn't need to be able to drag nav items around/into Quick
+  // Links, only the one person this tier is scoped to.
+  const canDrag = meetsConnectedTier(effectiveConnectedTier, 'full');
   const [items, setItems] = useState<FetchedNavItem[] | null>(null);
   // Accordion: only one section open at a time across the whole sidebar --
   // opening one collapses whatever else was open. A previous attempt at
