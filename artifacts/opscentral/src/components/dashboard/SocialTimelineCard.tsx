@@ -248,12 +248,12 @@ export function SocialTimelineCard() {
             rows={2}
             className="w-full resize-none px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground/70"
           />
-          <div className="flex items-center gap-1.5 border-t border-border px-2 py-1.5">
-            <span className="text-xs text-muted-foreground">To:</span>
+          <div className="flex min-w-0 items-center gap-1.5 border-t border-border px-2 py-1.5">
+            <span className="shrink-0 text-xs text-muted-foreground">To:</span>
             <select
               value={toUserName}
               onChange={(e) => setToUserName(e.target.value)}
-              className="h-7 rounded-md border border-input bg-background px-1.5 text-xs outline-none"
+              className="h-7 min-w-0 max-w-full flex-1 truncate rounded-md border border-input bg-background px-1.5 text-xs outline-none"
             >
               <option value="">Everyone</option>
               {users?.map((u) => (
