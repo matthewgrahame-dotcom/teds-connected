@@ -10,8 +10,8 @@ const PHOCAL_BASE_URL = 'https://seo-optimiser.vercel.app'; // TODO: update once
 // proxies to Phocal's cached copy (kept fresh weekly by Phocal's own cron),
 // rather than generating anything here. See
 // artifacts/api-server/src/routes/recent-roundup.ts. Connected has no
-// Shopify/Anthropic credentials of its own, so this card is read-only --
-// regenerating on demand still happens in Phocal itself (Open in Phocal).
+// Shopify/Anthropic credentials of its own, so edits are stored in local
+// session state and won't persist across page reloads.
 type RoundupData = {
   available: boolean;
   roundup?: string;
@@ -27,7 +27,6 @@ export function RecentProductsCard() {
   const [expanded, setExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedRoundup, setEditedRoundup] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     fetch('/api/recent-roundup')
@@ -39,23 +38,10 @@ export function RecentProductsCard() {
       .catch(() => setData({ available: false }));
   }, []);
 
-  const handleSaveEdit = async () => {
-    try {
-      setIsSaving(true);
-      const response = await fetch('/api/recent-roundup', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roundup: editedRoundup }),
-      });
-      if (response.ok) {
-        setData((prev) => (prev ? { ...prev, roundup: editedRoundup } : null));
-        setIsEditing(false);
-      }
-    } catch (err) {
-      console.error('Failed to save roundup:', err);
-    } finally {
-      setIsSaving(false);
-    }
+  const handleSaveEdit = () => {
+    // Save to local state (session-scoped)
+    setData((prev) => (prev ? { ...prev, roundup: editedRoundup } : null));
+    setIsEditing(false);
   };
 
   const handleCancelEdit = () => {
@@ -119,20 +105,21 @@ export function RecentProductsCard() {
                 <button
                   type="button"
                   onClick={handleSaveEdit}
-                  disabled={isSaving}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-extrabold text-primary-foreground transition hover:brightness-95 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-extrabold text-primary-foreground transition hover:brightness-95"
                 >
                   <Check className="h-3.5 w-3.5" /> Save
                 </button>
                 <button
                   type="button"
                   onClick={handleCancelEdit}
-                  disabled={isSaving}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-xs font-extrabold text-foreground transition hover:bg-muted disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-xs font-extrabold text-foreground transition hover:bg-muted"
                 >
                   <X className="h-3.5 w-3.5" /> Cancel
                 </button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Changes are saved to this session only and won't persist when you reload the page.
+              </p>
             </div>
           ) : (
             <>
@@ -148,7 +135,7 @@ export function RecentProductsCard() {
                         type="button"
                         onClick={() => setIsEditing(true)}
                         className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md p-1.5 text-foreground/70 transition hover:bg-muted hover:text-foreground"
-                        title="Edit this roundup"
+                        title="Edit this roundup (changes won't persist on reload)"
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
