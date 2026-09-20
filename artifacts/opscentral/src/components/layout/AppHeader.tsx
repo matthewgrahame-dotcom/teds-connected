@@ -105,9 +105,17 @@ export function AppHeader({ userName }: { userName: string }) {
               className="h-9 w-48 rounded-md bg-background/10 pl-9 pr-3 text-sm text-background outline-none placeholder:text-background/50 focus:bg-background/15 lg:w-64"
             />
           </div>
-          <Link href="/tasks" aria-label="Tasks" className="relative text-background/70 transition hover:text-background">
-            <ListChecks className="h-5 w-5" />
-            <Badge count={taskCount} />
+          {/* -m-2.5 + h-10 w-10 grow the actual tap target to 40x40 without
+              shifting the icon's visual position or spacing from its
+              neighbours -- the negative margin exactly cancels the box
+              growth. Badge stays on its own inner relative span so its
+              -right-1.5/-top-1.5 offsets stay anchored to the icon, not to
+              this bigger invisible hit area. */}
+          <Link href="/tasks" aria-label="Tasks" className="-m-2.5 flex h-10 w-10 items-center justify-center text-background/70 transition hover:text-background">
+            <span className="relative">
+              <ListChecks className="h-5 w-5" />
+              <Badge count={taskCount} />
+            </span>
           </Link>
 
           <div className="relative" ref={bellRef}>
@@ -115,10 +123,12 @@ export function AppHeader({ userName }: { userName: string }) {
               type="button"
               aria-label="Notifications"
               onClick={() => setBellOpen((v) => !v)}
-              className="relative text-background/70 transition hover:text-background"
+              className="-m-2.5 flex h-10 w-10 items-center justify-center text-background/70 transition hover:text-background"
             >
-              <Bell className="h-5 w-5" />
-              <Badge count={taskCount} />
+              <span className="relative">
+                <Bell className="h-5 w-5" />
+                <Badge count={taskCount} />
+              </span>
             </button>
             {bellOpen && (
               <div className="absolute right-0 top-full z-40 mt-2 w-72 rounded-lg border border-border bg-card py-2 shell-shadow">
@@ -160,7 +170,7 @@ export function AppHeader({ userName }: { userName: string }) {
               aria-label="Profile menu"
               data-testid="button-profile-menu"
               onClick={() => setMenuOpen((open) => !open)}
-              className="text-background/70 transition hover:text-background"
+              className="-m-1.5 flex h-10 w-10 items-center justify-center text-background/70 transition hover:text-background"
             >
               <CircleUserRound className="h-7 w-7" />
             </button>
