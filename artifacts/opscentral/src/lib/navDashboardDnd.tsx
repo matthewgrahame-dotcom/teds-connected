@@ -116,7 +116,18 @@ export function NavDashboardDndProvider({ children }: { children: ReactNode }) {
   const [activeDrag, setActiveDrag] = useState<DragData | null>(null);
   const [quickLinksVersion, setQuickLinksVersion] = useState(0);
   const [navItemsVersion, setNavItemsVersion] = useState(0);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  // Was `{ distance: 6 }` -- on touch, any incidental finger movement
+  // past 6px (which a normal scroll-start gesture blows through in a
+  // couple of pixels) immediately started a drag, so scrolling the page
+  // while a finger happened to land on a tile/nav row would yank it
+  // instead. `delay` requires the pointer to stay down for a beat before
+  // a drag is allowed to start at all, and `tolerance` still cancels
+  // that pending drag if the finger moves more than a few px during the
+  // delay -- exactly the "was this a scroll or a deliberate press-and-hold"
+  // distinction a scroll gesture and a drag-start both need. Mouse users
+  // are unaffected in practice: 200ms is well under normal click-and-drag
+  // timing.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 200, tolerance: 8 } }));
   // A ref, not state -- registration happens in an effect (once, on
   // mount) and is read inside drag callbacks; neither needs a re-render
   // when the registered set changes, and a ref avoids handleDragEnd's

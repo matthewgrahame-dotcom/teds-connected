@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Settings, Plus, Trash2, ChevronUp, ChevronDown, X } from 'lucide-react';
+import { Settings, Plus, Trash2, ChevronUp, ChevronDown, X, Move, Check } from 'lucide-react';
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { LinkTileGrid, type LinkTile } from './LinkTileGrid';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -29,11 +29,23 @@ export function QuickLinksCard() {
   const { requirePublishAccess } = usePublishAccess();
   const [links, setLinks] = useState<QuickLinkRow[] | null>(null);
   const [editing, setEditing] = useState(false);
+  // Explicit "I want to rearrange tiles now" mode -- OFF by default, even
+  // for an admin. Dragging a tile off the dashboard is a real, immediate
+  // mutation (it deletes the quick-link row and creates a nav item), so
+  // it should never be armed just because someone with admin tier happens
+  // to be scrolling past this card; it needs a deliberate tap first. See
+  // navDashboardDnd.tsx for the touch-vs-scroll sensor fix, which handles
+  // the OTHER half of "I unintentionally move them around while
+  // scrolling" -- this toggle is the other half, since even a
+  // press-and-hold-based sensor is still one accidental long-press away
+  // from moving something if dragging is always live.
+  const [reorderMode, setReorderMode] = useState(false);
   const [saving, setSaving] = useState<number | 'new' | null>(null);
   const { setDropRef, isOver } = useDroppableDashboard();
   const quickLinksVersion = useQuickLinksVersion();
 
   const canEdit = meetsConnectedTier(effectiveConnectedTier, 'admin');
+  const canDragOff = canEdit && reorderMode;
 
   // Carries the same cross-app token used for the Connected -> Phocal
   // direction, so clicking through doesn't ask to log in again.
@@ -68,6 +80,7 @@ export function QuickLinksCard() {
   }));
 
   const openSettings = () => requirePublishAccess(() => setEditing(true));
+  const toggleReorderMode = () => requirePublishAccess(() => setReorderMode((v) => !v));
 
   const saveLink = async (id: number, patch: Partial<QuickLinkRow>) => {
     setSaving(id);
@@ -107,10 +120,35 @@ export function QuickLinksCard() {
     ]);
   };
 
+  const actions = canEdit ? (
+    <>
+      <CardIconButton
+        icon={reorderMode ? Check : Move}
+        label={reorderMode ? 'Done reordering tiles' : 'Reorder tiles'}
+        tone={reorderMode ? 'primary' : 'default'}
+        onClick={toggleReorderMode}
+      />
+      <CardIconButton icon={Settings} label="Edit quick links" onClick={openSettings} />
+    </>
+  ) : (
+    <></>
+  );
+
   return (
     <div ref={setDropRef} className={isOver ? 'rounded-xl ring-2 ring-primary' : ''}>
-      <DashboardCard title="Quick Links" actions={canEdit ? <CardIconButton icon={Settings} label="Edit quick links" onClick={openSettings} /> : <></>}>
-        {links === null ? <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p> : <LinkTileGrid tiles={tiles} draggable={canEdit} />}
+      <DashboardCard title="Quick Links" actions={actions}>
+        {links === null ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p>
+        ) : (
+          <>
+            {reorderMode && (
+              <p className="mb-3 text-xs font-medium text-muted-foreground">
+                Drag a tile onto the sidebar to move it there. Tap <Check className="inline h-3 w-3 -translate-y-px" /> above when you're done.
+              </p>
+            )}
+            <LinkTileGrid tiles={tiles} draggable={canDragOff} />
+          </>
+        )}
 
         <Dialog open={editing} onOpenChange={setEditing}>
           <DialogContent className="max-w-2xl">
