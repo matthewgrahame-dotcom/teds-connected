@@ -32,7 +32,10 @@ export function DashboardCard({
   );
 }
 
-/** The small bordered square button used for ⋮ / search / filter / external-link actions. */
+/** The small bordered square button used for ⋮ / search / filter / external-link actions.
+ * h-10 w-10 (was h-9 w-9) -- 36px was just under the ~40px tap-target
+ * minimum flagged on mobile; icon size is unchanged so this is a 2px
+ * halo on each side, not a visual redesign. */
 export function CardIconButton({
   icon: Icon,
   label,
@@ -49,7 +52,7 @@ export function CardIconButton({
       type="button"
       aria-label={label}
       onClick={onClick}
-      className={`grid h-9 w-9 shrink-0 place-items-center rounded-md transition ${
+      className={`grid h-10 w-10 shrink-0 place-items-center rounded-md transition ${
         tone === 'primary'
           ? 'bg-primary text-primary-foreground hover:brightness-95'
           : 'border border-border text-foreground hover:bg-muted'
