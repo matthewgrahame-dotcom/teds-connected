@@ -165,7 +165,12 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
         </div>
 
         {canDrag && (
-          <p className="border-b border-sidebar-border px-4 py-2 text-[11px] font-semibold text-muted-foreground">
+          // text-[11px] -> text-xs (12px) -- was flagged as "very small
+          // text" on mobile; this is an incidental helper hint (not a
+          // primary nav label) shown only to the one 'full'-tier user with
+          // drag-and-drop enabled, so bumping it one step is the smallest
+          // change that clears the readability threshold.
+          <p className="border-b border-sidebar-border px-4 py-2 text-xs font-semibold text-muted-foreground">
             Drag a link to/from the dashboard to move it, or onto a group to file it there
           </p>
         )}
