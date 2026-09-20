@@ -57,11 +57,30 @@ router.post("/ai-help", requireSession, async (req, res) => {
   // pick from rather than guessing or inventing titles.
   const existingWorkDocuments = await db.select({ id: workDocumentsTable.id, title: workDocumentsTable.title }).from(workDocumentsTable);
 
+  // Grounds "update the Teds.com.au roundup" / "fix the products roundup"
+  // style requests -- the roundup itself lives entirely in Phocal's cache
+  // (see routes/recent-roundup.ts), so unlike everything above this isn't a
+  // DB read, just a best-effort fetch of the same cached copy the dashboard
+  // card shows. Failure here shouldn't block the rest of AI Help, so it's
+  // swallowed rather than surfaced.
+  let recentRoundup: { roundup?: string; savedAt?: string | null } | null = null;
+  try {
+    const roundupResp = await fetch(`${PHOCAL_BASE_URL}/api/recent-roundup-latest`);
+    if (roundupResp.ok) {
+      const roundupData = await roundupResp.json();
+      if (roundupData?.available && typeof roundupData.roundup === "string") {
+        recentRoundup = { roundup: roundupData.roundup, savedAt: roundupData.savedAt ?? null };
+      }
+    }
+  } catch {
+    // non-fatal -- AI Help still works for everything else without this
+  }
+
   try {
     const resp = await fetch(`${PHOCAL_BASE_URL}/api/connected-ai-help`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, history, sessionToken, recentNewsArticles, existingForms, formCategories: allCategories, existingWorkDocuments }),
+      body: JSON.stringify({ question, history, sessionToken, recentNewsArticles, existingForms, formCategories: allCategories, existingWorkDocuments, recentRoundup }),
     });
     const data = await resp.json();
     if (!resp.ok) {
