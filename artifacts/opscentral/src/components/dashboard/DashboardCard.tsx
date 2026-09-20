@@ -22,9 +22,9 @@ export function DashboardCard({
 }) {
   return (
     <section className={`rounded-xl border border-card-border bg-card shell-shadow ${className}`}>
-      <div className="flex items-center justify-between px-5 pt-5">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 pt-5">
         <h2 className="text-[15px] font-extrabold uppercase tracking-wide text-foreground">{title}</h2>
-        <div className="flex items-center gap-2">{actions ?? <CardMenuButton />}</div>
+        <div className="flex flex-wrap items-center justify-end gap-2">{actions ?? <CardMenuButton />}</div>
       </div>
       <div className="mx-5 mt-3 border-t border-border" />
       <div className={noPadding ? '' : 'p-5'}>{children}</div>
