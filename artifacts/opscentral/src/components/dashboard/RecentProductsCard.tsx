@@ -61,7 +61,7 @@ export function RecentProductsCard() {
           rel="noreferrer"
           aria-label="Open Recent Products Roundup in Phocal"
           title="Open Recent Products Roundup in Phocal"
-          className="flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-extrabold text-primary-foreground transition hover:brightness-95"
+          className="flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-extrabold text-primary-foreground transition hover:brightness-95"
         >
           <ExternalLink className="h-3.5 w-3.5" /> Open in Phocal
         </a>
@@ -131,20 +131,27 @@ export function RecentProductsCard() {
                   <>
                     <div className="flex items-start justify-between gap-3">
                       <div className="whitespace-pre-wrap text-sm leading-6 text-foreground/90">{shown.join('\n\n')}</div>
+                      {/* -m-2.5 + h-10 w-10 grow the tap target to 40x40
+                          without shifting the icon's visual position --
+                          same trick as the header icons above. */}
                       <button
                         type="button"
                         onClick={() => setIsEditing(true)}
-                        className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md p-1.5 text-foreground/70 transition hover:bg-muted hover:text-foreground"
+                        className="-m-2.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-foreground/70 transition hover:bg-muted hover:text-foreground"
                         title="Edit this roundup (changes won't persist on reload)"
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
                     </div>
                     {hasMore && (
+                      // -my-2.5 py-2.5 grows the tap height to 40px around
+                      // the same text/icon, without adding visible bulk --
+                      // the text still sits flush against the paragraph
+                      // above since the negative margin cancels it out.
                       <button
                         type="button"
                         onClick={() => setExpanded((v) => !v)}
-                        className="mt-2 inline-flex items-center gap-1 text-xs font-extrabold text-accent hover:underline"
+                        className="-my-2.5 mt-2 flex items-center gap-1 py-2.5 text-xs font-extrabold text-accent hover:underline"
                       >
                         {expanded ? (
                           <>
