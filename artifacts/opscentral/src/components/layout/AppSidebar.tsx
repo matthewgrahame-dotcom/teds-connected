@@ -165,7 +165,7 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
         </div>
 
         {canDrag && (
-          <p className="border-b border-sidebar-border px-4 py-2 text-[11px] font-semibold text-muted-foreground">
+          <p className="border-b border-sidebar-border px-4 py-2 text-xs font-semibold text-muted-foreground">
             Drag a link to/from the dashboard to move it, or onto a group to file it there
           </p>
         )}
