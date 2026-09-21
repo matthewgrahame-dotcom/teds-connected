@@ -49,7 +49,7 @@ export function CardIconButton({
       type="button"
       aria-label={label}
       onClick={onClick}
-      className={`grid h-9 w-9 shrink-0 place-items-center rounded-md transition ${
+      className={`grid h-10 w-10 shrink-0 place-items-center rounded-md transition ${
         tone === 'primary'
           ? 'bg-primary text-primary-foreground hover:brightness-95'
           : 'border border-border text-foreground hover:bg-muted'
