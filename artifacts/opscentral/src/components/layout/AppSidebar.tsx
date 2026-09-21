@@ -154,18 +154,18 @@ export function AppSidebar({ mobileOpen, onNavigate }: { mobileOpen: boolean; on
       <div className="flex h-full flex-col">
         <div className="border-b border-sidebar-border py-5 md:hidden">
           <Link href="/" onClick={onNavigate} className="flex items-center justify-center">
-            <img src={connectedLogo} alt="Connected" className="h-24 w-auto drop-shadow-md" />
+            <img src={connectedLogo} alt="Connected" className="h-24 w-auto rounded-xl shadow-lg drop-shadow-md" />
           </Link>
         </div>
 
         <div className="relative hidden border-b border-sidebar-border pb-6 pt-8 md:block">
           <Link href="/" className="relative -mt-16 flex items-center justify-center">
-            <img src={connectedLogo} alt="Connected" className="h-24 w-auto drop-shadow-md" />
+            <img src={connectedLogo} alt="Connected" className="h-24 w-auto rounded-xl shadow-lg drop-shadow-md" />
           </Link>
         </div>
 
         {canDrag && (
-          <p className="border-b border-sidebar-border px-4 py-2 text-[11px] font-semibold text-muted-foreground">
+          <p className="border-b border-sidebar-border px-4 py-2 text-xs font-semibold text-muted-foreground">
             Drag a link to/from the dashboard to move it, or onto a group to file it there
           </p>
         )}

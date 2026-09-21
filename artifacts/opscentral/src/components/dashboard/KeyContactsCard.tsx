@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { User, Phone, Mail, Settings, Plus, Trash2, ChevronUp, ChevronDown, X, Search, Upload } from 'lucide-react';
+import { User, Phone, Mail, Settings, Plus, Trash2, ChevronUp, ChevronDown, X, Search, Upload, Users } from 'lucide-react';
+import { Link } from 'wouter';
 import { DashboardCard, CardIconButton } from './DashboardCard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth, meetsConnectedTier } from '@/lib/auth';
@@ -129,7 +130,20 @@ export function KeyContactsCard() {
   }, [allUsers, pickerSearch, contacts]);
 
   return (
-    <DashboardCard title="Key Contacts" actions={canEdit ? <CardIconButton icon={Settings} label="Edit key contacts" onClick={openSettings} /> : <></>}>
+    <DashboardCard 
+      title="Key Contacts" 
+      actions={
+        <>
+          <Link href="/people/directory">
+            <a className="inline-flex h-10 items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-extrabold text-primary-foreground transition hover:brightness-95">
+              <Users className="h-4 w-4" />
+              <span>Directory</span>
+            </a>
+          </Link>
+          {canEdit && <CardIconButton icon={Settings} label="Edit key contacts" onClick={openSettings} />}
+        </>
+      }
+    >
       {contacts === null && <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p>}
       {contacts !== null && (
         <div className="flex gap-4 overflow-x-auto pb-1">
@@ -182,11 +196,11 @@ export function KeyContactsCard() {
             {contacts?.map((contact, index) => (
               <div key={contact.id} className="rounded-lg border border-border p-3">
                 <div className="flex items-center gap-2">
-                  <div className="flex flex-col">
-                    <button type="button" disabled={index === 0} onClick={() => move(index, -1)} className="text-muted-foreground disabled:opacity-30 hover:text-foreground">
+                  <div className="flex flex-col gap-1">
+                    <button type="button" disabled={index === 0} onClick={() => move(index, -1)} className="h-8 w-8 text-muted-foreground disabled:opacity-30 hover:text-foreground">
                       <ChevronUp className="h-4 w-4" />
                     </button>
-                    <button type="button" disabled={index === (contacts?.length ?? 0) - 1} onClick={() => move(index, 1)} className="text-muted-foreground disabled:opacity-30 hover:text-foreground">
+                    <button type="button" disabled={index === (contacts?.length ?? 0) - 1} onClick={() => move(index, 1)} className="h-8 w-8 text-muted-foreground disabled:opacity-30 hover:text-foreground">
                       <ChevronDown className="h-4 w-4" />
                     </button>
                   </div>
@@ -202,14 +216,14 @@ export function KeyContactsCard() {
                     aria-label="Remove contact"
                     disabled={saving === contact.id}
                     onClick={() => deleteContact(contact.id)}
-                    className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-                <p className="mt-2 pl-9 text-[11px] text-muted-foreground">Uses their User Management photo by default. Only set these if this contact needs a different photo/phone/email just for this list:</p>
+                <p className="mt-2 pl-9 text-xs text-muted-foreground">Uses their User Management photo by default. Only set these if this contact needs a different photo/phone/email just for this list:</p>
                 <div className="mt-1 grid grid-cols-2 gap-2 pl-9 sm:grid-cols-4">
-                  <label className="flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-input text-xs font-semibold text-muted-foreground transition hover:bg-muted">
+                  <label className="flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-input text-xs font-semibold text-muted-foreground transition hover:bg-muted">
                     <Upload className="h-3.5 w-3.5" />
                     Override photo
                     <input
@@ -228,21 +242,21 @@ export function KeyContactsCard() {
                     key={`photo-${contact.id}`}
                     onBlur={(e) => e.target.value.trim() !== (contact.photoUrl ?? '') && saveContact(contact.id, { photoUrl: e.target.value.trim() })}
                     placeholder="...or paste a photo URL"
-                    className="h-8 rounded-md border border-input bg-background px-2 text-xs outline-none"
+                    className="h-10 rounded-md border border-input bg-background px-2 text-xs outline-none"
                   />
                   <input
                     defaultValue={contact.phone ?? ''}
                     key={`phone-${contact.id}`}
                     onBlur={(e) => e.target.value.trim() !== (contact.phone ?? '') && saveContact(contact.id, { phoneOverride: e.target.value.trim() })}
                     placeholder="Phone override"
-                    className="h-8 rounded-md border border-input bg-background px-2 text-xs outline-none"
+                    className="h-10 rounded-md border border-input bg-background px-2 text-xs outline-none"
                   />
                   <input
                     defaultValue={contact.email ?? ''}
                     key={`email-${contact.id}`}
                     onBlur={(e) => e.target.value.trim() !== (contact.email ?? '') && saveContact(contact.id, { emailOverride: e.target.value.trim() })}
                     placeholder="Email override"
-                    className="h-8 rounded-md border border-input bg-background px-2 text-xs outline-none"
+                    className="h-10 rounded-md border border-input bg-background px-2 text-xs outline-none"
                   />
                 </div>
               </div>
