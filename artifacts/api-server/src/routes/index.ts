@@ -23,6 +23,7 @@ import onboardingRouter from "./onboarding";
 import jobPostingsRouter from "./job-postings";
 import locationsRouter from "./locations";
 import connectedTierRouter from "./connected-tier";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -50,5 +51,6 @@ router.use(onboardingRouter);
 router.use(jobPostingsRouter);
 router.use(locationsRouter);
 router.use(connectedTierRouter);
+router.use(notificationsRouter);
 
 export default router;

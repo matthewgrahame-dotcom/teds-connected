@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, CalendarCheck, CircleUserRound, Eye, GraduationCap, HelpCircle, LayoutGrid, ListChecks, LogOut, MousePointer2, Rocket, Search, Settings, User, Users } from 'lucide-react';
+import { Bell, CircleUserRound, Eye, HelpCircle, LayoutGrid, ListChecks, LogOut, Megaphone, MessageSquare, MousePointer2, Newspaper, Rocket, Search, Settings, User, Users } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { useAuth, meetsConnectedTier } from '@/lib/auth';
 import { authHeaders } from '@/lib/sessionAuth';
@@ -21,11 +21,18 @@ const guideSections = [
   { title: 'People', body: 'Forms, performance reviews, onboarding, and other people-ops tools.' },
   { title: 'Admin', body: 'User Management and Portal Settings (full-level staff).' },
   { title: 'Tasks (top right)', body: 'Outstanding training and event RSVPs, all in one list.' },
+  { title: 'Notifications (top right)', body: "What's new since you last checked — News articles and Ted's Talks posts." },
   { title: 'Search (top right)', body: 'Searches News, Work hub docs, the Directory, and Quick Links at once.' },
 ];
 
 type TrainingTask = { type: 'training'; moduleId: number; title: string; programTitle: string };
 type RsvpTask = { type: 'rsvp'; eventId: number; title: string; date: string; time: string | null };
+type NotificationSummary = {
+  newsCount: number;
+  tedsTalksCount: number;
+  newsPreview: { id: number; title: string }[];
+  tedsTalksPreview: { id: string; fromName: string; messageText: string }[];
+};
 
 function Badge({ count }: { count: number }) {
   if (count === 0) return null;
@@ -47,6 +54,7 @@ export function AppHeader({ userName }: { userName: string }) {
   const bellRef = useRef<HTMLDivElement>(null);
   const [trainingTasks, setTrainingTasks] = useState<TrainingTask[]>([]);
   const [rsvpTasks, setRsvpTasks] = useState<RsvpTask[]>([]);
+  const [notifSummary, setNotifSummary] = useState<NotificationSummary | null>(null);
 
   useEffect(() => {
     if (!session) return;
@@ -59,7 +67,35 @@ export function AppHeader({ userName }: { userName: string }) {
       .catch(() => {});
   }, [session]);
 
+  useEffect(() => {
+    if (!session) return;
+    fetch('/api/notifications/summary', { headers: authHeaders(session) })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((data: NotificationSummary) => setNotifSummary(data))
+      .catch(() => {});
+  }, [session]);
+
   const taskCount = trainingTasks.length + rsvpTasks.length;
+  const notifCount = (notifSummary?.newsCount ?? 0) + (notifSummary?.tedsTalksCount ?? 0);
+
+  // Marks everything as seen the moment the bell is opened (matches how
+  // most notification bells behave -- opening the panel is "I've seen
+  // these"), and optimistically zeroes the badge locally rather than
+  // waiting on a round trip.
+  const openBell = () => {
+    setBellOpen((v) => {
+      const opening = !v;
+      if (opening && session && notifCount > 0) {
+        fetch('/api/notifications/mark-seen', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders(session) },
+          body: JSON.stringify({ which: 'all' }),
+        }).catch(() => {});
+        setNotifSummary((prev) => (prev ? { ...prev, newsCount: 0, tedsTalksCount: 0 } : prev));
+      }
+      return opening;
+    });
+  };
 
   useEffect(() => {
     if (!menuOpen && !bellOpen) return;
@@ -114,40 +150,45 @@ export function AppHeader({ userName }: { userName: string }) {
             <button
               type="button"
               aria-label="Notifications"
-              onClick={() => setBellOpen((v) => !v)}
+              onClick={openBell}
               className="relative text-background/70 transition hover:text-background"
             >
               <Bell className="h-5 w-5" />
-              <Badge count={taskCount} />
+              <Badge count={notifCount} />
             </button>
             {bellOpen && (
-              <div className="absolute right-0 top-full z-40 mt-2 w-72 rounded-lg border border-border bg-card py-2 shell-shadow">
-                <p className="px-4 pb-2 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">Things to do</p>
-                {taskCount === 0 && <p className="px-4 py-3 text-sm text-muted-foreground">You're all caught up.</p>}
-                {rsvpTasks.slice(0, 3).map((t) => (
-                  <Link key={`rsvp-${t.eventId}`} href="/tasks" onClick={() => setBellOpen(false)} className="flex items-start gap-2 px-4 py-2 text-sm transition hover:bg-muted">
-                    <CalendarCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <div className="absolute right-0 top-full z-40 mt-2 w-80 rounded-lg border border-border bg-card py-2 shell-shadow">
+                <p className="px-4 pb-2 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">What's new</p>
+                {!notifSummary && <p className="px-4 py-3 text-sm text-muted-foreground">Loading…</p>}
+                {notifSummary && notifSummary.newsCount === 0 && notifSummary.tedsTalksCount === 0 && (
+                  <p className="px-4 py-3 text-sm text-muted-foreground">You're all caught up.</p>
+                )}
+                {notifSummary?.newsPreview.map((n) => (
+                  <Link key={`news-${n.id}`} href={`/news/${n.id}`} onClick={() => setBellOpen(false)} className="flex items-start gap-2 px-4 py-2 text-sm transition hover:bg-muted">
+                    <Newspaper className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                     <span>
-                      <span className="block font-semibold text-foreground">{t.title}</span>
-                      <span className="text-xs text-muted-foreground">RSVP needed — {t.date}</span>
+                      <span className="block font-semibold text-foreground">{n.title}</span>
+                      <span className="text-xs text-muted-foreground">News</span>
                     </span>
                   </Link>
                 ))}
-                {trainingTasks.slice(0, 3).map((t) => (
-                  <Link key={`training-${t.moduleId}`} href="/tasks" onClick={() => setBellOpen(false)} className="flex items-start gap-2 px-4 py-2 text-sm transition hover:bg-muted">
-                    <GraduationCap className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                {notifSummary?.tedsTalksPreview.map((m) => (
+                  <Link key={`talk-${m.id}`} href="/" onClick={() => setBellOpen(false)} className="flex items-start gap-2 px-4 py-2 text-sm transition hover:bg-muted">
+                    <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                     <span>
-                      <span className="block font-semibold text-foreground">{t.title}</span>
-                      <span className="text-xs text-muted-foreground">{t.programTitle}</span>
+                      <span className="block font-semibold text-foreground">{m.fromName}</span>
+                      <span className="line-clamp-1 text-xs text-muted-foreground">{m.messageText}</span>
                     </span>
                   </Link>
                 ))}
-                {taskCount > 0 && (
+                {notifSummary && (notifSummary.newsCount > 3 || notifSummary.tedsTalksCount > 3) && (
                   <>
                     <div className="my-1 border-t border-border" />
-                    <Link href="/tasks" onClick={() => setBellOpen(false)} className="block px-4 py-2 text-center text-sm font-bold text-accent hover:underline">
-                      View all tasks
-                    </Link>
+                    {notifSummary.newsCount > 3 && (
+                      <Link href="/news" onClick={() => setBellOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-accent hover:underline">
+                        <Megaphone className="h-4 w-4" /> View all News
+                      </Link>
+                    )}
                   </>
                 )}
               </div>
